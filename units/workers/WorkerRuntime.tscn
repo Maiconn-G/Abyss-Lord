@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://units/workers/worker_runtime.gd" id="1_runtime"]
 
@@ -15,7 +15,19 @@ height = 1.6
 radius = 0.35
 height = 1.6
 
+[sub_resource type="StandardMaterial3D" id="SelectionMaterial"]
+shading_mode = 0
+albedo_color = Color(0.35, 1, 0.4, 1)
+
+[sub_resource type="CylinderMesh" id="SelectionMesh"]
+material = SubResource("SelectionMaterial")
+top_radius = 0.55
+bottom_radius = 0.55
+height = 0.04
+
 [node name="WorkerRuntime" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 1
 script = ExtResource("1_runtime")
 
 [node name="Visual" type="MeshInstance3D" parent="."]
@@ -25,3 +37,9 @@ mesh = SubResource("WorkerMesh")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 shape = SubResource("WorkerShape")
+
+[node name="SelectionIndicator" type="MeshInstance3D" parent="."]
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+cast_shadow = 0
+mesh = SubResource("SelectionMesh")

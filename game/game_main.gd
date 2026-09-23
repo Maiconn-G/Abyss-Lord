@@ -6,6 +6,7 @@ extends Node
 @onready var _core: CoreRuntime = $World/DungeonRoot/MainCore
 @onready var _worker: WorkerRuntime = $World/DungeonRoot/Worker001
 @onready var _hud: CoreDebugHud = $UI/CoreDebugPanel
+@onready var _selection: SelectionController = $Systems/SelectionController
 
 
 func _ready() -> void:
@@ -18,3 +19,4 @@ func _ready() -> void:
 
 	core_state.set_population(1)
 	_hud.bind_core(core_state)
+	_selection.setup($World/CameraRig/Camera3D)

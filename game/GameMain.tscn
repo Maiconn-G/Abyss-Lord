@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://game/game_main.gd" id="1_game"]
 [ext_resource type="Script" path="res://camera/camera_controller.gd" id="2_camera"]
@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" path="res://ui/hud/CoreDebugHud.tscn" id="5_hud"]
 [ext_resource type="PackedScene" path="res://units/workers/WorkerRuntime.tscn" id="6_worker"]
 [ext_resource type="Resource" path="res://data/units/workers/abyss_worker.tres" id="7_worker_def"]
+[ext_resource type="Script" path="res://systems/selection/selection_controller.gd" id="8_selection"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMaterial"]
 albedo_color = Color(0.22, 0.26, 0.3, 1.0)
@@ -17,6 +18,9 @@ size = Vector2(30, 30)
 subdivide_width = 10
 subdivide_depth = 10
 material = SubResource("FloorMaterial")
+
+[sub_resource type="BoxShape3D" id="TestFloorShape"]
+size = Vector3(30, 0.1, 30)
 
 [node name="GameMain" type="Node"]
 script = ExtResource("1_game")
@@ -38,6 +42,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 2)
 [node name="TestFloor" type="MeshInstance3D" parent="World/Environment"]
 mesh = SubResource("TestFloorMesh")
 
+[node name="TestFloorBody" type="StaticBody3D" parent="World/Environment"]
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="World/Environment/TestFloorBody"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
+shape = SubResource("TestFloorShape")
+
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="World/Environment"]
 transform = Transform3D(0.866025, 0.433013, -0.25, 0, 0.5, 0.866025, 0.5, -0.75, 0.433013, 0, 0, 0)
 shadow_enabled = true
@@ -49,6 +61,9 @@ script = ExtResource("2_camera")
 transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 14.142136, 14.142136)
 
 [node name="Systems" type="Node" parent="."]
+
+[node name="SelectionController" type="Node" parent="Systems"]
+script = ExtResource("8_selection")
 
 [node name="UI" type="CanvasLayer" parent="."]
 
