@@ -1,0 +1,20 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://world/dungeon/storage/resource_deposit_runtime.gd" id="1_runtime"]
+
+[sub_resource type="StandardMaterial3D" id="DepositMaterial"]
+albedo_color = Color(0.85, 0.66, 0.25, 1)
+roughness = 0.7
+
+[sub_resource type="BoxMesh" id="DepositMesh"]
+size = Vector3(1.2, 0.5, 1.2)
+material = SubResource("DepositMaterial")
+
+[node name="ResourceDepositRuntime" type="Node3D"]
+script = ExtResource("1_runtime")
+
+[node name="Visual" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0)
+mesh = SubResource("DepositMesh")
+
+[node name="DepositPoint" type="Marker3D" parent="."]

@@ -182,7 +182,8 @@ func _test_rock_runtime_scene() -> void:
 	var ids: Array[String] = []
 	for entry in _rocks:
 		ids.append(entry.state.rock_id)
-	_check(ids == ["rock_001", "rock_002", "rock_003"], "GameMain compôs os três estados: %s" % [ids])
+	_check(ids == ["rock_001", "rock_002", "rock_003", "iron_ore_001"],
+			"GameMain compôs o estado de cada rocha da cena: %s" % [ids])
 	_check(_close(_rocks[0].state.remaining_work, 4.0), "estado inicial da rocha tem 4.0 de trabalho")
 	_check(_rocks[0].state.definition == _rock_definition(), "rocha usa a Definition do Resource")
 
@@ -387,14 +388,15 @@ func _test_no_resources_no_managers() -> void:
 		if not property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE:
 			continue
 		fields.append(property.name)
-	_check(fields == ["rock_type_id", "display_name", "work_required"],
-			"RockDefinition só expõe os 3 campos previstos: %s" % [fields])
+	_check(fields == ["rock_type_id", "display_name", "work_required",
+			"yield_resource", "yield_amount"],
+			"RockDefinition só expõe os 5 campos previstos: %s" % [fields])
 	_check(_scene.find_child("Drop*", true, false) == null, "nenhum nó de recurso foi criado ao escavar")
 	_check(_scene.find_child("*Manager*", true, false) == null, "nenhum manager de jobs foi criado")
 	_check(_scene.find_child("Navigation*", true, false) == null, "nenhum nó de navegação foi criado")
 	var autoloads: Dictionary = ProjectSettings.get_setting("autoload", {})
 	_check(autoloads.is_empty(), "nenhum autoload/singleton foi adicionado")
-	_check(_rocks.size() == 3 and is_instance_valid(_rocks[1]) and is_instance_valid(_rocks[2]),
+	_check(_rocks.size() == 4 and is_instance_valid(_rocks[1]) and is_instance_valid(_rocks[2]),
 			"as demais rochas continuam disponíveis após a escavação")
 
 

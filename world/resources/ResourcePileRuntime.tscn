@@ -1,0 +1,28 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://world/resources/resource_pile_runtime.gd" id="1_runtime"]
+
+[sub_resource type="StandardMaterial3D" id="OreMaterial"]
+albedo_color = Color(0.55, 0.66, 0.82, 1)
+metallic = 0.2
+roughness = 0.3
+
+[sub_resource type="BoxMesh" id="OreMesh"]
+size = Vector3(0.5, 0.5, 0.5)
+material = SubResource("OreMaterial")
+
+[sub_resource type="BoxShape3D" id="OreShape"]
+size = Vector3(0.5, 0.5, 0.5)
+
+[node name="ResourcePileRuntime" type="StaticBody3D"]
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("1_runtime")
+
+[node name="Visual" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0)
+mesh = SubResource("OreMesh")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0)
+shape = SubResource("OreShape")

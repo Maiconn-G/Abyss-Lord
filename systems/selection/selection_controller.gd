@@ -4,7 +4,8 @@ extends Node
 const GROUND_LAYER := 1
 const UNIT_LAYER := 2
 const DIGGABLE_LAYER := 4
-const CLICKABLE_LAYERS := GROUND_LAYER | UNIT_LAYER | DIGGABLE_LAYER
+const RESOURCE_PICKUP_LAYER := 8
+const CLICKABLE_LAYERS := GROUND_LAYER | UNIT_LAYER | DIGGABLE_LAYER | RESOURCE_PICKUP_LAYER
 const RAY_LENGTH := 1000.0
 
 var camera: Camera3D
@@ -38,6 +39,8 @@ func _command_move_at(screen_position: Vector2) -> void:
 		return
 	if hit.collider is RockRuntime:
 		selected_unit.assign_excavation_target(hit.collider)
+	elif hit.collider is ResourcePileRuntime:
+		selected_unit.collect_resource_pile(hit.collider)
 	elif hit.collider is StaticBody3D:
 		selected_unit.move_to(hit.position)
 

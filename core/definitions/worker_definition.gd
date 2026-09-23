@@ -6,3 +6,4 @@ extends Resource
 @export var max_health: float = 50.0
 @export var move_speed: float = 3.5
 @export var work_speed: float = 1.0
+@export var carry_capacity: int = 3

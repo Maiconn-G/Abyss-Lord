@@ -1,15 +1,17 @@
 extends Node
 
+const RESOURCE_PILE_SCENE := preload("res://world/resources/ResourcePileRuntime.tscn")
+
 @export var core_definition: CoreDefinition
 @export var worker_definition: WorkerDefinition
-@export var rock_definition: RockDefinition
-
-const ROCK_IDS := ["rock_001", "rock_002", "rock_003"]
+@export var iron_ore_definition: ResourceDefinition
 
 @onready var _dungeon: Node3D = $World/DungeonRoot
 @onready var _core: CoreRuntime = $World/DungeonRoot/MainCore
 @onready var _worker: WorkerRuntime = $World/DungeonRoot/Worker001
+@onready var _deposit: ResourceDepositRuntime = $World/DungeonRoot/Deposit001
 @onready var _hud: CoreDebugHud = $UI/CoreDebugPanel
+@onready var _resource_hud: ResourceDebugHud = $UI/ResourceDebugPanel
 @onready var _selection: SelectionController = $Systems/SelectionController
 
 
@@ -21,6 +23,11 @@ func _ready() -> void:
 	var worker_state := WorkerState.new(worker_definition, "worker_001")
 	_worker.setup(worker_definition, worker_state)
 
+	var stockpile_state := ResourceStockpileState.new()
+	_deposit.setup(stockpile_state)
+	_worker.set_resource_deposit(_deposit)
+	_resource_hud.bind_stockpile(stockpile_state, iron_ore_definition)
+
 	_bind_rocks()
 
 	core_state.set_population(1)
@@ -29,9 +36,19 @@ func _ready() -> void:
 
 
 func _bind_rocks() -> void:
-	var index := 0
 	for child in _dungeon.get_children():
-		if child is RockRuntime and index < ROCK_IDS.size():
+		if child is RockRuntime:
 			var rock := child as RockRuntime
-			rock.setup(rock_definition, RockState.new(rock_definition, ROCK_IDS[index]))
-			index += 1
+			rock.setup(rock.definition, RockState.new(rock.definition, rock.rock_id))
+			rock.resource_drop_requested.connect(_spawn_resource_drop)
+
+
+func _spawn_resource_drop(
+		resource: ResourceDefinition,
+		amount: int,
+		world_position: Vector3,
+		source_id: String) -> void:
+	var pile := RESOURCE_PILE_SCENE.instantiate() as ResourcePileRuntime
+	pile.position = Vector3(world_position.x, 0.0, world_position.z)
+	_dungeon.add_child(pile)
+	pile.setup(resource, ResourcePileState.new(resource, source_id + "_drop", amount))
