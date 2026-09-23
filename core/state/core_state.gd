@@ -2,6 +2,7 @@ class_name CoreState
 extends RefCounted
 
 signal essence_changed(current: float, maximum: float)
+signal population_changed(current: int, capacity: int)
 
 var definition: CoreDefinition
 var core_id: String = "main_core"
@@ -35,3 +36,12 @@ func consume_essence(amount: float) -> bool:
 	essence -= amount
 	essence_changed.emit(essence, definition.max_essence)
 	return true
+
+
+func set_population(value: int) -> void:
+	var capacity := definition.population_capacity
+	var next := clampi(value, 0, capacity)
+	if next == population:
+		return
+	population = next
+	population_changed.emit(population, capacity)

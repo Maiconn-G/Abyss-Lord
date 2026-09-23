@@ -157,7 +157,7 @@ func _test_scene_integration() -> void:
 			"HUD inicial: %s" % _text_of(labels, "IntegrityLabel"))
 	_check(_text_of(labels, "EssenceLabel") == "Essence: 20 / 50",
 			"HUD inicial: %s" % _text_of(labels, "EssenceLabel"))
-	_check(_text_of(labels, "PopulationLabel") == "Population: 0 / 8",
+	_check(_text_of(labels, "PopulationLabel") == "Population: 1 / 8",
 			"HUD inicial: %s" % _text_of(labels, "PopulationLabel"))
 
 	runtime.set_process(false)

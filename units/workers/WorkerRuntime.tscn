@@ -1,0 +1,27 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://units/workers/worker_runtime.gd" id="1_runtime"]
+
+[sub_resource type="StandardMaterial3D" id="WorkerMaterial"]
+albedo_color = Color(0.15, 0.62, 0.5, 1)
+roughness = 0.6
+
+[sub_resource type="CapsuleMesh" id="WorkerMesh"]
+material = SubResource("WorkerMaterial")
+radius = 0.35
+height = 1.6
+
+[sub_resource type="CapsuleShape3D" id="WorkerShape"]
+radius = 0.35
+height = 1.6
+
+[node name="WorkerRuntime" type="CharacterBody3D"]
+script = ExtResource("1_runtime")
+
+[node name="Visual" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+mesh = SubResource("WorkerMesh")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+shape = SubResource("WorkerShape")
