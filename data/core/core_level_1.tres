@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CoreDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/definitions/core_definition.gd" id="1_definition"]
+
+[resource]
+script = ExtResource("1_definition")
+level = 1
+max_integrity = 100.0
+max_essence = 50.0
+starting_essence = 20.0
+population_capacity = 8
+essence_generation_rate = 1.0
