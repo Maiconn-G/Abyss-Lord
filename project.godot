@@ -49,6 +49,7 @@ command_move={
 
 3d_physics/layer_1="Ground"
 3d_physics/layer_2="Units"
+3d_physics/layer_3="Diggable"
 
 [rendering]
 

@@ -27,7 +27,7 @@ height = 0.04
 
 [node name="WorkerRuntime" type="CharacterBody3D"]
 collision_layer = 2
-collision_mask = 1
+collision_mask = 5
 script = ExtResource("1_runtime")
 
 [node name="Visual" type="MeshInstance3D" parent="."]

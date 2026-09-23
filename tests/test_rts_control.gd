@@ -2,7 +2,7 @@ extends SceneTree
 
 const MAIN_SCENE := preload("res://game/GameMain.tscn")
 const WORKER_START := Vector3(2, 0, 2)
-const MOVE_TARGET := Vector3(5, 0, 2)
+const MOVE_TARGET := Vector3(2, 0, -1)
 const GROUND_POINT := Vector3(-6, 0, -4)
 const TRAVEL := 3.0
 
@@ -215,31 +215,32 @@ func _test_velocity_matches_move_speed() -> void:
 			"deslocamento por tick = speed * delta, delta usado uma vez: esperado %f, obtido %f"
 			% [expected_step, samples[4].distance_to(samples[3])])
 	_check(_close(_worker.velocity.y, 0.0, 0.0001), "velocity.y permanece zero")
-	_check(_close(samples[4].x - samples[3].x, expected_step, expected_step * 0.05)
-			and _close(samples[4].z, samples[3].z, 0.0001) and _close(samples[4].y, samples[3].y, 0.0001),
-			"deslocamento acontece apenas no plano horizontal")
+	var step := samples[4] - samples[3]
+	_check(_close(step.y, 0.0, 0.0001) and _close(step.length(), expected_step, expected_step * 0.05),
+			"deslocamento acontece apenas no plano horizontal, obtido %s" % step)
 
 
 func _test_arrival() -> void:
 	await _wait_until_arrived()
 	_check(not _worker.has_move_target(), "destino é encerrado na chegada")
 	_check(_worker.global_position.distance_to(MOVE_TARGET) <= 0.0001,
-			"Worker chega em (5, 0, 2), obtido %s" % _worker.global_position)
+			"Worker chega em (2, 0, -1), obtido %s" % _worker.global_position)
 	_check(_worker.velocity == Vector3.ZERO, "velocity zera na chegada")
 	_check(_close(_worker.global_position.y, 0.0, 0.005),
 			"Y inalterado durante o movimento, obtido %f" % _worker.global_position.y)
 
 
 func _test_no_overshoot() -> void:
-	await _reset_worker(Vector3(5, 0, 2))
+	var near_target := MOVE_TARGET + Vector3(0, 0, 0.05)
+	await _reset_worker(MOVE_TARGET)
 	_controller._select(_worker)
 	var samples: Array[Vector3] = []
-	_worker.move_to(Vector3(5.05, 0, 2))
+	_worker.move_to(near_target)
 	for i in 6:
 		await physics_frame
 		samples.append(_worker.global_position)
-	_check(_close(_worker.global_position.x, 5.05, 0.0001),
-			"destino a 0.05 unidades não provoca overshoot, x=%f" % _worker.global_position.x)
+	_check(_worker.global_position.distance_to(near_target) < 0.0001,
+			"destino a 0.05 unidades não provoca overshoot, obtido %s" % _worker.global_position)
 	_check(not _worker.has_move_target(), "ordem curta encerra sem orbitar o alvo")
 	_check(_worker.velocity == Vector3.ZERO, "unidade fica imediatamente parada")
 	_check(samples.back().distance_to(samples[0]) < 0.0001,

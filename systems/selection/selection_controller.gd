@@ -3,6 +3,8 @@ extends Node
 
 const GROUND_LAYER := 1
 const UNIT_LAYER := 2
+const DIGGABLE_LAYER := 4
+const CLICKABLE_LAYERS := GROUND_LAYER | UNIT_LAYER | DIGGABLE_LAYER
 const RAY_LENGTH := 1000.0
 
 var camera: Camera3D
@@ -21,7 +23,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _select_at(screen_position: Vector2) -> void:
-	var hit := _ray_hit(screen_position, GROUND_LAYER | UNIT_LAYER)
+	var hit := _ray_hit(screen_position, CLICKABLE_LAYERS)
 	if not hit.is_empty() and hit.collider is WorkerRuntime:
 		_select(hit.collider)
 	else:
@@ -31,10 +33,13 @@ func _select_at(screen_position: Vector2) -> void:
 func _command_move_at(screen_position: Vector2) -> void:
 	if selected_unit == null:
 		return
-	var hit := _ray_hit(screen_position, GROUND_LAYER | UNIT_LAYER)
-	if hit.is_empty() or hit.collider is not StaticBody3D:
+	var hit := _ray_hit(screen_position, CLICKABLE_LAYERS)
+	if hit.is_empty():
 		return
-	selected_unit.move_to(hit.position)
+	if hit.collider is RockRuntime:
+		selected_unit.assign_excavation_target(hit.collider)
+	elif hit.collider is StaticBody3D:
+		selected_unit.move_to(hit.position)
 
 
 func _select(unit: WorkerRuntime) -> void:

@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://game/game_main.gd" id="1_game"]
 [ext_resource type="Script" path="res://camera/camera_controller.gd" id="2_camera"]
@@ -8,6 +8,8 @@
 [ext_resource type="PackedScene" path="res://units/workers/WorkerRuntime.tscn" id="6_worker"]
 [ext_resource type="Resource" path="res://data/units/workers/abyss_worker.tres" id="7_worker_def"]
 [ext_resource type="Script" path="res://systems/selection/selection_controller.gd" id="8_selection"]
+[ext_resource type="PackedScene" path="res://world/dungeon/rock/RockRuntime.tscn" id="9_rock"]
+[ext_resource type="Resource" path="res://data/environment/common_rock.tres" id="10_rock_def"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMaterial"]
 albedo_color = Color(0.22, 0.26, 0.3, 1.0)
@@ -26,6 +28,7 @@ size = Vector3(30, 0.1, 30)
 script = ExtResource("1_game")
 core_definition = ExtResource("4_core_def")
 worker_definition = ExtResource("7_worker_def")
+rock_definition = ExtResource("10_rock_def")
 
 [node name="World" type="Node3D" parent="."]
 
@@ -36,6 +39,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 
 [node name="Worker001" parent="World/DungeonRoot" instance=ExtResource("6_worker")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 2)
+
+[node name="Rock001" parent="World/DungeonRoot" instance=ExtResource("9_rock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1, 2)
+
+[node name="Rock002" parent="World/DungeonRoot" instance=ExtResource("9_rock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1, 8)
+
+[node name="Rock003" parent="World/DungeonRoot" instance=ExtResource("9_rock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1, -4)
 
 [node name="Environment" type="Node3D" parent="World"]
 
