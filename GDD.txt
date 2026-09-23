@@ -1,0 +1,2895 @@
+# ABYSS LORD
+
+## Game Design Document — Documento Mestre
+
+**Versão:** 0.1
+**Nome provisório:** Abyss Lord
+**Gênero:** Dungeon Management / RTS / Action RPG / Estratégia
+**Plataforma inicial:** PC
+**Engine planejada:** Godot 4.7
+**Perspectiva:** 3D low-poly, câmera isométrica/top-down
+**Modo principal:** Single-player
+**Modelo comercial sugerido:** jogo premium, sem gacha e sem microtransações
+**Estado:** Pré-produção
+
+---
+
+# 1. VISÃO DO JOGO
+
+Abyss Lord é um jogo de gerenciamento, estratégia e RPG em que o jogador assume o controle de um **Núcleo Abissal moribundo** e precisa transformá-lo, gradualmente, em um vasto domínio subterrâneo.
+
+O jogador começa controlando uma pequena sala, alguns servos e recursos quase inexistentes.
+
+Ao explorar o subterrâneo, encontra novas fontes de recursos, criaturas selvagens, civilizações, outros Núcleos e territórios hostis.
+
+O jogador pode:
+
+* escavar;
+* construir;
+* produzir recursos;
+* invocar criaturas;
+* organizar exércitos;
+* criar sistemas defensivos;
+* explorar o subterrâneo;
+* participar pessoalmente de batalhas;
+* conquistar fortalezas;
+* estabelecer alianças;
+* criar vassalos;
+* assimilar criaturas;
+* modificar biologicamente sua própria masmorra;
+* formar comandantes e heróis;
+* expandir-se por diferentes camadas do mundo subterrâneo.
+
+A campanha começa como um jogo de sobrevivência.
+
+Depois se transforma em gerenciamento de masmorra.
+
+Em seguida, torna-se estratégia militar.
+
+Finalmente, transforma-se em uma disputa entre verdadeiros impérios subterrâneos.
+
+A fantasia central é:
+
+> Começar controlando uma sala miserável e terminar governando um ecossistema subterrâneo inteiro.
+
+---
+
+# 2. FANTASIA DO JOGADOR
+
+O jogador deve sentir que é simultaneamente:
+
+* o dono da masmorra;
+* o governante de uma sociedade monstruosa;
+* o comandante de um exército;
+* uma criatura poderosa capaz de lutar pessoalmente;
+* um estrategista que decide onde expandir;
+* um conquistador que transforma inimigos derrotados em novas possibilidades de evolução.
+
+A masmorra não deve parecer somente uma base.
+
+Ela deve parecer um **organismo crescente**.
+
+Quando o jogador conquista algo, esse crescimento deve ser visível.
+
+Novas salas aparecem.
+
+Criaturas caminham pelos corredores.
+
+Soldados treinam.
+
+Trabalhadores transportam recursos.
+
+Feridos chegam das batalhas.
+
+Comandantes discutem planos.
+
+Mercadores visitam o domínio.
+
+Prisioneiros são interrogados.
+
+Expedições entram e saem.
+
+Mensageiros trazem notícias.
+
+Com o passar das horas, o pequeno covil inicial deve transformar-se em uma verdadeira cidade subterrânea.
+
+---
+
+# 3. PILARES DE DESIGN
+
+## 3.1 A masmorra é o verdadeiro personagem principal
+
+O jogador possui um avatar, mas a evolução mais importante é a evolução do domínio.
+
+O progresso precisa ser percebido visualmente.
+
+Um Núcleo nível 1 deve parecer frágil.
+
+Um Núcleo nível 8 deve parecer capaz de sustentar um reino inteiro.
+
+---
+
+## 3.2 Crescer sempre gera consequências
+
+Construir mais salas aumenta a capacidade do jogador.
+
+Invocar mais soldados aumenta seu exército.
+
+Conquistar novas regiões aumenta seus recursos.
+
+Entretanto, cada ação também aumenta a quantidade de atenção que o domínio recebe.
+
+Portanto:
+
+**crescimento = poder + risco.**
+
+O jogador nunca deve poder crescer indefinidamente sem provocar reação do mundo.
+
+---
+
+## 3.3 Tropas são indivíduos, não números
+
+Soldados possuem:
+
+* nome;
+* espécie;
+* nível;
+* experiência;
+* batalhas;
+* ferimentos;
+* traços;
+* moral;
+* lealdade;
+* especialização.
+
+Alguns morrerão rapidamente.
+
+Outros sobreviverão a dezenas de batalhas.
+
+Alguns deles poderão eventualmente tornar-se heróis.
+
+O objetivo é permitir histórias emergentes.
+
+---
+
+## 3.4 Grandes batalhas sem microgerenciamento excessivo
+
+O início permite controlar individualmente poucas criaturas.
+
+Mais tarde, soldados são organizados em:
+
+**unidade → esquadrão → companhia → exército.**
+
+Comandantes recebem autonomia.
+
+O jogador passa gradualmente de:
+
+> “Ataque aquele inimigo.”
+
+para:
+
+> “Comandante, proteja toda a fronteira oeste.”
+
+---
+
+## 3.5 Conquista transforma a campanha
+
+Derrotar um inimigo não deve gerar somente dinheiro.
+
+Pode liberar:
+
+* novas criaturas;
+* novas mutações;
+* tecnologias;
+* recursos;
+* conhecimento;
+* instalações;
+* comandantes;
+* rotas;
+* territórios;
+* diplomacia.
+
+A principal mecânica responsável por isso será a **Assimilação**.
+
+---
+
+# 4. ESTRUTURA GERAL DO GAMEPLAY
+
+Existem três escalas simultâneas.
+
+## Escala da Masmorra
+
+Gerenciamento direto.
+
+O jogador:
+
+* constrói;
+* escava;
+* posiciona defesas;
+* organiza produção;
+* administra população;
+* cria tropas.
+
+## Escala Regional
+
+Mapa ao redor da masmorra.
+
+O jogador:
+
+* explora;
+* conquista minas;
+* cria postos avançados;
+* encontra outras facções;
+* envia expedições.
+
+## Escala Subterrânea
+
+Mapa estratégico.
+
+Representa vários reinos distribuídos entre diferentes profundidades.
+
+Aqui acontecem:
+
+* guerras;
+* alianças;
+* migrações;
+* ascensão de novos senhores;
+* quedas de impérios;
+* grandes eventos.
+
+---
+
+# 5. LOOP PRINCIPAL
+
+O ciclo fundamental será:
+
+**Explorar → descobrir recursos → expandir → produzir → invocar → defender → conquistar → assimilar → evoluir → explorar novamente.**
+
+Em forma detalhada:
+
+1. O jogador precisa de um recurso.
+2. Explora túneis próximos.
+3. Descobre uma região.
+4. A região contém oportunidade ou ameaça.
+5. O jogador decide como abordar.
+6. Obtém território ou recursos.
+7. Expande a masmorra.
+8. Expansão permite mais população.
+9. Mais população permite mais produção.
+10. Mais produção sustenta tropas.
+11. Tropas permitem conquistar novos territórios.
+12. As conquistas aumentam a ameaça percebida.
+13. Novos inimigos começam a agir.
+14. O jogador precisa melhorar novamente.
+
+---
+
+# 6. LOOPS POR ESCALA DE TEMPO
+
+## Loop de 30 segundos
+
+O jogador:
+
+* seleciona unidades;
+* coleta uma recompensa;
+* inicia uma construção;
+* resolve pequeno evento;
+* dá uma ordem;
+* acompanha combate.
+
+## Loop de 5 minutos
+
+O jogador:
+
+* termina uma sala;
+* recruta tropas;
+* encontra uma nova área;
+* completa pequena expedição;
+* combate invasores.
+
+## Loop de 30 minutos
+
+O jogador:
+
+* obtém novo território;
+* derrota uma força rival;
+* desbloqueia tecnologia;
+* encontra nova espécie;
+* evolui uma unidade importante.
+
+## Loop de algumas horas
+
+O jogador:
+
+* evolui o Núcleo;
+* elimina ou submete outro domínio;
+* atravessa uma nova camada;
+* cria um novo comandante;
+* transforma a estrutura econômica do reino.
+
+## Loop da campanha
+
+**Covil → Masmorra → Fortaleza → Reino → Império Abissal.**
+
+---
+
+# 7. O NÚCLEO ABISSAL
+
+O Núcleo é o centro político, mágico e estrutural do domínio.
+
+Ele possui:
+
+* nível;
+* integridade;
+* capacidade energética;
+* raio de influência;
+* limite populacional;
+* capacidade de assimilação;
+* slots de evolução.
+
+Destruir o Núcleo significa destruir o domínio.
+
+---
+
+# 8. NÍVEIS DO NÚCLEO
+
+| Nv. | Categoria     | População base | Salas principais | Função dominante   |
+| --- | ------------- | -------------: | ---------------: | ------------------ |
+| 1   | Covil         |              8 |                4 | Sobrevivência      |
+| 2   | Refúgio       |             16 |                8 | Produção           |
+| 3   | Masmorra      |             30 |               12 | Militarização      |
+| 4   | Fortaleza     |             50 |               18 | Expansão regional  |
+| 5   | Domínio       |             80 |               25 | Diplomacia         |
+| 6   | Cidadela      |            120 |               32 | Vassalagem         |
+| 7   | Reino         |            180 |               40 | Múltiplas bases    |
+| 8   | Grande Reino  |            260 |               50 | Grandes exércitos  |
+| 9   | Império       |            400 |               65 | Guerra subterrânea |
+| 10  | Trono Abissal |           600+ |         Especial | Endgame            |
+
+Valores são metas iniciais de balanceamento e não números definitivos.
+
+---
+
+# 9. INTEGRIDADE DO NÚCLEO
+
+A Integridade funciona como HP estrutural.
+
+Pode ser reduzida por:
+
+* invasores;
+* sabotagem;
+* certos eventos;
+* falta prolongada de energia;
+* habilidades especiais.
+
+Se chegar a zero:
+
+**Game Over.**
+
+Entretanto, cair em combate com o avatar do jogador não encerra imediatamente a campanha.
+
+O Senhor pode ser recuperado pelo Núcleo.
+
+Isso causa:
+
+* perda de recursos;
+* redução temporária da Integridade;
+* ferimento;
+* debuff;
+* aumento de ameaça.
+
+Assim, o jogador pode lutar pessoalmente sem transformar cada batalha em permadeath.
+
+---
+
+# 10. ENERGIA DO NÚCLEO
+
+O domínio produz **Essência**.
+
+Essência alimenta:
+
+* invocação;
+* estruturas mágicas;
+* portais;
+* habilidades;
+* mutações;
+* pesquisa;
+* algumas defesas.
+
+Cada Núcleo possui:
+
+**Essência atual / capacidade máxima.**
+
+Exemplo:
+
+**63 / 100.**
+
+---
+
+# 11. RECURSOS PRINCIPAIS
+
+O jogo terá quatro recursos centrais.
+
+## Essência
+
+Recurso mágico.
+
+Obtido através de:
+
+* Núcleo;
+* poços;
+* criaturas;
+* artefatos;
+* territórios especiais.
+
+Usado para:
+
+* invocação;
+* magia;
+* evolução;
+* portais.
+
+---
+
+## Biomassa
+
+Recurso orgânico.
+
+Obtido através de:
+
+* caça;
+* criação;
+* fazendas;
+* corpos;
+* criaturas.
+
+Usado para:
+
+* alimentação;
+* reprodução;
+* mutação;
+* unidades biológicas.
+
+---
+
+## Minério
+
+Recurso industrial.
+
+Obtido em:
+
+* minas;
+* ruínas;
+* comércio.
+
+Usado para:
+
+* salas;
+* armamentos;
+* defesas;
+* infraestrutura.
+
+---
+
+## Cristais Abissais
+
+Recurso raro estratégico.
+
+Obtido através de:
+
+* chefes;
+* outros Núcleos;
+* regiões profundas;
+* eventos especiais.
+
+Usado para:
+
+* evolução do Núcleo;
+* grandes mutações;
+* unidades heroicas;
+* construções especiais.
+
+---
+
+# 12. RECURSOS SECUNDÁRIOS
+
+Alguns valores não são armazenados como recursos tradicionais.
+
+## Conhecimento
+
+Libera tecnologias e informações.
+
+## Influência
+
+Representa poder político regional.
+
+## Ameaça
+
+Representa quanto o mundo está reagindo ao jogador.
+
+## Moral
+
+Existe separadamente para grupos militares.
+
+## Lealdade
+
+Existe individualmente para personagens importantes.
+
+---
+
+# 13. SISTEMA DE AMEAÇA
+
+Ameaça é uma das principais mecânicas de equilíbrio.
+
+Aumenta ao:
+
+* evoluir o Núcleo;
+* conquistar território;
+* destruir facções;
+* manter exércitos enormes;
+* usar grandes quantidades de Essência;
+* controlar rotas importantes.
+
+Exemplo:
+
+**Ameaça regional: 23/100.**
+
+Faixas:
+
+0–20 — desconhecido
+21–40 — observado
+41–60 — relevante
+61–80 — ameaça regional
+81–100 — potência subterrânea
+
+Quanto maior o valor:
+
+* mais patrulhas;
+* mais espiões;
+* invasões maiores;
+* alianças contra o jogador;
+* eventos especiais.
+
+O jogador pode reduzir Ameaça através de:
+
+* diplomacia;
+* esconderijos;
+* desinformação;
+* destruir testemunhas;
+* períodos de baixa atividade.
+
+---
+
+# 14. MAPA DA MASMORRA
+
+A masmorra utilizará construção baseada em grade.
+
+Cada célula subterrânea pode possuir:
+
+* rocha;
+* corredor;
+* sala;
+* recurso;
+* perigo;
+* estrutura.
+
+O jogador seleciona áreas para escavar.
+
+Trabalhadores então executam a tarefa.
+
+---
+
+# 15. ESCAVAÇÃO
+
+Nem toda rocha é igual.
+
+Tipos:
+
+**Rocha comum**
+
+Barata.
+
+**Rocha densa**
+
+Demorada.
+
+**Veio mineral**
+
+Contém recursos.
+
+**Cristalizada**
+
+Pode conter Cristais Abissais.
+
+**Instável**
+
+Pode causar desmoronamentos.
+
+**Orgânica**
+
+Pode revelar ecossistemas vivos.
+
+**Antiga**
+
+Pode esconder ruínas.
+
+---
+
+# 16. DESIGN DEFENSIVO
+
+A geometria da masmorra é parte da estratégia.
+
+O jogador poderá criar:
+
+* corredores estreitos;
+* salas de emboscada;
+* posições elevadas;
+* portões;
+* pontes;
+* armadilhas;
+* gargalos;
+* rotas alternativas.
+
+Um exército numericamente inferior pode vencer utilizando terreno favorável.
+
+---
+
+# 17. SALAS BÁSICAS
+
+## Câmara do Núcleo
+
+Centro do domínio.
+
+## Ninho
+
+Aumenta população.
+
+## Dormitório
+
+Reduz penalidades de descanso.
+
+## Fazenda Fúngica
+
+Produz Biomassa.
+
+## Poço de Essência
+
+Gera Essência.
+
+## Mina
+
+Extrai Minério.
+
+## Armazém
+
+Aumenta capacidade.
+
+## Quartel
+
+Treina soldados.
+
+## Campo de Treino
+
+Gera experiência lentamente.
+
+## Forja
+
+Melhora armamentos.
+
+## Enfermaria
+
+Recupera feridos.
+
+## Sala Ritualística
+
+Produz unidades mágicas.
+
+## Sala de Guerra
+
+Permite melhor controle de comandantes.
+
+## Câmara de Assimilação
+
+Processa material genético e mágico.
+
+## Biblioteca
+
+Produz Conhecimento.
+
+## Prisão
+
+Mantém inimigos capturados.
+
+## Mercado
+
+Atrai comerciantes.
+
+## Embaixada
+
+Habilita diplomacia avançada.
+
+## Portal
+
+Permite viagem rápida.
+
+## Cofre
+
+Protege recursos raros.
+
+---
+
+# 18. CONSTRUÇÃO
+
+Toda construção possui:
+
+* custo;
+* tempo;
+* espaço;
+* trabalhadores necessários;
+* requisitos;
+* manutenção.
+
+Algumas salas recebem módulos.
+
+Exemplo:
+
+**Quartel Nv.2**
+
+Módulos possíveis:
+
+* arsenal;
+* dormitório militar;
+* sala de oficiais;
+* campo de treino.
+
+Isso permite personalização sem exigir centenas de salas completamente diferentes.
+
+---
+
+# 19. POPULAÇÃO
+
+Existem cinco grupos principais.
+
+**Trabalhadores**
+
+Produção e construção.
+
+**Soldados**
+
+Combate.
+
+**Especialistas**
+
+Funções técnicas.
+
+**Comandantes**
+
+Liderança.
+
+**Heróis**
+
+Personagens excepcionais.
+
+---
+
+# 20. UNIDADES PERSISTENTES
+
+Cada criatura possuirá um estado individual.
+
+Exemplo:
+
+**GOR**
+
+Espécie: Brutamontes Abissal
+Classe: Soldado
+Nível: 4
+XP: 233/400
+HP: 91/100
+Moral: 82
+Lealdade: 68
+Batalhas: 8
+Vitórias: 6
+Ferimentos graves: 1
+
+Traços:
+
+* Corajoso
+* Ganancioso
+
+Histórico:
+
+* Sobreviveu à Primeira Invasão.
+* Participou da Batalha do Portão.
+* Eliminou um comandante inimigo.
+
+---
+
+# 21. ATRIBUTOS DAS UNIDADES
+
+Sistema base:
+
+**Vida**
+
+Durabilidade.
+
+**Força**
+
+Dano físico.
+
+**Defesa**
+
+Resistência.
+
+**Agilidade**
+
+Movimento e ataque.
+
+**Percepção**
+
+Detecção e alcance.
+
+**Vontade**
+
+Resistência moral.
+
+**Inteligência**
+
+Magia e funções avançadas.
+
+**Liderança**
+
+Comandos e moral.
+
+Nem toda criatura utiliza todos os atributos igualmente.
+
+---
+
+# 22. EXPERIÊNCIA
+
+Experiência é adquirida por:
+
+* combate;
+* sobrevivência;
+* treinamento;
+* missões;
+* eventos;
+* liderança.
+
+Soldados comuns possuem progressão relativamente curta.
+
+Unidades excepcionais podem romper esse limite.
+
+---
+
+# 23. TRAÇOS
+
+Traços surgem através da experiência.
+
+Exemplos positivos:
+
+* Corajoso;
+* Vigilante;
+* Resistente;
+* Leal;
+* Estrategista;
+* Caçador;
+* Veterano.
+
+Exemplos negativos:
+
+* Covarde;
+* Ganancioso;
+* Cruel;
+* Impulsivo;
+* Preguiçoso;
+* Medroso.
+
+Traços podem gerar histórias inesperadas.
+
+---
+
+# 24. FERIMENTOS
+
+Uma criatura que chega a zero HP nem sempre morre imediatamente.
+
+Possíveis estados:
+
+* morto;
+* inconsciente;
+* ferido leve;
+* ferido grave;
+* mutilado.
+
+Isso permite recuperar veteranos.
+
+Certas melhorias podem criar:
+
+* próteses;
+* regeneração;
+* mutações.
+
+---
+
+# 25. MORAL
+
+Exércitos possuem moral coletiva.
+
+Moral aumenta com:
+
+* superioridade;
+* comandante;
+* vitórias;
+* território conhecido;
+* habilidades.
+
+Moral diminui com:
+
+* mortes;
+* cercamento;
+* retirada;
+* morte do comandante;
+* criaturas aterrorizantes.
+
+Estados:
+
+80–100 — inspirado
+50–79 — estável
+30–49 — abalado
+10–29 — em pânico
+0–9 — fuga
+
+Isso permitirá vitórias através de tática, não somente dano.
+
+---
+
+# 26. FORMAÇÃO DE EXÉRCITOS
+
+Progressão de comando:
+
+### Unidade
+
+1 criatura.
+
+### Esquadrão
+
+5–10 criaturas.
+
+### Pelotão
+
+20–30.
+
+### Companhia
+
+50–100.
+
+### Exército
+
+100+.
+
+Conforme o jogador cresce, unidades individuais deixam de exigir controle constante.
+
+---
+
+# 27. COMANDANTES
+
+Comandantes funcionam como agentes autônomos.
+
+Cada comandante possui:
+
+* personalidade;
+* especialização;
+* lealdade;
+* liderança;
+* doutrina;
+* habilidades.
+
+O jogador pode atribuir ordens como:
+
+* defender;
+* patrulhar;
+* atacar;
+* escoltar;
+* explorar;
+* saquear;
+* recuar abaixo de determinada força.
+
+---
+
+# 28. AUTONOMIA DOS COMANDANTES
+
+Comandantes não obedecem de forma robótica.
+
+Um comandante:
+
+**Cauteloso**
+
+Pode recuar antes.
+
+**Agressivo**
+
+Pode continuar perseguindo.
+
+**Leal**
+
+Segue ordens perigosas.
+
+**Ambicioso**
+
+Pode desejar mais autoridade.
+
+Isso torna comandantes personagens reais.
+
+---
+
+# 29. HERÓIS
+
+Qualquer unidade comum pode potencialmente tornar-se um Herói.
+
+Requisitos possíveis:
+
+* sobreviver várias batalhas;
+* derrotar inimigo superior;
+* realizar feito excepcional;
+* atingir limite de evolução.
+
+Ao despertar:
+
+* recebe título;
+* aparência única;
+* habilidades;
+* árvore de progressão;
+* slots de equipamento.
+
+Isso permite que a história da campanha crie personagens organicamente.
+
+---
+
+# 30. EQUIPAMENTOS
+
+Não haverá gerenciamento individual de espada para centenas de criaturas.
+
+Soldados comuns utilizam **Tier de Armamento**.
+
+Exemplo:
+
+Quartel:
+
+**Equipamento Militar: Tier II.**
+
+Isso afeta automaticamente tropas associadas.
+
+Equipamentos individuais são reservados para:
+
+* Senhor;
+* heróis;
+* comandantes.
+
+---
+
+# 31. AVATAR DO JOGADOR
+
+O jogador possui um corpo físico chamado provisoriamente de:
+
+**Regente Abissal.**
+
+Pode:
+
+* andar;
+* atacar;
+* bloquear;
+* esquivar;
+* usar habilidades;
+* comandar tropas;
+* interagir com personagens.
+
+---
+
+# 32. DOIS MODOS DE CONTROLE
+
+## Modo Estratégico
+
+Câmera elevada.
+
+Permite:
+
+* selecionar tropas;
+* construir;
+* comandar;
+* observar.
+
+## Modo Regente
+
+Câmera acompanha diretamente o personagem.
+
+Controle:
+
+WASD
+Ataque
+Esquiva
+Habilidades
+Interação
+Comandos rápidos
+
+A transição deve ser instantânea.
+
+---
+
+# 33. COMBATE
+
+O combate será em tempo real.
+
+Elementos fundamentais:
+
+* posição;
+* formação;
+* terreno;
+* moral;
+* alcance;
+* flanqueamento;
+* habilidades;
+* comandante.
+
+A intenção não é produzir um RTS competitivo extremamente técnico.
+
+O objetivo é criar batalhas visualmente interessantes e compreensíveis.
+
+---
+
+# 34. PAPÉIS MILITARES
+
+Arquétipos:
+
+**Linha de Frente**
+
+Resistência.
+
+**Lanceiro**
+
+Controle de corredores.
+
+**Atirador**
+
+Dano à distância.
+
+**Assassino**
+
+Flanqueamento.
+
+**Suporte**
+
+Buffs.
+
+**Mago**
+
+Área.
+
+**Bruto**
+
+Rompimento.
+
+**Besta**
+
+Choque.
+
+**Cerco**
+
+Estruturas.
+
+---
+
+# 35. ARMADILHAS
+
+Exemplos:
+
+* espinhos;
+* queda de pedras;
+* gás;
+* fosso;
+* óleo inflamável;
+* selos mágicos;
+* teias;
+* portas falsas.
+
+Armadilhas exigem:
+
+* preparação;
+* manutenção;
+* recursos.
+
+---
+
+# 36. SISTEMA DE ASSIMILAÇÃO
+
+Esse será o principal diferencial de Abyss Lord.
+
+Quando criaturas especiais são derrotadas, o Núcleo pode analisar seus resíduos.
+
+Isso produz **Fragmentos de Assimilação**.
+
+Exemplo:
+
+**Rainha Aracnídea derrotada.**
+
+Possíveis evoluções:
+
+**Teia Estrutural**
+
+Portas e corredores podem receber teias defensivas.
+
+**Ninho Aracnídeo**
+
+Permite criar aranhas.
+
+**Veneno Abissal**
+
+Tropas recebem acesso a tecnologia venenosa.
+
+**Escaladores**
+
+Determinadas unidades passam a utilizar paredes.
+
+O jogador escolhe.
+
+As escolhas alteram permanentemente a campanha.
+
+---
+
+# 37. CATEGORIAS DE ASSIMILAÇÃO
+
+## Biológica
+
+Muda criaturas.
+
+## Estrutural
+
+Muda a masmorra.
+
+## Militar
+
+Muda tropas.
+
+## Arcana
+
+Muda habilidades.
+
+## Econômica
+
+Muda produção.
+
+## Ambiental
+
+Muda o próprio bioma.
+
+---
+
+# 38. SINERGIAS DE ASSIMILAÇÃO
+
+Combinações podem criar resultados secretos.
+
+Exemplo:
+
+**Aranha + Cogumelo**
+
+pode gerar:
+
+**Micélio de Teia.**
+
+**Cristal + Golem**
+
+pode gerar:
+
+**Constructos Prismáticos.**
+
+Isso incentiva campanhas diferentes.
+
+---
+
+# 39. DOUTRINAS DO REGENTE
+
+Ao longo da campanha, o jogador pode especializar seu império.
+
+Três caminhos principais:
+
+## Domínio
+
+Foco:
+
+* exército;
+* vassalos;
+* diplomacia coercitiva;
+* território.
+
+## Colmeia
+
+Foco:
+
+* população;
+* produção;
+* mutações;
+* quantidade.
+
+## Devorador
+
+Foco:
+
+* Assimilação;
+* poder do Regente;
+* elites;
+* transformação.
+
+Nenhum caminho bloqueia completamente os demais.
+
+---
+
+# 40. MAPA REGIONAL
+
+A região utiliza uma rede de locais conectados.
+
+Exemplo:
+
+**Sua Masmorra**
+→ Mina abandonada
+→ Floresta Fúngica
+→ Ruínas
+→ Covil Selvagem
+→ Fortaleza rival
+→ Passagem para Camada 4
+
+Cada ponto possui:
+
+* proprietário;
+* recursos;
+* perigo;
+* população;
+* conexões;
+* informação conhecida.
+
+---
+
+# 41. NÉVOA DE GUERRA
+
+O jogador não conhece automaticamente o mundo.
+
+Informações precisam vir de:
+
+* exploradores;
+* comerciantes;
+* aliados;
+* espionagem;
+* capturados.
+
+Um domínio desconhecido pode aparecer como:
+
+**Força estimada: ???**
+
+Após espionagem:
+
+**Força estimada: 80–120.**
+
+Após reconhecimento avançado:
+
+**103 soldados identificados.**
+
+---
+
+# 42. EXPEDIÇÕES
+
+Grupos podem ser enviados sem o Regente.
+
+Uma expedição possui:
+
+* líder;
+* unidades;
+* suprimentos;
+* objetivo.
+
+Objetivos:
+
+* reconhecimento;
+* coleta;
+* caça;
+* resgate;
+* ataque;
+* sabotagem;
+* escolta;
+* exploração.
+
+---
+
+# 43. EVENTOS DE EXPEDIÇÃO
+
+Exemplo:
+
+**A passagem desabou.**
+
+Opções:
+
+* escavar;
+* procurar caminho alternativo;
+* abandonar missão.
+
+Outro:
+
+**Uma criatura colossal dorme no caminho.**
+
+Opções:
+
+* atacar;
+* contornar;
+* observar;
+* tentar capturar.
+
+Características do grupo modificam resultados.
+
+---
+
+# 44. DIPLOMACIA
+
+Relações entre facções utilizam dois valores principais:
+
+**Relação**
+
+-100 a +100.
+
+**Temor**
+
+0 a 100.
+
+Isso permite situações interessantes.
+
+Um reino pode:
+
+**odiar o jogador, mas ter medo suficiente para não atacar.**
+
+---
+
+# 45. ESTADOS DIPLOMÁTICOS
+
+* Aliado
+* Amigável
+* Neutro
+* Desconfiado
+* Hostil
+* Guerra
+* Vassalo
+
+---
+
+# 46. TRATADOS
+
+Possíveis acordos:
+
+* comércio;
+* passagem;
+* defesa;
+* não agressão;
+* tributo;
+* informação;
+* aliança.
+
+---
+
+# 47. VASSALAGEM
+
+Após derrotar determinado domínio, o jogador recebe opções.
+
+## Destruir o Núcleo
+
+Recebe grande quantidade de recursos.
+
+Domínio desaparece.
+
+## Absorver
+
+Aumenta desenvolvimento do Núcleo.
+
+## Ocupar
+
+Base torna-se diretamente controlável.
+
+## Vassalizar
+
+Antigo governante permanece no poder.
+
+Passa a fornecer:
+
+* tributo;
+* tropas;
+* informações.
+
+Vassalos podem eventualmente rebelar-se.
+
+---
+
+# 48. TERRITÓRIOS
+
+Territórios externos fornecem:
+
+* recursos;
+* posição;
+* visão;
+* rotas.
+
+Tipos:
+
+* mina;
+* floresta fúngica;
+* ruína;
+* nascente de Essência;
+* passagem;
+* aldeia;
+* fortificação.
+
+---
+
+# 49. POSTOS AVANÇADOS
+
+O jogador pode construir pequenas estruturas externas.
+
+Possíveis funções:
+
+* vigia;
+* armazenamento;
+* defesa;
+* produção;
+* teleporte.
+
+Eles são muito mais vulneráveis que a masmorra principal.
+
+---
+
+# 50. CAMADAS DO SUBTERRÂNEO
+
+O mundo é organizado verticalmente.
+
+## Camada 1 — Fronteira
+
+Ruínas próximas à superfície.
+
+## Camada 2 — Cavernas Superiores
+
+Fauna e recursos básicos.
+
+## Camada 3 — Terras dos Pequenos Domínios
+
+Início da campanha principal.
+
+## Camada 4 — Reinos Monstruosos
+
+Facções organizadas.
+
+## Camada 5 — Fortalezas Antigas
+
+Tecnologia e magia avançadas.
+
+## Camada 6 — Reinos Profundos
+
+Grandes potências.
+
+## Camada 7 — Abismo Vivo
+
+Ecossistema altamente hostil.
+
+## Camada 8 — Domínios Ancestrais
+
+Civilizações antigas.
+
+## Camada 9 — Tronos Abissais
+
+Grandes senhores.
+
+## Camada 10 — Coração Profundo
+
+Área de endgame.
+
+Não é necessário implementar as dez camadas inicialmente.
+
+Elas formam a estrutura conceitual do universo.
+
+---
+
+# 51. FACÇÕES PRINCIPAIS
+
+## Filhos do Micélio
+
+Tema:
+
+fungos e simbiose.
+
+Forças:
+
+* regeneração;
+* expansão;
+* controle territorial.
+
+Fraqueza:
+
+* fogo.
+
+---
+
+## Colmeia Quitinosa
+
+Tema:
+
+insetos.
+
+Forças:
+
+* população;
+* velocidade de reprodução;
+* números.
+
+Fraqueza:
+
+* unidades individualmente frágeis.
+
+---
+
+## Sangríneos
+
+Tema:
+
+predadores aristocráticos.
+
+Forças:
+
+* elites;
+* roubo de vida;
+* heróis.
+
+Fraqueza:
+
+* população pequena.
+
+---
+
+## Forjados
+
+Tema:
+
+constructos.
+
+Forças:
+
+* armadura;
+* estruturas;
+* cerco.
+
+Fraqueza:
+
+* produção lenta.
+
+---
+
+## Nascidos das Sombras
+
+Tema:
+
+furtividade.
+
+Forças:
+
+* espionagem;
+* assassinato;
+* mobilidade.
+
+Fraqueza:
+
+* confrontos frontais.
+
+---
+
+## Devoradores
+
+Tema:
+
+adaptação.
+
+Forças:
+
+* assimilação;
+* evolução;
+* versatilidade.
+
+Fraqueza:
+
+* alto custo.
+
+A facção inicial do jogador pode posteriormente ser escolhida, mas o MVP utilizará somente uma.
+
+---
+
+# 52. CRIATURAS SELVAGENS
+
+O subterrâneo deve funcionar como ecossistema.
+
+Exemplos:
+
+* ratos abissais;
+* fungos ambulantes;
+* aranhas;
+* vermes;
+* lagartos cavernosos;
+* morcegos;
+* predadores cristalinos;
+* golems selvagens.
+
+Criaturas selvagens podem:
+
+* migrar;
+* reproduzir;
+* atacar;
+* ocupar áreas;
+* ser caçadas;
+* ser domesticadas.
+
+---
+
+# 53. ECOLOGIA
+
+Exemplo:
+
+Se o jogador eliminar todos os predadores de determinada região:
+
+a população de presas cresce.
+
+Isso pode causar:
+
+* falta de vegetação;
+* migração;
+* novas invasões.
+
+O objetivo não é criar uma simulação biológica extremamente complexa.
+
+O objetivo é dar a impressão de que o mundo reage.
+
+---
+
+# 54. EVENTOS MUNDIAIS
+
+Exemplos:
+
+**Migração**
+
+Uma espécie atravessa determinada região.
+
+**Guerra**
+
+Duas facções entram em conflito.
+
+**Queda de um Senhor**
+
+Território fica sem governante.
+
+**Surto de Essência**
+
+Produção aumenta temporariamente.
+
+**Praga**
+
+Populações sofrem.
+
+**Despertar**
+
+Uma criatura ancestral aparece.
+
+---
+
+# 55. MERCADORES
+
+Caravanas podem visitar o domínio.
+
+Vendendo:
+
+* minério;
+* artefatos;
+* criaturas;
+* informações;
+* mapas;
+* equipamentos;
+* materiais raros.
+
+O jogador também pode vender excedentes.
+
+---
+
+# 56. INFORMAÇÃO COMO RECURSO
+
+Algumas informações possuem valor econômico.
+
+Exemplo:
+
+**Relatório: Fortaleza Rubra**
+
+Força estimada: 243
+Guarnição noturna reduzida
+Comandante: desconhecido
+
+Preço:
+
+8 Cristais.
+
+Informação permite planejamento.
+
+---
+
+# 57. PRISIONEIROS
+
+Personagens importantes podem ser capturados.
+
+Possíveis ações:
+
+* libertar;
+* trocar;
+* interrogar;
+* recrutar;
+* exigir resgate.
+
+Isso cria novas possibilidades narrativas e diplomáticas.
+
+---
+
+# 58. SISTEMA DE INVASÕES
+
+Invasões não serão completamente aleatórias.
+
+Elas são consequência de:
+
+* ameaça;
+* posição;
+* recursos;
+* relações;
+* eventos.
+
+Uma invasão possui preparação.
+
+Exemplo:
+
+**Batedores detectaram movimento.**
+
+Força desconhecida aproxima-se.
+
+Tempo estimado:
+
+12 minutos.
+
+O jogador precisa decidir:
+
+* construir;
+* convocar tropas;
+* chamar aliado;
+* atacar preventivamente;
+* evacuar postos.
+
+---
+
+# 59. RECONHECIMENTO DE INVASÕES
+
+Quanto melhor a inteligência do jogador, melhores as informações.
+
+Baixo reconhecimento:
+
+**Força desconhecida.**
+
+Médio:
+
+**80–150 unidades.**
+
+Alto:
+
+**112 soldados, 20 atiradores, 3 brutamontes e 1 comandante.**
+
+---
+
+# 60. ATAQUES AO JOGADOR
+
+Inimigos também utilizarão estratégias.
+
+Exemplos:
+
+* ataque frontal;
+* cerco;
+* infiltração;
+* sabotagem;
+* bloqueio;
+* ataque simultâneo;
+* distração.
+
+---
+
+# 61. IA DE DOMÍNIOS
+
+Cada facção possui um controlador estratégico.
+
+Ele avalia:
+
+* força própria;
+* força vizinha;
+* recursos;
+* território;
+* relações;
+* ameaça.
+
+Possíveis objetivos:
+
+* crescer;
+* sobreviver;
+* conquistar;
+* enriquecer;
+* vingar-se.
+
+Isso permite campanhas emergentes.
+
+---
+
+# 62. MEMÓRIA DIPLOMÁTICA
+
+Facções lembrarão eventos importantes.
+
+Exemplo:
+
+**Você rompeu um tratado.**
+
+Penalidade diplomática temporária.
+
+**Você salvou o domínio durante uma invasão.**
+
+Bônus.
+
+---
+
+# 63. NARRATIVA PRINCIPAL
+
+O Regente desperta dentro de um Núcleo praticamente morto.
+
+Ele não sabe:
+
+* quem construiu aquele domínio;
+* por que foi abandonado;
+* por que consegue assimilar criaturas;
+* por que outros Núcleos parecem reconhecer sua presença.
+
+Ao longo da campanha, descobre-se que o Núcleo pertence a uma linhagem antiga capaz de incorporar características de outros domínios.
+
+Essa capacidade foi considerada perigosa.
+
+O antigo domínio foi destruído deliberadamente.
+
+O jogador é o primeiro novo Regente em eras.
+
+---
+
+# 64. ATO 1 — O COVIL
+
+Objetivo:
+
+sobreviver.
+
+Eventos principais:
+
+* despertar;
+* conhecer primeiros servos;
+* restaurar Núcleo;
+* obter comida;
+* encontrar Minério;
+* enfrentar primeira invasão;
+* alcançar Núcleo Nv.2.
+
+---
+
+# 65. ATO 2 — A MASMORRA
+
+Objetivo:
+
+estabelecer poder regional.
+
+Introduz:
+
+* facções;
+* diplomacia;
+* comandantes;
+* Assimilação;
+* territórios.
+
+Final:
+
+primeira guerra contra outro domínio.
+
+---
+
+# 66. ATO 3 — O DOMÍNIO
+
+Objetivo:
+
+controlar a região.
+
+Introduz:
+
+* vassalos;
+* grandes exércitos;
+* economia avançada;
+* política subterrânea.
+
+---
+
+# 67. ATO 4 — O REINO
+
+O jogador descobre potências muito maiores.
+
+Agora precisa:
+
+* criar alianças;
+* conquistar fortalezas;
+* controlar rotas.
+
+---
+
+# 68. ATO 5 — O TRONO
+
+Conflito contra os grandes poderes subterrâneos.
+
+O jogador finalmente descobre a origem do Núcleo.
+
+---
+
+# 69. ENDGAME
+
+A campanha culmina no Coração Profundo.
+
+O jogador decide o destino da rede de Núcleos.
+
+Possíveis conclusões futuras:
+
+**Conquistar**
+
+Tornar-se soberano absoluto.
+
+**Unificar**
+
+Criar uma confederação.
+
+**Assimilar**
+
+Fundir os Núcleos.
+
+**Romper**
+
+Destruir o sistema.
+
+---
+
+# 70. SISTEMA DE DECISÕES
+
+Escolhas importantes não devem ser classificadas como simplesmente:
+
+“boa” ou “má”.
+
+Elas devem representar estratégias.
+
+Exemplo:
+
+Uma fortaleza derrotada.
+
+Destruir:
+
+* recursos imediatos
+
+- território produtivo
+
+Vassalizar:
+
+* renda constante
+* possível rebelião
+
+Ocupar:
+
+* controle completo
+
+- administração
+
+---
+
+# 71. INTERFACE PRINCIPAL
+
+HUD deve mostrar apenas informações essenciais.
+
+Topo:
+
+* Essência;
+* Biomassa;
+* Minério;
+* Cristais;
+* população.
+
+Lateral:
+
+* construção;
+* exército;
+* territórios;
+* pesquisa.
+
+Inferior:
+
+* seleção;
+* habilidades;
+* ordens.
+
+---
+
+# 72. ALERTAS
+
+Prioridades:
+
+**Vermelho**
+
+Perigo imediato.
+
+**Amarelo**
+
+Problema.
+
+**Azul**
+
+Informação.
+
+**Verde**
+
+Conclusão positiva.
+
+O jogador deve poder clicar no alerta e ir diretamente ao problema.
+
+---
+
+# 73. MAPA ESTRATÉGICO
+
+Mostra:
+
+* domínios;
+* rotas;
+* territórios;
+* ameaça;
+* aliados;
+* inimigos.
+
+Deve ser visualmente simples.
+
+Informações detalhadas aparecem somente ao selecionar regiões.
+
+---
+
+# 74. VELOCIDADE DO JOGO
+
+No modo administrativo:
+
+**Pausa
+1x
+2x
+4x**
+
+Durante controle direto:
+
+velocidade retorna para 1x.
+
+Durante batalhas grandes:
+
+4x indisponível.
+
+---
+
+# 75. SAVE
+
+O jogo deve permitir:
+
+* autosave;
+* save manual;
+* múltiplos slots.
+
+Autosave em:
+
+* início de batalha;
+* fim de batalha;
+* evolução do Núcleo;
+* mudança de camada.
+
+---
+
+# 76. DIFICULDADE
+
+Dificuldades sugeridas:
+
+**Explorador**
+
+Foco em construção.
+
+**Regente**
+
+Experiência padrão.
+
+**Conquistador**
+
+IA mais agressiva.
+
+**Abissal**
+
+Recursos escassos, inimigos estratégicos.
+
+Evitar simplesmente multiplicar HP inimigo.
+
+---
+
+# 77. REJOGABILIDADE
+
+Campanhas variam através de:
+
+* mapa procedural;
+* facções;
+* Assimilações;
+* heróis emergentes;
+* diplomacia;
+* eventos;
+* recursos;
+* comportamento da IA.
+
+---
+
+# 78. GERAÇÃO DO MAPA
+
+O mundo utiliza geração semi-procedural.
+
+Elementos fixos:
+
+* história principal;
+* grandes marcos.
+
+Elementos variáveis:
+
+* localização de recursos;
+* domínios;
+* rotas;
+* criaturas;
+* eventos.
+
+Isso permite controlar narrativa sem perder rejogabilidade.
+
+---
+
+# 79. DIREÇÃO ARTÍSTICA
+
+3D low-poly estilizado.
+
+Características:
+
+* formas grandes;
+* silhuetas claras;
+* cores diferenciando facções;
+* poucos detalhes pequenos;
+* iluminação atmosférica.
+
+Referência estética:
+
+fantasia subterrânea sombria, mas não realista.
+
+---
+
+# 80. IDENTIDADE VISUAL DA MASMORRA
+
+Quanto mais forte o Núcleo:
+
+mais o ambiente muda.
+
+Nv.1:
+
+pedra morta.
+
+Nv.3:
+
+cristais e estruturas.
+
+Nv.5:
+
+arquitetura própria.
+
+Nv.7:
+
+cidade subterrânea.
+
+Nv.10:
+
+paisagem inteira transformada.
+
+Assim a progressão aparece sem abrir menus.
+
+---
+
+# 81. ÁUDIO
+
+Cada região possui:
+
+* ambiente;
+* música;
+* sons de fauna.
+
+A masmorra possui camadas sonoras.
+
+Pequena:
+
+silenciosa.
+
+Grande:
+
+sons de:
+
+* trabalhadores;
+* forjas;
+* criaturas;
+* soldados;
+* máquinas.
+
+---
+
+# 82. MÚSICA DE BATALHA
+
+Sistema adaptativo.
+
+Camada 1:
+
+ameaça detectada.
+
+Camada 2:
+
+combate.
+
+Camada 3:
+
+grande batalha.
+
+Camada 4:
+
+chefe/comandante.
+
+---
+
+# 83. ARQUITETURA TÉCNICA
+
+Princípio:
+
+**Definition → State → Runtime → Visual.**
+
+Exemplo:
+
+`UnitDefinition`
+
+dados permanentes da espécie.
+
+`UnitState`
+
+estado individual salvo.
+
+`UnitRuntime`
+
+ator presente na cena.
+
+O mesmo padrão deve ser utilizado para:
+
+* unidades;
+* salas;
+* recursos;
+* facções;
+* tecnologias;
+* Assimilações.
+
+---
+
+# 84. SISTEMA DATA-DRIVEN
+
+Conteúdo deve ser criado principalmente através de Resources.
+
+Exemplos:
+
+`UnitDefinition.tres`
+
+`RoomDefinition.tres`
+
+`FactionDefinition.tres`
+
+`AssimilationDefinition.tres`
+
+`TechnologyDefinition.tres`
+
+Isso permitirá adicionar conteúdo sem reescrever sistemas.
+
+---
+
+# 85. MANAGERS PRINCIPAIS
+
+Estrutura conceitual:
+
+**RunManager**
+
+Campanha.
+
+**WorldManager**
+
+Mapa.
+
+**DungeonManager**
+
+Masmorra.
+
+**EconomyManager**
+
+Recursos.
+
+**PopulationManager**
+
+Criaturas.
+
+**ArmyManager**
+
+Exércitos.
+
+**DiplomacyManager**
+
+Relações.
+
+**AssimilationManager**
+
+Evoluções.
+
+**EventManager**
+
+Eventos.
+
+**SaveManager**
+
+Persistência.
+
+Managers devem manter responsabilidades claras.
+
+---
+
+# 86. IA DE UNIDADES
+
+Máquina de estados inicial:
+
+IDLE
+MOVE
+WORK
+ATTACK
+DEFEND
+FLEE
+DOWNED
+DEAD
+
+Soldados recebem comportamento através do grupo ao qual pertencem.
+
+Evitar decisões caras para cada unidade a cada frame.
+
+---
+
+# 87. PERFORMANCE
+
+Meta inicial:
+
+60 FPS.
+
+Cenário futuro:
+
+200–300 unidades simultâneas em grandes batalhas.
+
+Estratégias:
+
+* NavigationAgent simplificado;
+* atualizações de IA distribuídas;
+* LOD;
+* animações simples;
+* pooling;
+* agrupamento de decisões.
+
+---
+
+# 88. MVP
+
+O MVP deve provar apenas o coração do jogo.
+
+Conteúdo:
+
+**1 Núcleo**
+
+Nv.1 → Nv.2.
+
+**3 recursos**
+
+Essência
+Biomassa
+Minério
+
+Cristais entram como recompensa final.
+
+**2 tipos de unidade**
+
+Trabalhador
+Soldado
+
+**4 salas**
+
+Núcleo
+Ninho
+Mina
+Quartel
+
+**1 inimigo**
+
+Criatura selvagem.
+
+**1 invasão.**
+
+---
+
+# 89. LOOP EXATO DO MVP
+
+Jogador inicia com:
+
+Núcleo Nv.1.
+
+3 trabalhadores.
+
+Pouca Essência.
+
+Objetivo:
+
+1. coletar recursos;
+2. escavar;
+3. descobrir Minério;
+4. construir Ninho;
+5. aumentar população;
+6. construir Quartel;
+7. criar soldados;
+8. preparar defesa;
+9. sobreviver a uma invasão;
+10. receber Cristal;
+11. evoluir para Núcleo Nv.2.
+
+Fim da demo.
+
+---
+
+# 90. CRITÉRIO DE SUCESSO DO MVP
+
+O MVP será considerado bem-sucedido se o jogador sentir vontade de:
+
+> “Agora que sobrevivi, quero descobrir o que existe depois daquele túnel.”
+
+Se o loop não provocar isso, adicionar dezenas de sistemas não resolverá o problema.
+
+---
+
+# 91. VERTICAL SLICE
+
+Após o MVP:
+
+Núcleo Nv.1–3.
+
+Recursos completos.
+
+10 salas.
+
+6 unidades.
+
+1 comandante.
+
+1 Herói possível.
+
+1 Assimilação.
+
+3 tipos de inimigo.
+
+Mapa regional.
+
+1 domínio rival.
+
+Diplomacia básica.
+
+Primeira guerra.
+
+Tempo esperado:
+
+aproximadamente 2–4 horas de conteúdo.
+
+---
+
+# 92. ALPHA
+
+Objetivo:
+
+provar a campanha intermediária.
+
+Conteúdo aproximado:
+
+Núcleo Nv.1–5.
+
+20 salas.
+
+20 unidades.
+
+3 facções.
+
+8 Assimilações.
+
+Vassalagem.
+
+Comandantes.
+
+Heróis.
+
+Expedições.
+
+Eventos.
+
+---
+
+# 93. BETA
+
+Conteúdo:
+
+Núcleo Nv.1–7.
+
+Economia completa.
+
+Diplomacia completa.
+
+Múltiplas bases.
+
+Grandes batalhas.
+
+História até Reino.
+
+Todas as mecânicas fundamentais presentes.
+
+---
+
+# 94. VERSÃO 1.0
+
+Meta desejada, não compromisso inicial:
+
+Núcleo Nv.1–10.
+
+5–6 facções.
+
+30+ tipos de sala.
+
+40+ unidades.
+
+20+ criaturas selvagens.
+
+30+ Assimilações.
+
+15+ chefes/eventos especiais.
+
+Campanha completa.
+
+Sandbox.
+
+---
+
+# 95. O QUE NÃO ENTRA NO MVP
+
+Não implementar inicialmente:
+
+* multiplayer;
+* dezenas de facções;
+* comércio complexo;
+* política avançada;
+* múltiplas bases;
+* crafting detalhado;
+* árvores gigantes;
+* sistema de necessidades individuais;
+* centenas de itens;
+* criação procedural extremamente complexa.
+
+Esses sistemas devem esperar o loop principal ser validado.
+
+---
+
+# 96. PRINCÍPIO DE ESCOPO
+
+Sempre que surgir uma nova ideia, perguntar:
+
+**Ela melhora diretamente o loop: explorar → crescer → defender → conquistar?**
+
+Se não:
+
+vai para backlog.
+
+---
+
+# 97. PRIMEIROS 30 MINUTOS
+
+Minuto 0:
+
+Regente desperta.
+
+Minuto 2:
+
+descobre Núcleo.
+
+Minuto 5:
+
+recebe trabalhadores.
+
+Minuto 8:
+
+primeira escavação.
+
+Minuto 12:
+
+encontra recurso.
+
+Minuto 15:
+
+constrói primeira sala.
+
+Minuto 20:
+
+detecta criaturas.
+
+Minuto 25:
+
+cria soldados.
+
+Minuto 30:
+
+primeiro combate.
+
+O jogo precisa demonstrar sua fantasia rapidamente.
+
+---
+
+# 98. PRIMEIRA HORA
+
+Ao final da primeira hora o jogador deve possuir:
+
+* pequena masmorra;
+* alguns trabalhadores;
+* grupo militar;
+* aproximadamente 4–6 salas;
+* primeiro território conhecido;
+* primeira ameaça relevante.
+
+---
+
+# 99. PRIMEIRAS CINCO HORAS
+
+O jogador deve:
+
+* alcançar Núcleo 3;
+* conhecer outra facção;
+* criar primeiro comandante;
+* obter primeira Assimilação;
+* conquistar primeiro território externo;
+* enfrentar primeiro domínio rival.
+
+Esse será o momento em que o jogo deixa de parecer apenas um dungeon builder e demonstra sua verdadeira escala.
+
+---
+
+# 100. EXPERIÊNCIA EMOCIONAL DESEJADA
+
+Início:
+
+**“Tenho quase nada.”**
+
+Depois:
+
+**“Finalmente estou seguro.”**
+
+Depois:
+
+**“Estou ficando forte.”**
+
+Depois:
+
+**“Eles estão com medo de mim.”**
+
+Depois:
+
+**“Agora preciso administrar um reino inteiro.”**
+
+Finalmente:
+
+**“Eu construí isso.”**
+
+Essa transformação é o coração de Abyss Lord.
+
+---
+
+# 101. DIFERENCIAL PRINCIPAL
+
+Abyss Lord não deve competir apenas como “mais um jogo de construir dungeon”.
+
+Sua identidade será a combinação de:
+
+**Masmorra viva + tropas persistentes + guerra territorial + controle direto do Regente + Assimilação.**
+
+A Assimilação liga todos os sistemas.
+
+Você derrota uma criatura.
+
+Isso altera suas tropas.
+
+Suas novas tropas permitem conquistar outra região.
+
+Essa região fornece recurso para construir nova estrutura.
+
+A estrutura aumenta seu império.
+
+O crescimento atrai novo inimigo.
+
+O novo inimigo oferece uma nova Assimilação.
+
+Assim:
+
+**o conteúdo conquistado transforma mecanicamente a campanha.**
+
+---
+
+# 102. VISÃO FINAL
+
+A experiência ideal começa com:
+
+**uma sala, três servos e um Núcleo rachado.**
+
+Depois de dezenas de horas, o jogador observa o mapa e vê:
+
+* cidades;
+* fortalezas;
+* postos;
+* minas;
+* vassalos;
+* exércitos;
+* comandantes;
+* heróis;
+* rotas;
+* territórios conquistados.
+
+Ao retornar à pequena sala onde tudo começou, o jogador deve reconhecer fisicamente aquele lugar dentro de uma gigantesca capital subterrânea.
+
+Essa diferença entre o primeiro minuto e o estado final do mundo será uma das principais recompensas da campanha.
+
+---
+
+# 103. FRASE-GUIA DE DESENVOLVIMENTO
+
+Sempre que uma decisão de design for difícil, voltar à pergunta:
+
+> Isso faz o jogador sentir que está transformando uma pequena masmorra em um império subterrâneo vivo?
+
+Se a resposta for não, provavelmente não é prioridade.
+
+---
+
+# 104. ESTADO DO PROJETO APÓS ESTE GDD
+
+A fundação conceitual está definida.
+
+Os quatro sistemas que devem ser prototipados primeiro são:
+
+1. Núcleo e economia;
+2. escavação e construção;
+3. população e trabalhadores;
+4. combate e primeira invasão.
+
+Somente depois desses quatro sistemas funcionarem juntos devem entrar:
+
+* comandantes;
+* diplomacia;
+* Assimilação avançada;
+* mundo estratégico;
+* vassalagem.
+
+A primeira meta real de desenvolvimento é produzir uma versão jogável onde um novo jogador consiga, sem comandos especiais de debug:
+
+**começar com o Núcleo Nv.1 e sobreviver até evoluí-lo para Nv.2.**
+
+Esse será o primeiro marco de Abyss Lord.

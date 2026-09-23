@@ -1,0 +1,36 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://game/game_main.gd" id="1_game"]
+[ext_resource type="Script" path="res://camera/camera_controller.gd" id="2_camera"]
+
+[sub_resource type="StandardMaterial3D" id="FloorMaterial"]
+albedo_color = Color(0.22, 0.26, 0.3, 1.0)
+roughness = 0.9
+
+[sub_resource type="PlaneMesh" id="TestFloorMesh"]
+size = Vector2(30, 30)
+subdivide_width = 10
+subdivide_depth = 10
+material = SubResource("FloorMaterial")
+
+[node name="GameMain" type="Node"]
+script = ExtResource("1_game")
+
+[node name="World" type="Node3D" parent="."]
+
+[node name="DungeonRoot" type="Node3D" parent="World"]
+
+[node name="Environment" type="Node3D" parent="World"]
+
+[node name="TestFloor" type="MeshInstance3D" parent="World/Environment"]
+mesh = SubResource("TestFloorMesh")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="World/Environment"]
+transform = Transform3D(0.866025, 0.433013, -0.25, 0, 0.5, 0.866025, 0.5, -0.75, 0.433013, 0, 0, 0)
+shadow_enabled = true
+
+[node name="CameraRig" type="Node3D" parent="World"]
+script = ExtResource("2_camera")
+
+[node name="Camera3D" type="Camera3D" parent="World/CameraRig"]
+transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 14.142136, 14.142136)

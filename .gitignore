@@ -1,0 +1,10 @@
+# Godot 4 editor/import cache
+.godot/
+
+# Godot 3 legacy
+.import/
+export_cache/
+
+# OS
+.DS_Store
+Thumbs.db
