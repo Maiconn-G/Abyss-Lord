@@ -6,8 +6,9 @@ const UNIT_LAYER := 2
 const DIGGABLE_LAYER := 4
 const RESOURCE_PICKUP_LAYER := 8
 const CONSTRUCTION_LAYER := 16
+const ENEMY_LAYER := 32
 const CLICKABLE_LAYERS := GROUND_LAYER | UNIT_LAYER | DIGGABLE_LAYER \
-		| RESOURCE_PICKUP_LAYER | CONSTRUCTION_LAYER
+		| RESOURCE_PICKUP_LAYER | CONSTRUCTION_LAYER | ENEMY_LAYER
 const RAY_LENGTH := 1000.0
 const RTS_SELECTABLE_GROUP := &"rts_selectable"
 
@@ -18,8 +19,8 @@ var camera: Camera3D
 var unit_container: Node
 var selection_box: SelectionBox
 
-# selected_units guarda qualquer unidade do grupo rts_selectable (WorkerRuntime,
-# SoldierRuntime). A ordem é sempre estável: arrasto e Shift produzem o mesmo
+# selected_units guarda qualquer unidade do grupo rts_selectable, independentemente
+# do tipo concreto dela. A ordem é sempre estável: arrasto e Shift produzem o mesmo
 # resultado para o mesmo estado do mundo, ordenado por get_unit_id().
 var selected_units: Array = []
 
@@ -45,6 +46,7 @@ func clear_selection() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	_purge_dead_units()
 	if event.is_action_pressed("select_unit"):
 		_begin_selection(event.position)
 	elif event.is_action_released("select_unit"):
@@ -53,6 +55,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		_update_drag(event.position)
 	elif event.is_action_pressed("command_move"):
 		_command_at(event.position)
+
+
+## §48: uma unidade derrotada sai do grupo rts_selectable e se liberta no fim do
+## frame. A seleção purga essas referências antes de qualquer ordem, sem tocar em
+## objeto já libertado.
+func _purge_dead_units() -> void:
+	var index := selected_units.size() - 1
+	while index >= 0:
+		var unit = selected_units[index]
+		if not is_instance_valid(unit):
+			selected_units.remove_at(index)
+		elif not (unit as Node3D).is_in_group(RTS_SELECTABLE_GROUP):
+			unit.set_selected(false)
+			selected_units.remove_at(index)
+		index -= 1
 
 
 func _begin_selection(screen_position: Vector2) -> void:
@@ -184,7 +201,11 @@ func _command_at(screen_position: Vector2) -> void:
 		_move_group_to(hit.position)
 		return
 	var layer := collider.get_collision_layer()
-	if layer & CONSTRUCTION_LAYER != 0:
+	if layer & ENEMY_LAYER != 0:
+		# Unidades sem a capacidade de ataque simplesmente ignoram a ordem; Worker não
+		# recebe MOVE nem trabalho algum por clicar em uma criatura.
+		_give_work_order(&"attack_target", collider)
+	elif layer & CONSTRUCTION_LAYER != 0:
 		_give_work_order(&"assign_construction_target", collider)
 	elif layer & DIGGABLE_LAYER != 0:
 		_give_work_order(&"assign_excavation_target", collider)

@@ -471,10 +471,14 @@ func _test_scene_layout() -> void:
 			"§72 o build point não tem collider nem intercepta raycast")
 	_check(String(ProjectSettings.get_setting("layer_names/3d_physics/layer_5"))
 			== "Construction", "§13 camada 5 chama-se Construction")
-	_check(String(ProjectSettings.get_setting("layer_names/3d_physics/layer_6")).is_empty(),
-			"§13 nenhuma camada extra criada por antecipação")
+	# A Tarefa 11 transformou a camada 6 de antecipação proibida em realidade: ela é a
+	# camada dos inimigos. Continua sendo a última camada nomeada do projeto.
+	_check(String(ProjectSettings.get_setting("layer_names/3d_physics/layer_6"))
+			== "Enemies", "§13/§15 T11 a camada 6 passou a ser Enemies")
+	_check(String(ProjectSettings.get_setting("layer_names/3d_physics/layer_7")).is_empty(),
+			"§13 nenhuma sétima camada criada")
 	_check(_count_occurrences(_source_text("res://project.godot"),
-			"3d_physics/layer_") == 5, "§13 exatamente 5 camadas nomeadas")
+			"3d_physics/layer_") == 6, "§13 exatamente 6 camadas nomeadas")
 	_check(_nests_in_scene().is_empty(), "a cena começa sem nenhum Ninho")
 	_check(_stockpile.get_amount(&"iron_ore") == 0, "§70 Stockpile começa em 0")
 	var screen := _camera.unproject_position(BUILD_POINT)

@@ -9,3 +9,6 @@ display_name = "Soldado Abissal"
 max_health = 80.0
 move_speed = 4.0
 recruit_essence_cost = 15.0
+attack_damage = 12.0
+attack_range = 1.4
+attack_interval = 0.75

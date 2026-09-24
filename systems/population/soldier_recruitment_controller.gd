@@ -12,6 +12,7 @@ var _dungeon_root: Node3D
 var _spawn_point: Node3D
 var _construction: ConstructionController
 var _soldier: SoldierRuntime
+var _recruited := false
 
 
 func setup(
@@ -39,7 +40,9 @@ func barracks_completed() -> bool:
 
 
 func can_recruit() -> bool:
-	if _soldier != null:
+	# §47: continua existindo um único Soldado recrutável. A morte não libera
+	# substituição nesta tarefa, por isso a flag permanente é a guarda.
+	if _recruited:
 		return false
 	if not barracks_completed():
 		return false
@@ -65,5 +68,16 @@ func recruit_soldier() -> bool:
 	_dungeon_root.add_child(soldier)
 	soldier.global_position = _spawn_point.global_position
 	_soldier = soldier
+	_recruited = true
+	# §45: quem criou a unidade conecta a morte dela à população que ela ocupava.
+	soldier.soldier_died.connect(_on_soldier_died)
 	soldier_recruited.emit(soldier)
 	return true
+
+
+func _on_soldier_died(_defeated: SoldierRuntime) -> void:
+	# §46: soldier_died emite uma única vez, então Population cai exatamente 1.
+	_core_state.try_remove_population(1)
+	# A referência é limpa para ninguém consultar um Node já libertado; o que impede
+	# um segundo recruta nesta tarefa é _recruited, não o ponteiro (§47).
+	_soldier = null

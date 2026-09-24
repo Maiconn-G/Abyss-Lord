@@ -72,6 +72,7 @@ recruit_soldier={
 3d_physics/layer_3="Diggable"
 3d_physics/layer_4="ResourcePickup"
 3d_physics/layer_5="Construction"
+3d_physics/layer_6="Enemies"
 
 [rendering]
 

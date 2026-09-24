@@ -1,20 +1,18 @@
-class_name SoldierState
+class_name EnemyState
 extends RefCounted
 
 signal health_changed(current: float, maximum: float)
 signal died
 
-var definition: SoldierDefinition
-var unit_id: String
+var definition: EnemyDefinition
+var enemy_id: String
 var health: float
-var level: int = 1
-var experience: float = 0.0
 
 
-func _init(soldier_definition: SoldierDefinition, id: String) -> void:
-	definition = soldier_definition
-	unit_id = id
-	health = soldier_definition.max_health
+func _init(enemy_definition: EnemyDefinition, id: String) -> void:
+	definition = enemy_definition
+	enemy_id = id
+	health = enemy_definition.max_health
 
 
 func damage(amount: float) -> void:
@@ -40,7 +38,7 @@ func _apply_health(value: float) -> void:
 		return
 	health = next
 	health_changed.emit(health, maximum)
-	# Mesma semântica de EnemyState: chegar a zero emite died uma única vez, porque
-	# qualquer dano posterior cai no retorno cedo de _apply_health.
+	# Chegar a zero emite died uma única vez: depois disso _apply_health retorna
+	# cedo em qualquer novo dano, então o sinal não pode se repetir.
 	if is_dead():
 		died.emit()

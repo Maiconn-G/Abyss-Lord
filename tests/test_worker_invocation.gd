@@ -792,10 +792,14 @@ func _test_scope_guards() -> void:
 			"§11 a tecla I dispara a ação summon_worker")
 	_check(not controller_source.contains("\"I\"") and not controller_source.contains("KEY_I"),
 			"§11 nenhuma tecla física hardcoded no controller")
-	_check(_count_occurrences(_source_text("res://project.godot"), "3d_physics/layer_") == 5,
-			"§10 nenhuma camada de física nova foi criada por antecipação")
-	_check(String(ProjectSettings.get_setting("layer_names/3d_physics/layer_6")).is_empty(),
-			"§10 a camada 6 continua inexistente")
+	# §10 da Tarefa 08 vetava camada extra por antecipação; a Tarefa 11 criou a camada
+	# 6 = Enemies de verdade, então a contagem exata passa a ser 6 e nenhuma além dela.
+	_check(_count_occurrences(_source_text("res://project.godot"), "3d_physics/layer_") == 6,
+			"§10/§15 T11 exatamente a camada 6 Enemies foi adicionada")
+	_check(String(ProjectSettings.get_setting("layer_names/3d_physics/layer_6")) == "Enemies",
+			"§10/§15 T11 a camada 6 existe e se chama Enemies")
+	_check(String(ProjectSettings.get_setting("layer_names/3d_physics/layer_7")).is_empty(),
+			"§10 continua sem sétima camada")
 	_check(_worker.collision_mask & UNIT_LAYER == 0
 			and _worker2.collision_mask & UNIT_LAYER == 0,
 			"§10 nenhum Worker colide com unidades: sem Unit vs Unit nesta tarefa")

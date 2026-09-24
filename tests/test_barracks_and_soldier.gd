@@ -184,8 +184,9 @@ func _test_input_actions() -> void:
 			"§13 build_barracks está no input map do projeto")
 	_check(_source("res://project.godot").contains("recruit_soldier="),
 			"§35 recruit_soldier está no input map do projeto")
-	_check(_count_occurrences(_source("res://project.godot"), "3d_physics/layer_") == 5,
-			"§11 nenhuma camada de física nova foi criada para o Quartel")
+	# A Tarefa 11 acrescentou a camada 6 = Enemies; nenhuma outra apareceu.
+	_check(_count_occurrences(_source("res://project.godot"), "3d_physics/layer_") == 6,
+			"§11/§15 T11 a única camada nova é a 6 Enemies")
 
 
 func _test_barracks_definition() -> void:
@@ -299,9 +300,11 @@ func _test_soldier_definition() -> void:
 	_check(is_equal_approx(definition.recruit_essence_cost, RECRUIT_COST),
 			"§23 recruit_essence_cost 15")
 	var fields := _instance_fields(definition)
-	for forbidden in ["attack_damage", "attack_range", "attack_speed", "armor",
-			"defense", "agro_range"]:
-		_check(not fields.has(forbidden), "§23 campo de combate ausente: %s" % forbidden)
+	for required in ["attack_damage", "attack_range", "attack_interval"]:
+		_check(fields.has(required), "§3 T11 campo de combate presente: %s" % required)
+	for forbidden in ["attack_speed", "armor", "defense", "agro_range",
+			"critical_chance", "accuracy", "dodge"]:
+		_check(not fields.has(forbidden), "§3 T11 campo de combate antecipado ausente: %s" % forbidden)
 
 
 func _test_soldier_state_defaults() -> void:
@@ -803,11 +806,15 @@ func _test_soldier_idle_at_spawn() -> void:
 	_check(_close(_soldier.state.health, 80.0), "§26 o Soldado recrutado nasce com 80 de vida")
 	_check(_soldier.state.level == 1 and is_equal_approx(_soldier.state.experience, 0.0),
 			"§25 o nível e a experiência iniciais do Soldado recrutado")
-	_check(not _soldier.has_method("action_mode")
-			and not _soldier.has_method("assign_excavation_target")
-			and not _soldier.has_method("collect_resource_pile")
-			and not _soldier.has_method("assign_construction_target"),
-			"§33 o Soldado não tem máquina de ações de trabalho")
+	# Tarefa 11 §23 deu ao Soldado uma máquina de ações própria, mas só de combate:
+	# as quatro ações de trabalho do Worker continuam ausentes.
+	_check(_soldier.action_mode() == SoldierRuntime.ActionMode.IDLE
+			and SoldierRuntime.ActionMode.size() == 3,
+			"§23 T11 o Soldado tem a máquina de ações IDLE/MOVE/ATTACK")
+	for work_method in ["assign_excavation_target", "collect_resource_pile",
+			"assign_construction_target"]:
+		_check(not _soldier.has_method(work_method),
+				"§33 a API de trabalho %s não existe no Soldado" % work_method)
 
 
 func _test_individual_soldier_selection() -> void:
@@ -1124,14 +1131,19 @@ func _test_scope_guards() -> void:
 			"§48 o SelectionController não está mais amarrado ao tipo WorkerRuntime")
 	_check(selection_source.contains("rts_selectable"),
 			"§47 a seleção é guiada pelo grupo rts_selectable")
-	_check(not selection_source.contains("recruit")
-			and not selection_source.contains("essence")
-			and not selection_source.contains("attack")
-			and not selection_source.contains("enemy"),
-			"§105 nenhuma regra de recrutamento ou combate entrou na seleção")
-	_check(not selection_source.contains("get_nodes_in_group")
-			and not selection_source.contains("get_first_node_in_group"),
-			"§106 a seleção não faz busca global, só varre os filhos uma vez")
+	# A Tarefa 11 §20 autorizou a seleção a reconhecer o inimigo e entregar a ordem de
+	# ataque. Ela continua sem nenhuma regra de economia, recrutamento ou EXECUÇÃO de
+	# combate: quem calcula dano, cooldown e morte são os dois Runtimes.
+	_check(selection_source.contains("attack_target")
+			and selection_source.contains("ENEMY_LAYER"),
+			"§20 T11 a seleção reconhece o inimigo e entrega attack_target")
+	for economy in ["recruit", "essence", "stockpile"]:
+		_check(not selection_source.contains(economy),
+				"§105/§99 a seleção não conhece a economia (%s)" % economy)
+	for execution in ["attack_damage", "attack_interval", "receive_damage", "queue_free",
+			"is_dead", "get_nodes_in_group", "get_first_node_in_group"]:
+		_check(not selection_source.contains(execution),
+				"§99 a seleção não executa combate (%s)" % execution)
 	_check(not selection_source.contains("soldier"),
 			"§19 a seleção não tem branch pelo nome do Soldado")
 	var construction_source := _source(CONSTRUCTION_SOURCE_PATH)
@@ -1153,13 +1165,22 @@ func _test_scope_guards() -> void:
 			"§106 o BarracksRuntime é passivo")
 	_check(not barracks_source.contains("6.0") and not barracks_source.contains("apply_work("),
 			"§6 o Runtime do Quartel não hardcode nem aplica trabalho sozinho")
-	_check(not _source("res://core/definitions/soldier_definition.gd").contains("attack"),
-			"§102 a Definition do Soldado não tem ataque")
+	# §3 da Tarefa 11 pediu exatamente estes três números na Definition, vindos do .tres.
+	var soldier_definition_source := _source("res://core/definitions/soldier_definition.gd")
+	for stat in ["attack_damage", "attack_range", "attack_interval"]:
+		_check(soldier_definition_source.contains(stat),
+				"§3 T11 SoldierDefinition declara %s" % stat)
+	for hardcoded in ["12.0", "1.4", "0.75"]:
+		_check(not _source("res://units/soldiers/soldier_runtime.gd").contains(hardcoded),
+				"§4 nenhum número de ataque (%s) hardcoded no Runtime" % hardcoded)
 	var soldier_state_source := _source("res://core/state/soldier_state.gd")
-	for forbidden in ["func die", "func _die", "func kill", "signal died", "signal death",
-			"is_dead", "death_"]:
+	for forbidden in ["func die", "func _die", "func kill", "death_",
+			"respawn", "resurrect", "heal_ai"]:
 		_check(not soldier_state_source.contains(forbidden),
 				"§26 SoldierState não implementa '%s'" % forbidden)
+	_check(_has_signal(SoldierState.new(_soldier_definition(), "probe"), "died")
+			and SoldierState.new(_soldier_definition(), "probe").has_method("is_dead"),
+			"§10 T11 SoldierState ganhou died e is_dead")
 	_check(not _source("res://units/soldiers/SoldierRuntime.tscn").contains("glb")
 			and not _source("res://world/dungeon/rooms/barracks/BarracksRuntime.tscn")
 					.contains("glb"),

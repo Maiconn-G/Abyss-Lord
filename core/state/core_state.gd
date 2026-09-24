@@ -67,6 +67,16 @@ func try_add_population(amount: int = 1) -> bool:
 	return true
 
 
+## §44: remover população é atômico como adicionar. amount inválido ou maior que a
+## população atual rejeita a operação inteira — nunca se reduz silenciosamente.
+func try_remove_population(amount: int = 1) -> bool:
+	if amount <= 0 or amount > population:
+		return false
+	population -= amount
+	population_changed.emit(population, get_population_capacity())
+	return true
+
+
 func add_population_capacity_bonus(amount: int) -> void:
 	if amount <= 0:
 		return
