@@ -5,7 +5,9 @@ const GROUND_LAYER := 1
 const UNIT_LAYER := 2
 const DIGGABLE_LAYER := 4
 const RESOURCE_PICKUP_LAYER := 8
-const CLICKABLE_LAYERS := GROUND_LAYER | UNIT_LAYER | DIGGABLE_LAYER | RESOURCE_PICKUP_LAYER
+const CONSTRUCTION_LAYER := 16
+const CLICKABLE_LAYERS := GROUND_LAYER | UNIT_LAYER | DIGGABLE_LAYER \
+		| RESOURCE_PICKUP_LAYER | CONSTRUCTION_LAYER
 const RAY_LENGTH := 1000.0
 
 var camera: Camera3D
@@ -37,7 +39,9 @@ func _command_move_at(screen_position: Vector2) -> void:
 	var hit := _ray_hit(screen_position, CLICKABLE_LAYERS)
 	if hit.is_empty():
 		return
-	if hit.collider is RockRuntime:
+	if hit.collider is NestRuntime:
+		selected_unit.assign_construction_target(hit.collider)
+	elif hit.collider is RockRuntime:
 		selected_unit.assign_excavation_target(hit.collider)
 	elif hit.collider is ResourcePileRuntime:
 		selected_unit.collect_resource_pile(hit.collider)

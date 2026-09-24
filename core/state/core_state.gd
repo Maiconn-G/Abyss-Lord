@@ -3,6 +3,7 @@ extends RefCounted
 
 signal essence_changed(current: float, maximum: float)
 signal population_changed(current: int, capacity: int)
+signal population_capacity_changed(current_population: int, new_capacity: int)
 
 var definition: CoreDefinition
 var core_id: String = "main_core"
@@ -10,6 +11,7 @@ var level: int = 1
 var integrity: float = 0.0
 var essence: float = 0.0
 var population: int = 0
+var population_capacity_bonus: int = 0
 
 
 func _init(core_definition: CoreDefinition, id: String = "main_core") -> void:
@@ -39,9 +41,20 @@ func consume_essence(amount: float) -> bool:
 
 
 func set_population(value: int) -> void:
-	var capacity := definition.population_capacity
+	var capacity := get_population_capacity()
 	var next := clampi(value, 0, capacity)
 	if next == population:
 		return
 	population = next
 	population_changed.emit(population, capacity)
+
+
+func get_population_capacity() -> int:
+	return definition.population_capacity + population_capacity_bonus
+
+
+func add_population_capacity_bonus(amount: int) -> void:
+	if amount <= 0:
+		return
+	population_capacity_bonus += amount
+	population_capacity_changed.emit(population, get_population_capacity())

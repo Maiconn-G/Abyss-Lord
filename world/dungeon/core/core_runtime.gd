@@ -15,5 +15,9 @@ func setup(definition: CoreDefinition, state: CoreState) -> void:
 	set_process(true)
 
 
+func core_state() -> CoreState:
+	return _state
+
+
 func _process(delta: float) -> void:
 	_state.add_essence(_definition.essence_generation_rate * delta)

@@ -1,0 +1,82 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://world/dungeon/rooms/nest/nest_runtime.gd" id="1_runtime"]
+
+[sub_resource type="StandardMaterial3D" id="SiteMaterial"]
+albedo_color = Color(0.32, 0.3, 0.34, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="SiteStoneMaterial"]
+albedo_color = Color(0.5, 0.47, 0.42, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="NestMaterial"]
+albedo_color = Color(0.28, 0.15, 0.42, 1)
+roughness = 0.65
+
+[sub_resource type="StandardMaterial3D" id="NestDomeMaterial"]
+albedo_color = Color(0.45, 0.24, 0.62, 1)
+roughness = 0.5
+
+[sub_resource type="CylinderMesh" id="SiteBaseMesh"]
+top_radius = 1.0
+bottom_radius = 1.1
+height = 0.3
+material = SubResource("SiteMaterial")
+
+[sub_resource type="BoxMesh" id="SiteStoneMesh"]
+size = Vector3(0.35, 0.35, 0.35)
+material = SubResource("SiteStoneMaterial")
+
+[sub_resource type="CylinderMesh" id="NestBaseMesh"]
+top_radius = 1.0
+bottom_radius = 1.1
+height = 0.5
+material = SubResource("NestMaterial")
+
+[sub_resource type="SphereMesh" id="NestDomeMesh"]
+radius = 0.9
+height = 1.1
+material = SubResource("NestDomeMaterial")
+
+[sub_resource type="CylinderShape3D" id="NestShape"]
+radius = 1.1
+height = 2.0
+
+[node name="NestRuntime" type="StaticBody3D"]
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("1_runtime")
+
+[node name="ConstructionVisual" type="Node3D" parent="."]
+
+[node name="SiteBase" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
+mesh = SubResource("SiteBaseMesh")
+
+[node name="Stone1" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.7, 0.45, 0)
+mesh = SubResource("SiteStoneMesh")
+
+[node name="Stone2" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.35, 0.45, 0.6)
+mesh = SubResource("SiteStoneMesh")
+
+[node name="Stone3" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0.45, -0.5)
+mesh = SubResource("SiteStoneMesh")
+
+[node name="CompletedVisual" type="Node3D" parent="."]
+visible = false
+
+[node name="NestBase" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0)
+mesh = SubResource("NestBaseMesh")
+
+[node name="NestDome" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
+mesh = SubResource("NestDomeMesh")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+shape = SubResource("NestShape")

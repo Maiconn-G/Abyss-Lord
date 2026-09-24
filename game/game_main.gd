@@ -1,18 +1,23 @@
 extends Node
 
 const RESOURCE_PILE_SCENE := preload("res://world/resources/ResourcePileRuntime.tscn")
+const NEST_SCENE := preload("res://world/dungeon/rooms/nest/NestRuntime.tscn")
 
 @export var core_definition: CoreDefinition
 @export var worker_definition: WorkerDefinition
 @export var iron_ore_definition: ResourceDefinition
+@export var nest_definition: NestDefinition
 
 @onready var _dungeon: Node3D = $World/DungeonRoot
 @onready var _core: CoreRuntime = $World/DungeonRoot/MainCore
 @onready var _worker: WorkerRuntime = $World/DungeonRoot/Worker001
 @onready var _deposit: ResourceDepositRuntime = $World/DungeonRoot/Deposit001
+@onready var _build_point: Marker3D = $World/DungeonRoot/NestBuildPoint
 @onready var _hud: CoreDebugHud = $UI/CoreDebugPanel
 @onready var _resource_hud: ResourceDebugHud = $UI/ResourceDebugPanel
+@onready var _construction_hud: ConstructionDebugHud = $UI/ConstructionDebugPanel
 @onready var _selection: SelectionController = $Systems/SelectionController
+@onready var _construction: ConstructionController = $Systems/ConstructionController
 
 
 func _ready() -> void:
@@ -27,6 +32,10 @@ func _ready() -> void:
 	_deposit.setup(stockpile_state)
 	_worker.set_resource_deposit(_deposit)
 	_resource_hud.bind_stockpile(stockpile_state, iron_ore_definition)
+
+	_construction.setup(stockpile_state, nest_definition, NEST_SCENE, _build_point, _dungeon)
+	_construction.bind_core_state(core_state)
+	_construction_hud.bind(_construction, stockpile_state, nest_definition)
 
 	_bind_rocks()
 

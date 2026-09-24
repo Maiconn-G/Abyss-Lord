@@ -1,10 +1,11 @@
 class_name WorkerRuntime
 extends CharacterBody3D
 
-enum ActionMode { IDLE, MOVE, EXCAVATE, COLLECT, DELIVER }
+enum ActionMode { IDLE, MOVE, EXCAVATE, COLLECT, DELIVER, BUILD }
 
 @export var arrival_distance: float = 0.1
 @export var work_range: float = 1.8
+@export var build_range: float = 1.8
 @export var pickup_range: float = 0.8
 @export var deposit_range: float = 0.8
 
@@ -19,6 +20,7 @@ var _target_position := Vector3.ZERO
 var _has_move_target := false
 var _excavation_target: RockRuntime
 var _collection_target: ResourcePileRuntime
+var _construction_target: NestRuntime
 var _deposit: ResourceDepositRuntime
 
 
@@ -64,6 +66,16 @@ func collect_resource_pile(pile: ResourcePileRuntime) -> void:
 	_has_move_target = true
 
 
+func assign_construction_target(nest: NestRuntime) -> void:
+	if _is_delivering() or nest.is_completed():
+		return
+	_clear_targets()
+	_construction_target = nest
+	_mode = ActionMode.BUILD
+	_target_position = _approach_point(nest.global_position, build_range)
+	_has_move_target = true
+
+
 func has_move_target() -> bool:
 	return _has_move_target
 
@@ -74,6 +86,14 @@ func is_excavating() -> bool:
 
 func current_excavation_target() -> RockRuntime:
 	return _excavation_target
+
+
+func is_building() -> bool:
+	return _mode == ActionMode.BUILD and is_instance_valid(_construction_target)
+
+
+func current_construction_target() -> NestRuntime:
+	return _construction_target
 
 
 func action_mode() -> ActionMode:
@@ -89,6 +109,14 @@ func _physics_process(delta: float) -> void:
 	if _mode == ActionMode.COLLECT and _in_range_of(_collection_target.global_position, pickup_range):
 		_take_from_pile()
 		return
+	if _mode == ActionMode.BUILD:
+		if _construction_target.is_completed():
+			_cancel_action()
+			return
+		if _in_range_of(_construction_target.global_position, build_range):
+			_stop_walking()
+			_construction_target.state.apply_work(definition.work_speed * delta)
+			return
 	if _mode == ActionMode.DELIVER and _in_range_of(_deposit.deposit_point_position(), deposit_range):
 		_deliver_cargo()
 		return
@@ -133,6 +161,8 @@ func _invalidate_dead_targets() -> void:
 		_cancel_action()
 	elif _mode == ActionMode.COLLECT and not is_instance_valid(_collection_target):
 		_cancel_action()
+	elif _mode == ActionMode.BUILD and not is_instance_valid(_construction_target):
+		_cancel_action()
 
 
 func _cancel_action() -> void:
@@ -144,6 +174,7 @@ func _cancel_action() -> void:
 func _clear_targets() -> void:
 	_excavation_target = null
 	_collection_target = null
+	_construction_target = null
 
 
 func _is_delivering() -> bool:
