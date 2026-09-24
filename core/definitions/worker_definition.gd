@@ -7,3 +7,4 @@ extends Resource
 @export var move_speed: float = 3.5
 @export var work_speed: float = 1.0
 @export var carry_capacity: int = 3
+@export var summon_essence_cost: float = 10.0

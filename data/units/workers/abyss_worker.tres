@@ -10,3 +10,4 @@ max_health = 50.0
 move_speed = 3.5
 work_speed = 1.0
 carry_capacity = 3
+summon_essence_cost = 10.0

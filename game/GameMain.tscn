@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://game/game_main.gd" id="1_game"]
 [ext_resource type="Script" path="res://camera/camera_controller.gd" id="2_camera"]
@@ -17,6 +17,8 @@
 [ext_resource type="Resource" path="res://data/rooms/abyss_nest.tres" id="15_nest_def"]
 [ext_resource type="Script" path="res://systems/construction/construction_controller.gd" id="16_construction"]
 [ext_resource type="PackedScene" path="res://ui/hud/ConstructionDebugHud.tscn" id="17_construction_hud"]
+[ext_resource type="Script" path="res://systems/population/worker_invocation_controller.gd" id="18_invocation"]
+[ext_resource type="PackedScene" path="res://ui/hud/WorkerInvocationDebugHud.tscn" id="19_invocation_hud"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMaterial"]
 albedo_color = Color(0.22, 0.26, 0.3, 1.0)
@@ -82,6 +84,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 0)
 [node name="NestBuildPoint" type="Marker3D" parent="World/DungeonRoot"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, -5)
 
+[node name="WorkerSpawnPoint" type="Marker3D" parent="World/DungeonRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 4)
+
 [node name="Environment" type="Node3D" parent="World"]
 
 [node name="TestFloor" type="MeshInstance3D" parent="World/Environment"]
@@ -113,6 +118,9 @@ script = ExtResource("8_selection")
 [node name="ConstructionController" type="Node" parent="Systems"]
 script = ExtResource("16_construction")
 
+[node name="WorkerInvocationController" type="Node" parent="Systems"]
+script = ExtResource("18_invocation")
+
 [node name="UI" type="CanvasLayer" parent="."]
 
 [node name="CoreDebugPanel" parent="UI" instance=ExtResource("5_hud")]
@@ -120,3 +128,5 @@ script = ExtResource("16_construction")
 [node name="ResourceDebugPanel" parent="UI" instance=ExtResource("14_resource_hud")]
 
 [node name="ConstructionDebugPanel" parent="UI" instance=ExtResource("17_construction_hud")]
+
+[node name="WorkerInvocationDebugPanel" parent="UI" instance=ExtResource("19_invocation_hud")]

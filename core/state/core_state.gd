@@ -53,6 +53,20 @@ func get_population_capacity() -> int:
 	return definition.population_capacity + population_capacity_bonus
 
 
+func can_add_population(amount: int = 1) -> bool:
+	if amount <= 0:
+		return false
+	return population + amount <= get_population_capacity()
+
+
+func try_add_population(amount: int = 1) -> bool:
+	if not can_add_population(amount):
+		return false
+	population += amount
+	population_changed.emit(population, get_population_capacity())
+	return true
+
+
 func add_population_capacity_bonus(amount: int) -> void:
 	if amount <= 0:
 		return
