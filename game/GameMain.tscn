@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=24 format=3]
 
 [ext_resource type="Script" path="res://game/game_main.gd" id="1_game"]
 [ext_resource type="Script" path="res://camera/camera_controller.gd" id="2_camera"]
@@ -19,6 +19,7 @@
 [ext_resource type="PackedScene" path="res://ui/hud/ConstructionDebugHud.tscn" id="17_construction_hud"]
 [ext_resource type="Script" path="res://systems/population/worker_invocation_controller.gd" id="18_invocation"]
 [ext_resource type="PackedScene" path="res://ui/hud/WorkerInvocationDebugHud.tscn" id="19_invocation_hud"]
+[ext_resource type="PackedScene" path="res://ui/selection/SelectionBox.tscn" id="20_selection_box"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMaterial"]
 albedo_color = Color(0.22, 0.26, 0.3, 1.0)
@@ -122,6 +123,8 @@ script = ExtResource("16_construction")
 script = ExtResource("18_invocation")
 
 [node name="UI" type="CanvasLayer" parent="."]
+
+[node name="SelectionBox" parent="UI" instance=ExtResource("20_selection_box")]
 
 [node name="CoreDebugPanel" parent="UI" instance=ExtResource("5_hud")]
 

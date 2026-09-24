@@ -19,6 +19,7 @@ const WORKER_SCENE := preload("res://units/workers/WorkerRuntime.tscn")
 @onready var _resource_hud: ResourceDebugHud = $UI/ResourceDebugPanel
 @onready var _construction_hud: ConstructionDebugHud = $UI/ConstructionDebugPanel
 @onready var _invocation_hud: WorkerInvocationDebugHud = $UI/WorkerInvocationDebugPanel
+@onready var _selection_box: SelectionBox = $UI/SelectionBox
 @onready var _selection: SelectionController = $Systems/SelectionController
 @onready var _construction: ConstructionController = $Systems/ConstructionController
 @onready var _invocation: WorkerInvocationController = $Systems/WorkerInvocationController
@@ -49,7 +50,7 @@ func _ready() -> void:
 	core_state.try_add_population(1)
 	_hud.bind_core(core_state)
 	_invocation_hud.bind(_invocation, core_state, worker_definition)
-	_selection.setup($World/CameraRig/Camera3D)
+	_selection.setup($World/CameraRig/Camera3D, _dungeon, _selection_box)
 
 
 func _bind_rocks() -> void:
