@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3]
+[gd_scene load_steps=27 format=3]
 
 [ext_resource type="Script" path="res://game/game_main.gd" id="1_game"]
 [ext_resource type="Script" path="res://camera/camera_controller.gd" id="2_camera"]
@@ -20,6 +20,9 @@
 [ext_resource type="Script" path="res://systems/population/worker_invocation_controller.gd" id="18_invocation"]
 [ext_resource type="PackedScene" path="res://ui/hud/WorkerInvocationDebugHud.tscn" id="19_invocation_hud"]
 [ext_resource type="PackedScene" path="res://ui/selection/SelectionBox.tscn" id="20_selection_box"]
+[ext_resource type="Resource" path="res://data/rooms/abyss_barracks.tres" id="21_barracks_def"]
+[ext_resource type="Script" path="res://systems/population/soldier_recruitment_controller.gd" id="22_recruitment"]
+[ext_resource type="PackedScene" path="res://ui/hud/MilitaryDebugHud.tscn" id="23_military_hud"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMaterial"]
 albedo_color = Color(0.22, 0.26, 0.3, 1.0)
@@ -45,6 +48,7 @@ core_definition = ExtResource("4_core_def")
 worker_definition = ExtResource("7_worker_def")
 iron_ore_definition = ExtResource("13_iron_ore")
 nest_definition = ExtResource("15_nest_def")
+barracks_definition = ExtResource("21_barracks_def")
 
 [node name="World" type="Node3D" parent="."]
 
@@ -79,6 +83,14 @@ definition = ExtResource("11_ore_rock_def")
 [node name="Visual" parent="World/DungeonRoot/IronOreRock001" index="0"]
 material_override = SubResource("IronOreRockMaterial")
 
+[node name="IronOreRock002" parent="World/DungeonRoot" instance=ExtResource("9_rock")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 1, 2)
+rock_id = "iron_ore_002"
+definition = ExtResource("11_ore_rock_def")
+
+[node name="Visual" parent="World/DungeonRoot/IronOreRock002" index="0"]
+material_override = SubResource("IronOreRockMaterial")
+
 [node name="Deposit001" parent="World/DungeonRoot" instance=ExtResource("12_deposit")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 0)
 
@@ -87,6 +99,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, -5)
 
 [node name="WorkerSpawnPoint" type="Marker3D" parent="World/DungeonRoot"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 4)
+
+[node name="BarracksBuildPoint" type="Marker3D" parent="World/DungeonRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, -5)
+
+[node name="SoldierSpawnPoint" type="Marker3D" parent="World/DungeonRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, -1.5)
 
 [node name="Environment" type="Node3D" parent="World"]
 
@@ -122,6 +140,9 @@ script = ExtResource("16_construction")
 [node name="WorkerInvocationController" type="Node" parent="Systems"]
 script = ExtResource("18_invocation")
 
+[node name="SoldierRecruitmentController" type="Node" parent="Systems"]
+script = ExtResource("22_recruitment")
+
 [node name="UI" type="CanvasLayer" parent="."]
 
 [node name="SelectionBox" parent="UI" instance=ExtResource("20_selection_box")]
@@ -133,3 +154,5 @@ script = ExtResource("18_invocation")
 [node name="ConstructionDebugPanel" parent="UI" instance=ExtResource("17_construction_hud")]
 
 [node name="WorkerInvocationDebugPanel" parent="UI" instance=ExtResource("19_invocation_hud")]
+
+[node name="MilitaryDebugPanel" parent="UI" instance=ExtResource("23_military_hud")]

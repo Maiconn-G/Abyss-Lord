@@ -1,0 +1,132 @@
+[gd_scene load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://world/dungeon/rooms/barracks/barracks_runtime.gd" id="1_runtime"]
+
+[sub_resource type="StandardMaterial3D" id="ScaffoldMaterial"]
+albedo_color = Color(0.38, 0.31, 0.24, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="SiteStoneMaterial"]
+albedo_color = Color(0.5, 0.47, 0.42, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="BarracksStoneMaterial"]
+albedo_color = Color(0.33, 0.35, 0.42, 1)
+roughness = 0.75
+
+[sub_resource type="StandardMaterial3D" id="BarracksPillarMaterial"]
+albedo_color = Color(0.46, 0.45, 0.5, 1)
+roughness = 0.7
+
+[sub_resource type="StandardMaterial3D" id="BarracksRoofMaterial"]
+albedo_color = Color(0.19, 0.2, 0.25, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="BarracksBannerMaterial"]
+albedo_color = Color(0.55, 0.11, 0.16, 1)
+roughness = 0.6
+
+[sub_resource type="BoxMesh" id="SiteBaseMesh"]
+size = Vector3(2.2, 0.2, 1.8)
+material = SubResource("ScaffoldMaterial")
+
+[sub_resource type="CylinderMesh" id="SitePostMesh"]
+top_radius = 0.09
+bottom_radius = 0.11
+height = 1.1
+material = SubResource("ScaffoldMaterial")
+
+[sub_resource type="BoxMesh" id="SiteStoneMesh"]
+size = Vector3(0.35, 0.35, 0.35)
+material = SubResource("SiteStoneMaterial")
+
+[sub_resource type="BoxMesh" id="BarracksBaseMesh"]
+size = Vector3(2.2, 0.9, 1.8)
+material = SubResource("BarracksStoneMaterial")
+
+[sub_resource type="CylinderMesh" id="BarracksPillarMesh"]
+top_radius = 0.16
+bottom_radius = 0.18
+height = 1.3
+material = SubResource("BarracksPillarMaterial")
+
+[sub_resource type="BoxMesh" id="BarracksRoofMesh"]
+size = Vector3(2.6, 0.18, 2.1)
+material = SubResource("BarracksRoofMaterial")
+
+[sub_resource type="BoxMesh" id="BarracksBannerMesh"]
+size = Vector3(0.5, 0.7, 0.06)
+material = SubResource("BarracksBannerMaterial")
+
+[sub_resource type="BoxShape3D" id="BarracksShape"]
+size = Vector3(2.2, 2.4, 1.8)
+
+[node name="BarracksRuntime" type="StaticBody3D"]
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("1_runtime")
+
+[node name="ConstructionVisual" type="Node3D" parent="."]
+
+[node name="SiteBase" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+mesh = SubResource("SiteBaseMesh")
+
+[node name="Post1" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.95, 0.55, 0.75)
+mesh = SubResource("SitePostMesh")
+
+[node name="Post2" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.95, 0.55, 0.75)
+mesh = SubResource("SitePostMesh")
+
+[node name="Post3" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.95, 0.55, -0.75)
+mesh = SubResource("SitePostMesh")
+
+[node name="Post4" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.95, 0.55, -0.75)
+mesh = SubResource("SitePostMesh")
+
+[node name="Stone1" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, 0.38, 0.2)
+mesh = SubResource("SiteStoneMesh")
+
+[node name="Stone2" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.45, 0.38, -0.3)
+mesh = SubResource("SiteStoneMesh")
+
+[node name="CompletedVisual" type="Node3D" parent="."]
+visible = false
+
+[node name="BaseBlock" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+mesh = SubResource("BarracksBaseMesh")
+
+[node name="Pillar1" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.95, 1.55, 0.75)
+mesh = SubResource("BarracksPillarMesh")
+
+[node name="Pillar2" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.95, 1.55, 0.75)
+mesh = SubResource("BarracksPillarMesh")
+
+[node name="Pillar3" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.95, 1.55, -0.75)
+mesh = SubResource("BarracksPillarMesh")
+
+[node name="Pillar4" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.95, 1.55, -0.75)
+mesh = SubResource("BarracksPillarMesh")
+
+[node name="Roof" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.29, 0)
+mesh = SubResource("BarracksRoofMesh")
+
+[node name="Banner" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0.93)
+mesh = SubResource("BarracksBannerMesh")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+shape = SubResource("BarracksShape")

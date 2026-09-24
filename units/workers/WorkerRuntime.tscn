@@ -34,7 +34,7 @@ roughness = 0.35
 size = Vector3(0.28, 0.28, 0.28)
 material = SubResource("CarryMaterial")
 
-[node name="WorkerRuntime" type="CharacterBody3D"]
+[node name="WorkerRuntime" type="CharacterBody3D" groups=["rts_selectable"]]
 collision_layer = 2
 collision_mask = 21
 script = ExtResource("1_runtime")

@@ -20,13 +20,17 @@ var _target_position := Vector3.ZERO
 var _has_move_target := false
 var _excavation_target: RockRuntime
 var _collection_target: ResourcePileRuntime
-var _construction_target: NestRuntime
+var _construction_target
 var _deposit: ResourceDepositRuntime
 
 
 func setup(worker_definition: WorkerDefinition, worker_state: WorkerState) -> void:
 	definition = worker_definition
 	state = worker_state
+
+
+func get_unit_id() -> String:
+	return state.unit_id
 
 
 func set_resource_deposit(deposit: ResourceDepositRuntime) -> void:
@@ -66,13 +70,13 @@ func collect_resource_pile(pile: ResourcePileRuntime) -> void:
 	_has_move_target = true
 
 
-func assign_construction_target(nest: NestRuntime) -> void:
-	if _is_delivering() or nest.is_completed():
+func assign_construction_target(site) -> void:
+	if _is_delivering() or site.is_completed():
 		return
 	_clear_targets()
-	_construction_target = nest
+	_construction_target = site
 	_mode = ActionMode.BUILD
-	_target_position = _approach_point(nest.global_position, build_range)
+	_target_position = _approach_point(site.global_position, build_range)
 	_has_move_target = true
 
 
@@ -92,7 +96,7 @@ func is_building() -> bool:
 	return _mode == ActionMode.BUILD and is_instance_valid(_construction_target)
 
 
-func current_construction_target() -> NestRuntime:
+func current_construction_target():
 	return _construction_target
 
 

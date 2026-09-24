@@ -2,27 +2,34 @@ extends Node
 
 const RESOURCE_PILE_SCENE := preload("res://world/resources/ResourcePileRuntime.tscn")
 const NEST_SCENE := preload("res://world/dungeon/rooms/nest/NestRuntime.tscn")
+const BARRACKS_SCENE := preload("res://world/dungeon/rooms/barracks/BarracksRuntime.tscn")
 const WORKER_SCENE := preload("res://units/workers/WorkerRuntime.tscn")
+const SOLDIER_SCENE := preload("res://units/soldiers/SoldierRuntime.tscn")
 
 @export var core_definition: CoreDefinition
 @export var worker_definition: WorkerDefinition
 @export var iron_ore_definition: ResourceDefinition
 @export var nest_definition: NestDefinition
+@export var barracks_definition: BarracksDefinition
 
 @onready var _dungeon: Node3D = $World/DungeonRoot
 @onready var _core: CoreRuntime = $World/DungeonRoot/MainCore
 @onready var _worker: WorkerRuntime = $World/DungeonRoot/Worker001
 @onready var _deposit: ResourceDepositRuntime = $World/DungeonRoot/Deposit001
 @onready var _build_point: Marker3D = $World/DungeonRoot/NestBuildPoint
+@onready var _barracks_build_point: Marker3D = $World/DungeonRoot/BarracksBuildPoint
 @onready var _spawn_point: Marker3D = $World/DungeonRoot/WorkerSpawnPoint
+@onready var _soldier_spawn_point: Marker3D = $World/DungeonRoot/SoldierSpawnPoint
 @onready var _hud: CoreDebugHud = $UI/CoreDebugPanel
 @onready var _resource_hud: ResourceDebugHud = $UI/ResourceDebugPanel
 @onready var _construction_hud: ConstructionDebugHud = $UI/ConstructionDebugPanel
 @onready var _invocation_hud: WorkerInvocationDebugHud = $UI/WorkerInvocationDebugPanel
+@onready var _military_hud: MilitaryDebugHud = $UI/MilitaryDebugPanel
 @onready var _selection_box: SelectionBox = $UI/SelectionBox
 @onready var _selection: SelectionController = $Systems/SelectionController
 @onready var _construction: ConstructionController = $Systems/ConstructionController
 @onready var _invocation: WorkerInvocationController = $Systems/WorkerInvocationController
+@onready var _recruitment: SoldierRecruitmentController = $Systems/SoldierRecruitmentController
 
 
 func _ready() -> void:
@@ -38,12 +45,29 @@ func _ready() -> void:
 	_worker.set_resource_deposit(_deposit)
 	_resource_hud.bind_stockpile(stockpile_state, iron_ore_definition)
 
-	_construction.setup(stockpile_state, nest_definition, NEST_SCENE, _build_point, _dungeon)
+	_construction.setup(
+			stockpile_state,
+			nest_definition,
+			NEST_SCENE,
+			_build_point,
+			_dungeon,
+			barracks_definition,
+			BARRACKS_SCENE,
+			_barracks_build_point)
 	_construction.bind_core_state(core_state)
 	_construction_hud.bind(_construction, stockpile_state, nest_definition)
 
 	_invocation.setup(core_state, worker_definition, WORKER_SCENE, _dungeon, _spawn_point)
 	_invocation.bind_delivery_deposit(_deposit)
+
+	_recruitment.setup(
+			core_state,
+			barracks_definition.soldier_definition,
+			SOLDIER_SCENE,
+			_dungeon,
+			_soldier_spawn_point,
+			_construction)
+	_military_hud.bind(_construction, _recruitment, stockpile_state, core_state, barracks_definition)
 
 	_bind_rocks()
 

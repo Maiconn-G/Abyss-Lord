@@ -9,6 +9,7 @@ const CONSTRUCTION_LAYER := 16
 const CLICKABLE_LAYERS := GROUND_LAYER | UNIT_LAYER | DIGGABLE_LAYER \
 		| RESOURCE_PICKUP_LAYER | CONSTRUCTION_LAYER
 const RAY_LENGTH := 1000.0
+const RTS_SELECTABLE_GROUP := &"rts_selectable"
 
 @export var drag_threshold: float = 8.0
 @export var group_move_spacing: float = 1.2
@@ -16,13 +17,17 @@ const RAY_LENGTH := 1000.0
 var camera: Camera3D
 var unit_container: Node
 var selection_box: SelectionBox
-var selected_units: Array[WorkerRuntime] = []
+
+# selected_units guarda qualquer unidade do grupo rts_selectable (WorkerRuntime,
+# SoldierRuntime). A ordem é sempre estável: arrasto e Shift produzem o mesmo
+# resultado para o mesmo estado do mundo, ordenado por get_unit_id().
+var selected_units: Array = []
 
 var _drag_pending := false
 var _drag_box_active := false
 var _drag_origin := Vector2.ZERO
 
-var selected_unit: WorkerRuntime:
+var selected_unit:
 	get = _primary_unit
 
 
@@ -53,7 +58,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _begin_selection(screen_position: Vector2) -> void:
 	var additive := Input.is_action_pressed("selection_additive")
 	var hit := _ray_hit(screen_position, CLICKABLE_LAYERS)
-	if not hit.is_empty() and hit.collider is WorkerRuntime:
+	if not hit.is_empty() and _is_selectable(hit.collider):
 		_drag_pending = false
 		_click_select(hit.collider, additive)
 		return
@@ -86,15 +91,19 @@ func _finish_selection(screen_position: Vector2) -> void:
 	_drag_box_active = false
 
 
-func _click_select(worker: WorkerRuntime, additive: bool) -> void:
+func _is_selectable(candidate) -> bool:
+	return candidate is Node3D and (candidate as Node3D).is_in_group(RTS_SELECTABLE_GROUP)
+
+
+func _click_select(unit, additive: bool) -> void:
 	if not additive:
-		_replace_selection([worker])
+		_replace_selection([unit])
 		return
-	if selected_units.has(worker):
-		_replace_selection(_without(worker))
+	if selected_units.has(unit):
+		_replace_selection(_without(unit))
 	else:
-		selected_units.append(worker)
-		worker.set_selected(true)
+		selected_units.append(unit)
+		unit.set_selected(true)
 
 
 func _apply_box_selection(units: Array, additive: bool) -> void:
@@ -104,40 +113,39 @@ func _apply_box_selection(units: Array, additive: bool) -> void:
 	for unit in units:
 		if not selected_units.has(unit):
 			selected_units.append(unit)
-			(unit as WorkerRuntime).set_selected(true)
+			unit.set_selected(true)
 
 
-func _units_in_rect(rect: Rect2) -> Array[WorkerRuntime]:
-	var found: Array[WorkerRuntime] = []
+func _units_in_rect(rect: Rect2) -> Array:
+	var found: Array = []
 	if camera == null or unit_container == null:
 		return found
 	for child in unit_container.get_children():
-		var worker := child as WorkerRuntime
-		if worker == null:
+		if not _is_selectable(child):
 			continue
-		var screen := _screen_position_of(worker)
+		var screen := _screen_position_of(child)
 		if screen != Vector2.INF and rect.has_point(screen):
-			found.append(worker)
+			found.append(child)
 	found.sort_custom(_by_unit_id)
 	return found
 
 
-func _screen_position_of(worker: WorkerRuntime) -> Vector2:
-	var local := camera.global_transform.affine_inverse() * worker.global_position
+func _screen_position_of(unit) -> Vector2:
+	var local: Vector3 = camera.global_transform.affine_inverse() * unit.global_position
 	if local.z >= 0.0:
 		return Vector2.INF
-	return camera.unproject_position(worker.global_position)
+	return camera.unproject_position(unit.global_position)
 
 
-func _by_unit_id(a: WorkerRuntime, b: WorkerRuntime) -> bool:
-	return a.state.unit_id < b.state.unit_id
+func _by_unit_id(a, b) -> bool:
+	return a.get_unit_id() < b.get_unit_id()
 
 
-func _without(worker: WorkerRuntime) -> Array[WorkerRuntime]:
-	var remaining: Array[WorkerRuntime] = []
-	for unit in selected_units:
-		if unit != worker:
-			remaining.append(unit)
+func _without(unit) -> Array:
+	var remaining: Array = []
+	for selected in selected_units:
+		if selected != unit:
+			remaining.append(selected)
 	return remaining
 
 
@@ -152,35 +160,44 @@ func _replace_selection(units: Array) -> void:
 		unit.set_selected(true)
 
 
-func _select(unit: WorkerRuntime) -> void:
+func _select(unit) -> void:
 	if unit == null:
 		clear_selection()
 		return
 	_replace_selection([unit])
 
 
-func _primary_unit() -> WorkerRuntime:
+func _primary_unit():
 	return selected_units[0] if not selected_units.is_empty() else null
 
 
+# O alvo é classificado pela camada física que devolveu o ray, nunca pelo nome do
+# nó. Unidades sem a capacidade do comando simplesmente não o recebem.
 func _command_at(screen_position: Vector2) -> void:
 	if selected_units.is_empty():
 		return
 	var hit := _ray_hit(screen_position, CLICKABLE_LAYERS)
 	if hit.is_empty():
 		return
-	var collider: Object = hit.collider
-	if collider is NestRuntime:
-		for unit in selected_units:
-			unit.assign_construction_target(collider)
-	elif collider is RockRuntime:
-		for unit in selected_units:
-			unit.assign_excavation_target(collider)
-	elif collider is ResourcePileRuntime:
-		for unit in selected_units:
-			unit.collect_resource_pile(collider)
-	elif collider is StaticBody3D:
+	var collider := hit.collider as CollisionObject3D
+	if collider == null:
 		_move_group_to(hit.position)
+		return
+	var layer := collider.get_collision_layer()
+	if layer & CONSTRUCTION_LAYER != 0:
+		_give_work_order(&"assign_construction_target", collider)
+	elif layer & DIGGABLE_LAYER != 0:
+		_give_work_order(&"assign_excavation_target", collider)
+	elif layer & RESOURCE_PICKUP_LAYER != 0:
+		_give_work_order(&"collect_resource_pile", collider)
+	else:
+		_move_group_to(hit.position)
+
+
+func _give_work_order(work_method: StringName, target: CollisionObject3D) -> void:
+	for unit in selected_units:
+		if unit.has_method(work_method):
+			unit.call(work_method, target)
 
 
 func _move_group_to(center: Vector3) -> void:
@@ -190,7 +207,7 @@ func _move_group_to(center: Vector3) -> void:
 
 
 # Offsets determinísticos: a mesma seleção e o mesmo ponto produzem sempre os mesmos
-# alvos, o que impede os Workers de terminarem sobrepostos.
+# alvos, o que impede as unidades de terminarem sobrepostas.
 func _group_target(center: Vector3, index: int, count: int) -> Vector3:
 	if count <= 1:
 		return center

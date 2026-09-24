@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SoldierDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/definitions/soldier_definition.gd" id="1_definition"]
+
+[resource]
+script = ExtResource("1_definition")
+unit_type_id = &"abyss_soldier"
+display_name = "Soldado Abissal"
+max_health = 80.0
+move_speed = 4.0
+recruit_essence_cost = 15.0

@@ -182,7 +182,9 @@ func _test_rock_runtime_scene() -> void:
 	var ids: Array[String] = []
 	for entry in _rocks:
 		ids.append(entry.state.rock_id)
-	_check(ids == ["rock_001", "rock_002", "rock_003", "iron_ore_001"],
+	# Tarefa 10 (§3) acrescentou IronOreRock002 à cena reutilizando a mesma
+	# Definition de minério; a lista de rochas composição pelo GameMain cresce para 5.
+	_check(ids == ["rock_001", "rock_002", "rock_003", "iron_ore_001", "iron_ore_002"],
 			"GameMain compôs o estado de cada rocha da cena: %s" % [ids])
 	_check(_close(_rocks[0].state.remaining_work, 4.0), "estado inicial da rocha tem 4.0 de trabalho")
 	_check(_rocks[0].state.definition == _rock_definition(), "rocha usa a Definition do Resource")
@@ -396,7 +398,8 @@ func _test_no_resources_no_managers() -> void:
 	_check(_scene.find_child("Navigation*", true, false) == null, "nenhum nó de navegação foi criado")
 	var autoloads: Dictionary = ProjectSettings.get_setting("autoload", {})
 	_check(autoloads.is_empty(), "nenhum autoload/singleton foi adicionado")
-	_check(_rocks.size() == 4 and is_instance_valid(_rocks[1]) and is_instance_valid(_rocks[2]),
+	# 5 rochas desde a Tarefa 10: as mesmas três comuns mais as duas de minério.
+	_check(_rocks.size() == 5 and is_instance_valid(_rocks[1]) and is_instance_valid(_rocks[2]),
 			"as demais rochas continuam disponíveis após a escavação")
 
 

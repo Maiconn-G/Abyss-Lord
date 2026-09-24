@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BarracksDefinition" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://core/definitions/barracks_definition.gd" id="1_definition"]
+[ext_resource type="Resource" path="res://data/resources/iron_ore.tres" id="2_cost_resource"]
+[ext_resource type="Resource" path="res://data/units/soldiers/abyss_soldier.tres" id="3_soldier_def"]
+
+[resource]
+script = ExtResource("1_definition")
+barracks_type_id = &"abyss_barracks"
+display_name = "Quartel Abissal"
+build_resource = ExtResource("2_cost_resource")
+build_cost = 3
+work_required = 6.0
+soldier_definition = ExtResource("3_soldier_def")

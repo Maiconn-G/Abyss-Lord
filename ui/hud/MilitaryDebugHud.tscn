@@ -1,0 +1,39 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/hud/military_debug_hud.gd" id="1_hud"]
+
+[node name="MilitaryDebugPanel" type="PanelContainer"]
+offset_left = 16.0
+offset_top = 326.0
+offset_right = 340.0
+offset_bottom = 420.0
+mouse_filter = 2
+script = ExtResource("1_hud")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="BarracksHintLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+text = "[K] Construir Quartel Abissal"
+
+[node name="BarracksStatusLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+text = "Quartel: -"
+
+[node name="RecruitHintLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+text = "[R] Recrutar Soldado Abissal"
+
+[node name="RecruitStatusLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+text = "Recrutamento: -"

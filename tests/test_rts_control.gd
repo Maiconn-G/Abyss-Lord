@@ -192,12 +192,18 @@ func _test_right_click_on_unit_gives_no_order() -> void:
 
 
 func _test_move_to_sets_target() -> void:
+	# O teste anterior clica na própria unidade: o ray pode tocar a cápsula e emitir
+	# uma ordem até aquele ponto da superfície. Para medir "a ordem não teleporta" a
+	# ancoragem volta para WORKER_START, sem depender do resíduo do teste anterior.
+	await _reset_worker()
 	_controller._select(_worker)
 	_click(MOUSE_BUTTON_RIGHT, MOVE_TARGET)
+	# Medição síncrona: nenhuma física roda entre a ordem e a checagem, então o
+	# resultado não depende de quantos ticks de física cabem dentro do process_frame.
+	_check(_worker.global_position.distance_to(WORKER_START) < 0.0001,
+			"a ordem não teleporta a unidade")
 	await process_frame
 	_check(_worker.has_move_target(), "botão direito no chão envia ordem de movimento")
-	_check(_worker.global_position.distance_to(WORKER_START) < 0.2,
-			"a ordem não teleporta a unidade")
 
 
 func _test_velocity_matches_move_speed() -> void:
