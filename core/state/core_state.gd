@@ -4,6 +4,8 @@ extends RefCounted
 signal essence_changed(current: float, maximum: float)
 signal population_changed(current: int, capacity: int)
 signal population_capacity_changed(current_population: int, new_capacity: int)
+signal integrity_changed(current: float, maximum: float)
+signal destroyed
 
 var definition: CoreDefinition
 var core_id: String = "main_core"
@@ -20,6 +22,25 @@ func _init(core_definition: CoreDefinition, id: String = "main_core") -> void:
 	level = core_definition.level
 	integrity = core_definition.max_integrity
 	essence = core_definition.starting_essence
+
+
+## §4/§5: dano estrutural com clamp 0..max_integrity. amount inválido não altera
+## nada; chegar a zero emite destroyed exatamente uma vez, porque dano seguinte já
+## encontra a Integrity inalterada e sai antes do emit.
+func damage(amount: float) -> void:
+	if amount <= 0.0:
+		return
+	var next := clampf(integrity - amount, 0.0, definition.max_integrity)
+	if next == integrity:
+		return
+	integrity = next
+	integrity_changed.emit(integrity, definition.max_integrity)
+	if is_destroyed():
+		destroyed.emit()
+
+
+func is_destroyed() -> bool:
+	return integrity <= 0.0
 
 
 func add_essence(amount: float) -> void:

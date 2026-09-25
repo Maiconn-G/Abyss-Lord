@@ -1,10 +1,14 @@
 extends SceneTree
 
 # Tarefa 11 — Primeiro Inimigo e Combate Básico.
-# A suíte dirige o GameMain real: a Fera Cavernosa nasce passiva no seu ponto, o
+# A suíte dirige o GameMain real: a Fera Cavernosa fica passiva no seu ponto, o
 # Soldado recebe ATTACK por input sintético de verdade, os dois trocam golpes por
 # cooldown e um dos dois morre. Nada de busca global, nada de manager: as ordens
 # entram pelo ray de seleção e o dano corre nos dois Runtimes.
+#
+# §33 da Tarefa 12: a partida normal passou a abrir sem nenhum inimigo, então esta
+# suíte planta a própria Fera do duelo 1×1. Nenhum comportamento da Tarefa 11 foi
+# removido — o que mudou foi só quem instancia a criatura.
 
 const MAIN_SCENE := preload("res://game/GameMain.tscn")
 const ENEMY_SCENE := preload("res://units/enemies/EnemyRuntime.tscn")
@@ -25,6 +29,7 @@ const SELECTION_SOURCE_PATH := "res://systems/selection/selection_controller.gd"
 const CORE_STATE_SOURCE_PATH := "res://core/state/core_state.gd"
 const GAME_MAIN_SOURCE_PATH := "res://game/game_main.gd"
 const COMBAT_HUD_SOURCE_PATH := "res://ui/hud/combat_debug_hud.gd"
+const INVASION_CONTROLLER_SOURCE_PATH := "res://systems/combat/invasion_controller.gd"
 
 const GROUND_LAYER := 1
 const UNIT_LAYER := 2
@@ -39,6 +44,8 @@ const FIRST_ORE_ROCK_ID := "iron_ore_001"
 const SECOND_ORE_ROCK_ID := "iron_ore_002"
 const COMMON_ROCK_ID := "rock_001"
 
+## §33/T12: posição clássica do duelo 1×1, agora ocupada pela Fera que a própria
+## suíte instancia — não mais por um spawn automático da GameMain.
 const ENEMY_SPAWN := Vector3(-3, 0, -12)
 const SOLDIER_SPAWN := Vector3(-10, 0, -1.5)
 const BARRACKS_POINT := Vector3(-10, 0, -5)
@@ -67,6 +74,7 @@ const SOLDIER_INTERVAL := 0.75
 const BEAST_DAMAGE := 6.0
 const BEAST_RANGE := 1.2
 const BEAST_INTERVAL := 1.0
+const BEAST_SPEED := 2.5
 const BEAST_RADIUS := 0.6
 const SOLDIER_RADIUS := 0.42
 ## Distância de postura esperada: raio da Fera + raio do Soldado + folga de corpo.
@@ -80,6 +88,8 @@ const ORE := &"iron_ore"
 const BEAST_NAME := "Fera Cavernosa"
 const SOLDIER_LINE := "Soldado: 80 / 80 HP"
 const BEAST_LINE := "Fera Cavernosa: 48 / 48 HP"
+## §32 da Tarefa 12: sem Fera automática na partida, o painel de combate abre vazio.
+const NO_ENEMY_LINE := "Sem inimigo em campo"
 
 var _failures := 0
 var _asserts := 0
@@ -140,8 +150,11 @@ func _run_all() -> void:
 	_test_enemy_runtime_scene()
 	_test_scope_guards()
 
-	await _boot_scene()
+	await _boot_scene(false)
 	await _test_scene_composition()
+	_plant_duel_enemy()
+	await _advance(0.2)
+	await _test_duel_enemy_planted()
 	await _test_enemy_spawn_geometry()
 	await _test_combat_hud_initial()
 	await _test_enemy_not_selectable()
@@ -205,15 +218,19 @@ func _test_enemy_definition() -> void:
 	_check(_close(definition.attack_range, BEAST_RANGE), "§54 attack_range 1.2")
 	_check(_close(definition.attack_interval, BEAST_INTERVAL), "§54 attack_interval 1.0")
 	var fields := _instance_fields(definition)
-	_check(fields == ["enemy_type_id", "display_name", "max_health",
+	# §3 da Tarefa 12 acrescentou move_speed à Definition; os sete campos continuam
+	# sendo exatamente os declarados, e nenhum número saiu daqui para o Runtime.
+	_check(fields == ["enemy_type_id", "display_name", "max_health", "move_speed",
 			"attack_damage", "attack_range", "attack_interval"],
-			"§21/§54 a Definition tem exatamente os seis campos declarados, são %s" % [fields])
-	for forbidden in ["move_speed", "agro_radius", "detection_radius", "armor", "defense",
+			"§21/§54 a Definition tem exatamente os sete campos declarados, são %s" % [fields])
+	for forbidden in ["agro_radius", "detection_radius", "armor", "defense",
 			"critical_chance", "loot", "experience", "level", "respawn", "faction",
 			"attack_speed", "projectile"]:
 		_check(not fields.has(forbidden), "§16/§54/§93 EnemyDefinition não tem %s" % forbidden)
-	for field in ["enemy_type_id", "display_name", "max_health", "attack_damage",
-			"attack_range", "attack_interval"]:
+	_check(_close(definition.move_speed, BEAST_SPEED),
+			"§3/T12 move_speed 2.5 vem da Definition, obtido %f" % definition.move_speed)
+	for field in ["enemy_type_id", "display_name", "max_health", "move_speed",
+			"attack_damage", "attack_range", "attack_interval"]:
 		_check(_source(ENEMY_DEFINITION_SOURCE_PATH).contains("@export var " + field),
 				"§21 %s é @export na Definition" % field)
 
@@ -348,13 +365,15 @@ func _test_enemy_runtime_scene() -> void:
 			"§28/§63 o collider da Fera tem raio %f" % BEAST_RADIUS)
 	var methods: Array[String] = []
 	for candidate in ["setup", "engage", "disengage", "combat_target", "is_engaged",
-			"is_alive", "receive_damage", "body_radius", "get_enemy_id"]:
+			"is_alive", "receive_damage", "body_radius", "get_enemy_id",
+			"start_invasion", "invasion_target", "stand_down", "action_mode"]:
 		methods.append(candidate)
 		_check(probe.has_method(candidate), "§18/§35 EnemyRuntime expõe %s()" % candidate)
 	for absent in ["assign_excavation_target", "collect_resource_pile",
 			"assign_construction_target", "attack_target", "move_to", "set_selected"]:
 		_check(not probe.has_method(absent),
-				"§93/§63 a Fera não tem a API %s (ela não trabalha nem se move)" % absent)
+				"§93/§63 a Fera não tem a API %s (ela não trabalha nem recebe ordem do jogador)"
+						% absent)
 	probe.free()
 	_check(_count_files("res://units/enemies", "*.gd") == 1
 			and _count_files("res://units/enemies", "*.tscn") == 1,
@@ -364,15 +383,27 @@ func _test_enemy_runtime_scene() -> void:
 func _test_scope_guards() -> void:
 	var enemy_source := _source(ENEMY_RUNTIME_SOURCE_PATH)
 	for forbidden in ["get_nodes_in_group", "get_first_node_in_group", "find_children",
-			"NavigationAgent", "NavMesh", "move_and_slide", "CombatManager", "EnemyManager",
+			"NavigationAgent", "NavMesh", "CombatManager", "EnemyManager",
 			"ThreatManager", "TargetingComponent", "HealthComponent", "AttackComponent",
-			"loot", "experience", "respawn", "patrol", "wander", "agro", "wave", "spawner"]:
+			"loot", "experience", "respawn", "patrol", "wander", "agro", "wave", "spawner",
+			"auto_target", "nearest"]:
 		_check(not enemy_source.contains(forbidden),
 				"§93/§98 EnemyRuntime não usa %s" % forbidden)
 	_check(not enemy_source.contains("func _process("),
 			"§33/§106 a Fera não tem loop por frame de render")
+	# §12/T12 inverte o guarda antigo: marchar é obrigatório agora, e o movimento
+	# continua sendo o mesmo move_and_slide() sem delta nem pathfinding do Soldado.
+	_check(enemy_source.contains("move_and_slide()"),
+			"§12/T12 a Fera anda com move_and_slide(), nunca com navegação")
+	_check(not enemy_source.contains("move_and_collide")
+			and not enemy_source.contains("global_position +=")
+			and not enemy_source.contains("delta *"),
+			"§12/§13/T12 nenhum outro meio de andar nem velocity escalada por delta")
 	_check(enemy_source.contains("velocity = Vector3.ZERO"),
-			"§38 a Fera se fixa no chão: velocity zerada todo tick físico")
+			"§15/T12 ao golpear o Núcleo a Fera para: velocity zerada")
+	_check(enemy_source.contains("enum ActionMode")
+			and enemy_source.contains("IDLE, ADVANCE, COMBAT"),
+			"§9/T12 o EnemyRuntime declara o ActionMode local, sem FSM externa")
 	var soldier_source := _source(SOLDIER_RUNTIME_SOURCE_PATH)
 	for forbidden in ["get_nodes_in_group", "get_first_node_in_group", "find_children",
 			"TargetManager", "auto_target", "nearest", "CombatManager", "loot", "experience",
@@ -403,8 +434,20 @@ func _test_scope_guards() -> void:
 			"ThreatManager", "spawn_enemy(", "for _index in 10"]:
 		_check(not main_source.contains(forbidden),
 				"§93/§102 GameMain não menciona %s" % forbidden)
-	_check(_count_occurrences(main_source, "ENEMY_SCENE.instantiate()") == 1,
-			"§24/§42 a composition root planta exatamente 1 Fera")
+	# §32/T12: a composition root parou de plantar Fera; ela apenas injeta a
+	# Definition, a cena e os dois pontos na invasão.
+	_check(_count_occurrences(main_source, "ENEMY_SCENE.instantiate()") == 0,
+			"§32/T12 a GameMain não instancia mais nenhuma Fera")
+	_check(_count_occurrences(main_source, "_spawn_initial_enemy") == 0,
+			"§32/T12 sumiu o spawn automático da partida normal")
+	var invasion_source := _source(INVASION_CONTROLLER_SOURCE_PATH)
+	_check(_count_occurrences(invasion_source, ".instantiate()") == 1,
+			"§32/§92/T12 a invasão tem exatamente um ponto de criação de criatura")
+	for forbidden in ["get_nodes_in_group", "get_first_node_in_group", "find_children",
+			"CombatManager", "ThreatManager", "WaveManager", "EnemyFactory", "NavMesh",
+			"NavigationAgent", "func _process(", "func _physics_process("]:
+		_check(not invasion_source.contains(forbidden),
+				"§24/§90/T12 InvasionController não usa %s" % forbidden)
 	for manager in ["CombatManager", "EnemyManager", "ThreatManager", "ICombatant",
 			"CombatantBase", "AttackComponent", "HealthComponent", "TargetingComponent",
 			"UnitStateBase", "EventBus", "UnitRegistry", "EnemyFactory", "ArmyManager"]:
@@ -424,19 +467,41 @@ func _test_scope_guards() -> void:
 
 
 func _test_scene_composition() -> void:
-	_enemy = _dungeon.get_node_or_null("Enemy001") as EnemyRuntime
-	_check(_enemy != null, "§24 GameMain instancia Enemy001")
+	# §32 da Tarefa 12 inverte o guarda antigo: a composition root não planta mais
+	# nenhum inimigo. Os contratos abaixo são os mesmos de antes, agora ao contrário,
+	# e continuam valendo para toda a suíte.
+	_check(_enemies_in_scene().is_empty(), "§32/T12 a GameMain inicia com 0 inimigos")
+	_check(_dungeon.get_node_or_null("Enemy001") == null, "§32/T12 não existe Enemy001 automático")
+	_check(_dungeon.get_node_or_null("EnemySpawnPoint") == null,
+			"§32/T12 a partida não carrega mais marcador de spawn de Fera")
+	_check(_text_of(_combat_hud, "EnemyLabel") == NO_ENEMY_LINE,
+			"§32/T12 o painel de combate anuncia %s, obtido %s"
+					% [NO_ENEMY_LINE, _text_of(_combat_hud, "EnemyLabel")])
+
+
+## §33 da Tarefa 12: a suíte é a dona da Fera do duelo 1×1. Ela entra no mundo pelo
+## mesmo caminho de antes — Definition → State → Runtime no DungeonRoot — e é ela
+## quem se apresenta ao painel de combate.
+func _plant_duel_enemy() -> void:
+	var enemy := ENEMY_SCENE.instantiate() as EnemyRuntime
+	enemy.name = "Enemy001"
+	enemy.setup(_enemy_definition(), EnemyState.new(_enemy_definition(), ENEMY_ID))
+	_dungeon.add_child(enemy)
+	enemy.global_position = ENEMY_SPAWN
+	_combat_hud.bind_enemy(enemy)
+	_enemy = enemy
+
+
+func _test_duel_enemy_planted() -> void:
+	_check(_enemy != null, "§33/T12 a suíte plantou a Fera do duelo")
 	_check(_enemies_in_scene().size() == 1, "§42/§24 a cena tem exatamente 1 Fera, não uma onda")
-	if _enemy == null:
-		_finish()
-		return
 	_check(_enemy.state.enemy_id == ENEMY_ID, "§24 o State da Fera é enemy_001")
 	_check(_enemy.definition == _enemy_definition(),
 			"§5/§24 a Fera recebeu a Definition cave_beast.tres")
 	_check(_scene.get("enemy_definition") == _enemy.definition,
 			"§24 GameMain exporta a Definition e a injeta, sem new() de números")
 	_check(_enemy.global_position.is_equal_approx(ENEMY_SPAWN),
-			"§24 a Fera nasceu no EnemySpawnPoint (-3, 0, -12)")
+			"§24 a Fera nasceu no ponto clássico do duelo (-3, 0, -12)")
 	_check(_enemy.get_parent() == _dungeon, "§24 a Fera entrou no DungeonRoot")
 	_check(_close(_enemy.state.health, ENEMY_HP) and _enemy.is_alive(), "§42 a Fera está com 48")
 	_check(_enemy.collision_layer == ENEMY_LAYER and _enemy.collision_mask == 0,
@@ -450,14 +515,12 @@ func _test_scene_composition() -> void:
 	_check(_enemy.find_child("Visual", true, false).visible, "§42 a Fera está visível")
 	_check(_close(_enemy.body_radius(), BEAST_RADIUS),
 			"§28/§63 em cena, body_radius lê o próprio collider (%f)" % _enemy.body_radius())
-	_check(_dungeon.get_node_or_null("EnemySpawnPoint") != null, "§24 EnemySpawnPoint existe")
-	_check((_dungeon.get_node("EnemySpawnPoint") as Node3D).get_children().is_empty(),
-			"§24 o ponto de spawn não traz coliders próprios")
 
 
 func _test_enemy_spawn_geometry() -> void:
-	var point := (_dungeon.get_node("EnemySpawnPoint") as Node3D).global_position
-	_check(point.is_equal_approx(ENEMY_SPAWN), "§24 EnemySpawnPoint em (-3, 0, -12)")
+	var point := _enemy.global_position
+	_check(point.is_equal_approx(ENEMY_SPAWN),
+			"§33/T12 a Fera do duelo está plantada em (-3, 0, -12)")
 	_check(_ground_body_at(ENEMY_SPAWN) == "TestFloorBody",
 			"§87 o ray vertical do spawn cai no chão, obtido %s" % _ground_body_at(ENEMY_SPAWN))
 	_check(_shape_clear_at(ENEMY_SPAWN, BEAST_RADIUS + 0.4, OBSTACLES | UNIT_LAYER),
@@ -1362,7 +1425,7 @@ func _test_real_campaign() -> void:
 # ------------------------------------------------------------------------ Helpers
 
 
-func _boot_scene() -> void:
+func _boot_scene(spawn_duel_enemy := true) -> void:
 	_scene = MAIN_SCENE.instantiate()
 	root.add_child(_scene)
 	await _advance(0.2)
@@ -1382,6 +1445,11 @@ func _boot_scene() -> void:
 	_core_state = _core.core_state()
 	_core.set_process(false)
 	_populate_events()
+	# As outras cenas da suíte só precisam do duelo 1×1 montado; a verificação desse
+	# estado acontece uma única vez, na cena #1.
+	if spawn_duel_enemy:
+		_plant_duel_enemy()
+		await _advance(0.2)
 
 
 func _populate_events() -> void:

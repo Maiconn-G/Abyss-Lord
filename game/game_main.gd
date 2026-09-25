@@ -7,8 +7,6 @@ const WORKER_SCENE := preload("res://units/workers/WorkerRuntime.tscn")
 const SOLDIER_SCENE := preload("res://units/soldiers/SoldierRuntime.tscn")
 const ENEMY_SCENE := preload("res://units/enemies/EnemyRuntime.tscn")
 
-const INITIAL_ENEMY_ID := "enemy_001"
-
 @export var core_definition: CoreDefinition
 @export var worker_definition: WorkerDefinition
 @export var iron_ore_definition: ResourceDefinition
@@ -24,18 +22,21 @@ const INITIAL_ENEMY_ID := "enemy_001"
 @onready var _barracks_build_point: Marker3D = $World/DungeonRoot/BarracksBuildPoint
 @onready var _spawn_point: Marker3D = $World/DungeonRoot/WorkerSpawnPoint
 @onready var _soldier_spawn_point: Marker3D = $World/DungeonRoot/SoldierSpawnPoint
-@onready var _enemy_spawn_point: Marker3D = $World/DungeonRoot/EnemySpawnPoint
+@onready var _invasion_point_a: Marker3D = $World/DungeonRoot/InvasionSpawnPointA
+@onready var _invasion_point_b: Marker3D = $World/DungeonRoot/InvasionSpawnPointB
 @onready var _hud: CoreDebugHud = $UI/CoreDebugPanel
 @onready var _resource_hud: ResourceDebugHud = $UI/ResourceDebugPanel
 @onready var _construction_hud: ConstructionDebugHud = $UI/ConstructionDebugPanel
 @onready var _invocation_hud: WorkerInvocationDebugHud = $UI/WorkerInvocationDebugPanel
 @onready var _military_hud: MilitaryDebugHud = $UI/MilitaryDebugPanel
 @onready var _combat_hud: CombatDebugHud = $UI/CombatDebugPanel
+@onready var _invasion_hud: InvasionDebugHud = $UI/InvasionDebugPanel
 @onready var _selection_box: SelectionBox = $UI/SelectionBox
 @onready var _selection: SelectionController = $Systems/SelectionController
 @onready var _construction: ConstructionController = $Systems/ConstructionController
 @onready var _invocation: WorkerInvocationController = $Systems/WorkerInvocationController
 @onready var _recruitment: SoldierRecruitmentController = $Systems/SoldierRecruitmentController
+@onready var _invasion: InvasionController = $Systems/InvasionController
 
 
 func _ready() -> void:
@@ -75,8 +76,17 @@ func _ready() -> void:
 			_construction)
 	_military_hud.bind(_construction, _recruitment, stockpile_state, core_state, barracks_definition)
 
-	var enemy := _spawn_initial_enemy()
-	_combat_hud.bind(enemy, _recruitment, barracks_definition.soldier_definition)
+	# §32: a partida abre sem nenhum inimigo. Quem planta Feras no mundo agora é a
+	# invasão, e ela recebe tudo pronto por injeção — nada de lookup global.
+	_invasion.setup(
+			enemy_definition,
+			ENEMY_SCENE,
+			_dungeon,
+			_core,
+			[_invasion_point_a, _invasion_point_b])
+	_invasion.invasion_started.connect(_on_invasion_started)
+	_invasion_hud.bind(_invasion)
+	_combat_hud.bind_recruitment(_recruitment, barracks_definition.soldier_definition)
 
 	_bind_rocks()
 
@@ -86,15 +96,12 @@ func _ready() -> void:
 	_selection.setup($World/CameraRig/Camera3D, _dungeon, _selection_box)
 
 
-## A composition root planta a única criatura desta tarefa: Definition → State →
-## Runtime. Não existe spawner, ondas nem manager de inimigos.
-func _spawn_initial_enemy() -> EnemyRuntime:
-	var enemy := ENEMY_SCENE.instantiate() as EnemyRuntime
-	enemy.name = "Enemy001"
-	enemy.setup(enemy_definition, EnemyState.new(enemy_definition, INITIAL_ENEMY_ID))
-	_dungeon.add_child(enemy)
-	enemy.global_position = _enemy_spawn_point.global_position
-	return enemy
+## A Fera deixou de ser plantada aqui (§32): a invasão é dona das criaturas de
+## produção. O que a composition root ainda faz é apresentar os invasores ao painel
+## de combate, para que o duelo em si continue visível durante a defesa.
+func _on_invasion_started(invaders: Array) -> void:
+	for enemy in invaders:
+		_combat_hud.bind_enemy(enemy)
 
 
 func _bind_rocks() -> void:
