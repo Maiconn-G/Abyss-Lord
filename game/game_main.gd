@@ -13,6 +13,9 @@ const ENEMY_SCENE := preload("res://units/enemies/EnemyRuntime.tscn")
 @export var nest_definition: NestDefinition
 @export var barracks_definition: BarracksDefinition
 @export var enemy_definition: EnemyDefinition
+## §3/T14: a Definition de destino da única evolução existente. Ela é um dado injetado
+## na cena, exatamente como as outras — o controller nunca carrega caminho de arquivo.
+@export var core_level_2_definition: CoreDefinition
 
 @onready var _dungeon: Node3D = $World/DungeonRoot
 @onready var _core: CoreRuntime = $World/DungeonRoot/MainCore
@@ -32,12 +35,14 @@ const ENEMY_SCENE := preload("res://units/enemies/EnemyRuntime.tscn")
 @onready var _combat_hud: CombatDebugHud = $UI/CombatDebugPanel
 @onready var _invasion_hud: InvasionDebugHud = $UI/InvasionDebugPanel
 @onready var _invasion_warning_hud: InvasionWarningHud = $UI/InvasionWarningPanel
+@onready var _evolution_hud: CoreEvolutionDebugHud = $UI/CoreEvolutionDebugPanel
 @onready var _selection_box: SelectionBox = $UI/SelectionBox
 @onready var _selection: SelectionController = $Systems/SelectionController
 @onready var _construction: ConstructionController = $Systems/ConstructionController
 @onready var _invocation: WorkerInvocationController = $Systems/WorkerInvocationController
 @onready var _recruitment: SoldierRecruitmentController = $Systems/SoldierRecruitmentController
 @onready var _invasion: InvasionController = $Systems/InvasionController
+@onready var _evolution: CoreEvolutionController = $Systems/CoreEvolutionController
 
 
 func _ready() -> void:
@@ -89,6 +94,13 @@ func _ready() -> void:
 	_invasion_hud.bind(_invasion)
 	_invasion_warning_hud.bind(_invasion)
 	_combat_hud.bind_recruitment(_recruitment, barracks_definition.soldier_definition)
+
+	# §27/T14: a vitória da invasão é o que destrava a evolução, e a passagem acontece
+	# aqui, por signal. O controller de progressão não conhece o InvasionController, não
+	# pergunta estado da invasão, não procura o Núcleo na árvore e não roda por frame.
+	_evolution.setup(_core, core_state, core_level_2_definition)
+	_invasion.invasion_victory.connect(_evolution.unlock_after_victory)
+	_evolution_hud.bind(_evolution, core_state)
 
 	# §6/§33/T13: o Ninho concluído é o que anuncia a ameaça. A conexão é uma linha,
 	# feita aqui, sobre um signal que o ConstructionController já emitia — a invasão

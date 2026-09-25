@@ -1,4 +1,4 @@
-[gd_scene load_steps=32 format=3]
+[gd_scene load_steps=35 format=3]
 
 [ext_resource type="Script" path="res://game/game_main.gd" id="1_game"]
 [ext_resource type="Script" path="res://camera/camera_controller.gd" id="2_camera"]
@@ -28,6 +28,9 @@
 [ext_resource type="Script" path="res://systems/combat/invasion_controller.gd" id="26_invasion"]
 [ext_resource type="PackedScene" path="res://ui/hud/InvasionDebugHud.tscn" id="27_invasion_hud"]
 [ext_resource type="PackedScene" path="res://ui/hud/InvasionWarningHud.tscn" id="28_warning_hud"]
+[ext_resource type="Resource" path="res://data/core/core_level_2.tres" id="29_core2_def"]
+[ext_resource type="Script" path="res://systems/progression/core_evolution_controller.gd" id="30_evolution"]
+[ext_resource type="PackedScene" path="res://ui/hud/CoreEvolutionDebugHud.tscn" id="31_evolution_hud"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMaterial"]
 albedo_color = Color(0.22, 0.26, 0.3, 1.0)
@@ -55,6 +58,7 @@ iron_ore_definition = ExtResource("13_iron_ore")
 nest_definition = ExtResource("15_nest_def")
 barracks_definition = ExtResource("21_barracks_def")
 enemy_definition = ExtResource("24_enemy_def")
+core_level_2_definition = ExtResource("29_core2_def")
 
 [node name="World" type="Node3D" parent="."]
 
@@ -158,6 +162,9 @@ script = ExtResource("22_recruitment")
 [node name="InvasionController" type="Node" parent="Systems"]
 script = ExtResource("26_invasion")
 
+[node name="CoreEvolutionController" type="Node" parent="Systems"]
+script = ExtResource("30_evolution")
+
 [node name="UI" type="CanvasLayer" parent="."]
 
 [node name="SelectionBox" parent="UI" instance=ExtResource("20_selection_box")]
@@ -177,3 +184,5 @@ script = ExtResource("26_invasion")
 [node name="InvasionDebugPanel" parent="UI" instance=ExtResource("27_invasion_hud")]
 
 [node name="InvasionWarningPanel" parent="UI" instance=ExtResource("28_warning_hud")]
+
+[node name="CoreEvolutionDebugPanel" parent="UI" instance=ExtResource("31_evolution_hud")]

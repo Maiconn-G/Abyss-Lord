@@ -7,3 +7,7 @@ extends Resource
 @export var starting_essence: float = 20.0
 @export var population_capacity: int = 8
 @export var essence_generation_rate: float = 1.0
+## §4/T14: quanto custa evoluir PARA esta Definition, e não a partir dela. O valor fica
+## na Definition de destino porque é ela que diz o que vale existir como Nv.2; o
+## controller lê daqui em vez de carregar um literal espalhado.
+@export var evolution_essence_cost: float = 0.0

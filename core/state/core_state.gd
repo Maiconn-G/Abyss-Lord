@@ -6,6 +6,7 @@ signal population_changed(current: int, capacity: int)
 signal population_capacity_changed(current_population: int, new_capacity: int)
 signal integrity_changed(current: float, maximum: float)
 signal destroyed
+signal evolved(old_level: int, new_level: int)
 
 var definition: CoreDefinition
 var core_id: String = "main_core"
@@ -103,3 +104,32 @@ func add_population_capacity_bonus(amount: int) -> void:
 		return
 	population_capacity_bonus += amount
 	population_capacity_changed.emit(population, get_population_capacity())
+
+
+## §8/T14: a única transição existente é para um nível superior. Mesma Definition,
+## Definition nula e nível menor caem aqui antes de qualquer escrita, então §9 fica
+## garantido por construção: nunca existe um instante com level novo e limites velhos.
+func can_evolve_to(new_definition: CoreDefinition) -> bool:
+	return new_definition != null and new_definition.level > level
+
+
+## §7/§12/§14/T14: evoluir é trocar a Definition deste mesmo State — o Núcleo continua
+## sendo o Núcleo, com o mesmo core_id, a mesma Population e o mesmo bônus do Ninho
+## (§17/§18/§51/§97: nada aqui chama set_population nem readiciona bônus). A Integrity
+## sobe para o teto novo porque o marco recompensa a sobrevivência; a Essence que restou
+## é preservada, e o único ajuste possível é o clamp ao teto novo (§15), que neste caso
+## amplia. Os sinais vêm na ordem de §21: valores primeiro, evolved por último, para que
+## quem escuta evolved já enxergue o estado final.
+func evolve_to(new_definition: CoreDefinition) -> bool:
+	if not can_evolve_to(new_definition):
+		return false
+	var old_level := level
+	definition = new_definition
+	level = new_definition.level
+	integrity = new_definition.max_integrity
+	essence = minf(essence, new_definition.max_essence)
+	integrity_changed.emit(integrity, new_definition.max_integrity)
+	essence_changed.emit(essence, new_definition.max_essence)
+	population_capacity_changed.emit(population, get_population_capacity())
+	evolved.emit(old_level, level)
+	return true

@@ -514,8 +514,12 @@ func _test_scope_guards() -> void:
 		_check(offenders.is_empty(),
 				"§90–§94/§75–§78 nenhum código de produção contém %s, achado em %s"
 						% [forbidden, offenders])
-	_check(_collect_gd_files("res://systems").size() == 5,
-			"§98 systems/ continua com exatamente cinco scripts de controle, obtido %d"
+	# §98/T14: a contagem cresceu porque existe um sexto controller real — o de evolução
+	# do Núcleo, que é o único degrau de progressão do MVP. A exigência continua exata:
+	# um controller novo exige uma tarefa nova, nunca um Manager genérico (árvore de
+	# upgrades, ProgressionManager, MilestoneManager). Antes 5, agora 6.
+	_check(_collect_gd_files("res://systems").size() == 6,
+			"§98 systems/ continua com exatamente seis scripts de controle, obtido %d"
 					% _collect_gd_files("res://systems").size())
 	var main := _source(GAME_MAIN_SOURCE_PATH)
 	for forbidden in ["Enemy001", "_spawn_initial_enemy", "EnemySpawnPoint", "queue_free(_core",
@@ -1393,7 +1397,11 @@ func _test_defeat_flow() -> void:
 	var ui_children := _scene.get_node("UI").get_child_count()
 	# §83/T13: a contagem de painéis é literal e mudou porque o aviso de ameaça é um
 	# painel novo. Nada de Game Over: antes eram 8, agora 8 debug + 1 aviso.
-	_check(ui_children == 9,
+	# §94/T14: cresceu de novo por um motivo do mesmo tipo — o painel de evolução é a
+	# legenda do Nv.2, não uma tela de vitória. A guarda continua exata (nada de ">="):
+	# 8 debug + 1 aviso + 1 evolução. Game Over, Victory screen e credits continuariam
+	# aparecendo aqui como um filho extra e o teste falharia do mesmo jeito.
+	_check(ui_children == 10,
 			"§94 nenhum painel de Game Over apareceu, filhos de UI = %d" % ui_children)
 	var second := _invasion.invaders()[1]
 	second.receive_damage(BEAST_HP)

@@ -4,10 +4,10 @@
 
 [resource]
 script = ExtResource("1_definition")
-level = 1
-max_integrity = 100.0
-max_essence = 50.0
-starting_essence = 20.0
-population_capacity = 8
-essence_generation_rate = 1.0
-evolution_essence_cost = 0.0
+level = 2
+max_integrity = 150.0
+max_essence = 80.0
+starting_essence = 30.0
+population_capacity = 12
+essence_generation_rate = 1.5
+evolution_essence_cost = 25.0

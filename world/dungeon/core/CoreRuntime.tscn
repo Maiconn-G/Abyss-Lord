@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://world/dungeon/core/core_runtime.gd" id="1_runtime"]
 
@@ -16,8 +16,27 @@ height = 1.6
 radial_segments = 24
 rings = 12
 
+[sub_resource type="StandardMaterial3D" id="Level2Material"]
+albedo_color = Color(0.86, 0.62, 1.0, 1)
+metallic = 0.0
+roughness = 0.35
+emission_enabled = true
+emission = Color(0.78, 0.48, 1.0, 1)
+emission_energy_multiplier = 2.2
+
+[sub_resource type="TorusMesh" id="Level2RingMesh"]
+material = SubResource("Level2Material")
+radius = 1.25
+ring_radius = 0.09
+rings = 24
+ring_segments = 10
+
 [node name="CoreRuntime" type="Node3D"]
 script = ExtResource("1_runtime")
 
 [node name="Visual" type="MeshInstance3D" parent="."]
 mesh = SubResource("CoreMesh")
+
+[node name="Level2Detail" type="MeshInstance3D" parent="."]
+visible = false
+mesh = SubResource("Level2RingMesh")

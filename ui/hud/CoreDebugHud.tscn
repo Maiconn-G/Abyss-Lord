@@ -15,6 +15,7 @@ layout_mode = 2
 mouse_filter = 2
 
 [node name="TitleLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
 layout_mode = 2
 text = "Abyssal Core Lv. 1"
 
