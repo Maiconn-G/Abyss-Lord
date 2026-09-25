@@ -1,17 +1,23 @@
 class_name InvasionController
 extends Node
 
-enum InvasionState { NOT_STARTED, ACTIVE, VICTORY, DEFEAT }
+enum InvasionState { NOT_STARTED, PREPARATION, ACTIVE, VICTORY, DEFEAT }
 
 ## §30: a primeira invasão é exatamente isto — duas Feras Cavernosas da mesma
 ## Definition, uma largada, um desfecho. Não existe fila de largadas nem fábrica de
 ## inimigos: só uma criatura conhecida, criada por quem detém o ciclo de vida.
 const INVADER_COUNT := 2
 
+## §3/T13: os 60 s de aviso são o valor de produção e moram todos aqui. O harness
+## encurta essa mesma variável (§16/T13); nenhuma tecla de produção pula o timer.
+@export var preparation_duration: float = 60.0
+
 signal invasion_started(invaders: Array)
 signal invasion_victory
 signal invasion_defeat
 signal active_invaders_changed(current: int)
+signal preparation_started(duration: float)
+signal preparation_time_changed(remaining: float, duration: float)
 
 var _definition: EnemyDefinition
 var _scene: PackedScene
@@ -21,6 +27,14 @@ var _spawn_points: Array[Node3D] = []
 var _invaders: Array[EnemyRuntime] = []
 var _state: InvasionState = InvasionState.NOT_STARTED
 var _active_invaders := 0
+var _preparation_time_remaining := 0.0
+var _displayed_second := 0
+
+
+func _ready() -> void:
+	# §5/§79/T13: nenhum Timer node e nenhum loop permanente. O countdown acorda
+	# quando a preparação começa e dorme em qualquer outro estado.
+	set_process(false)
 
 
 ## §28: tudo que o ciclo de vida precisa chega por parâmetro. Nenhum lookup global,
@@ -50,14 +64,61 @@ func invaders() -> Array[EnemyRuntime]:
 	return _invaders
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("start_invasion"):
+## §4/T13: quanto falta. Fora de PREPARATION o valor é 0 — não existe contagem
+## parada por aí esperando para ser retomada.
+func preparation_time_remaining() -> float:
+	return _preparation_time_remaining
+
+
+## §6/§8/T13: o Ninho concluído é o gatilho da partida normal e o F é o atalho de
+## teste (§14/T13). Os dois entram por aqui, e aqui só existe uma porta: NOT_STARTED.
+## Chegar de novo em PREPARATION não reinicia nada, e depois da largada não há o que
+## preparar — a invasão da Tarefa 12 continua sendo uma só.
+func begin_preparation() -> bool:
+	if _state != InvasionState.NOT_STARTED:
+		return false
+	_state = InvasionState.PREPARATION
+	_preparation_time_remaining = preparation_duration
+	_displayed_second = _displayed_second_of(_preparation_time_remaining)
+	preparation_started.emit(preparation_duration)
+	preparation_time_changed.emit(_preparation_time_remaining, preparation_duration)
+	set_process(true)
+	return true
+
+
+## §5/§79/T13: contagem por delta, nunca por Timer de um segundo nem por cadeia de
+## awaits. É isso que torna o countdown igual para 30 Hz e 120 Hz (§40/T13).
+func _process(delta: float) -> void:
+	if _state != InvasionState.PREPARATION:
+		set_process(false)
+		return
+	_preparation_time_remaining = maxf(_preparation_time_remaining - delta, 0.0)
+	# §10/T13: o tempo interno é float contínuo, mas o HUD só precisa saber quando o
+	# segundo exibido vira. Um emit por segundo de tela, não duzentos por frame.
+	var second := _displayed_second_of(_preparation_time_remaining)
+	if second != _displayed_second:
+		_displayed_second = second
+		preparation_time_changed.emit(_preparation_time_remaining, preparation_duration)
+	if _preparation_time_remaining <= 0.0:
+		# §12/T13: chegou a hora de usar exatamente a largada que já existia.
 		start_invasion()
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("start_invasion"):
+		# §14/T13: o F deixou de soltar as Feras. Ele abre a preparação, e em qualquer
+		# outro estado do ciclo não tem efeito nenhum (§15/T13).
+		begin_preparation()
+
+
+## §12/§13/T13: a largada em si é a mesma da Tarefa 12. Ela aceita o NOT_STARTED que
+## sempre aceitou (harness e chamada direta) e a PREPARATION do fluxo anunciado, e a
+## guarda de estado continua garantindo uma única emissão de invasion_started.
 func start_invasion() -> bool:
-	if _state != InvasionState.NOT_STARTED:
+	if _state != InvasionState.NOT_STARTED and _state != InvasionState.PREPARATION:
 		return false
+	set_process(false)
+	_preparation_time_remaining = 0.0
 	for index in INVADER_COUNT:
 		var enemy := _scene.instantiate() as EnemyRuntime
 		enemy.name = "Invader%03d" % (index + 1)
@@ -100,3 +161,9 @@ func _on_core_destroyed() -> void:
 	# §23: o Núcleo não sai da árvore — apenas o estado mudaria isso, e ele é do
 	# CoreState, não daqui.
 	invasion_defeat.emit()
+
+
+## §11/T13: o segundo que o HUD vai mostrar. ceil() é a política que faz 59.9 s ainda
+## aparecerem como 60 e garante que o "0" nunca fica na tela antes do ataque.
+func _displayed_second_of(remaining: float) -> int:
+	return int(ceilf(remaining))

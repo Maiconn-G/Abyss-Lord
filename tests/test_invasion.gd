@@ -7,6 +7,11 @@ extends SceneTree
 # (§30), cada uma marcha sozinha até o Núcleo (§11/§12) e só para quando o Soldado a
 # intercepta (§17) ou quando o Core cai a zero (§22). Nenhuma busca global, nenhum
 # manager genérico: as ordens continuam entrando pelo ray de seleção da Tarefa 11.
+#
+# §14/§16 da Tarefa 13 mudaram a porta de entrada: o F agora abre a PREPARATION e a
+# largada acontece quando o cronômetro zera. Esta suíte mede a invasão em si, então o
+# harness encurta preparation_duration (exatamente o que §16 permite) e espera o estado
+# ACTIVE. Nenhum assert foi removido: o que mudou foi só o instante da largada.
 
 const MAIN_SCENE := preload("res://game/GameMain.tscn")
 const ENEMY_SCENE := preload("res://units/enemies/EnemyRuntime.tscn")
@@ -23,6 +28,8 @@ const CORE_RUNTIME_SOURCE_PATH := "res://world/dungeon/core/core_runtime.gd"
 const CORE_HUD_SOURCE_PATH := "res://ui/hud/core_debug_hud.gd"
 const INVASION_CONTROLLER_SOURCE_PATH := "res://systems/combat/invasion_controller.gd"
 const INVASION_HUD_SOURCE_PATH := "res://ui/hud/invasion_debug_hud.gd"
+const INVASION_WARNING_HUD_SOURCE_PATH := "res://ui/hud/invasion_warning_hud.gd"
+const INVASION_WARNING_SCENE_PATH := "res://ui/hud/InvasionWarningHud.tscn"
 const GAME_MAIN_SOURCE_PATH := "res://game/game_main.gd"
 const SELECTION_SOURCE_PATH := "res://systems/selection/selection_controller.gd"
 const SOLDIER_RUNTIME_SOURCE_PATH := "res://units/soldiers/soldier_runtime.gd"
@@ -86,8 +93,13 @@ const INTEGRITY := 100.0
 const TICKS := 60
 
 const HINT_LINE := "[F] Iniciar primeira invasão"
-const WAITING_STATUS := "Status: aguardando"
+## §17/T13: a linha de espera passou a nomear o que se espera.
+const WAITING_STATUS := "Status: aguardando ameaça"
 const ACTIVE_STATUS := "Status: INVASÃO"
+## §17/T13: as três linhas que o painel de status vira durante a preparação.
+const PREPARATION_ALERT := "AMEAÇA DETECTADA"
+const PREPARATION_COUNTDOWN_PREFIX := "Invasão em: "
+const PREPARATION_ADVICE := "Prepare suas defesas."
 const VICTORY_STATUS := "Status: VITÓRIA"
 const DEFEAT_STATUS := "Status: DERROTA"
 const NO_ENEMY_LINE := "Sem inimigo em campo"
@@ -95,6 +107,16 @@ const BEAST_LINE_FULL := "Fera Cavernosa: 48 / 48 HP"
 const REMAINING_TWO := "Inimigos restantes: 2"
 const REMAINING_ONE := "Inimigos restantes: 1"
 const REMAINING_ZERO := "Inimigos restantes: 0"
+## §16/T13: é o harness que encurta o aviso de 60 s — nunca uma tecla de produção.
+const HARNESS_PREPARATION := 0.02
+## §32/T13: o Ninho agora abre a preparação sozinho. Nas cenas que constroem o Ninho
+## antes de exercitar a largada, o harness apenas segura o cronômetro; a largada em si
+## continua saindo do mesmo start_invasion() que o zero dispara.
+const HELD_PREPARATION := 3600.0
+## §14/T13: o F abriu a preparação, então o nascimento das Feras não cai mais no mesmo
+## frame da tecla. 0.5 m são 0.2 s de marcha — e os dois pontos de largada ficam a
+## 15.7 m um do outro e a mais de 10 m do Núcleo, o que continua provando o marco.
+const LAUNCH_BIRTH_TOLERANCE := 0.5
 
 var _failures := 0
 var _asserts := 0
@@ -113,6 +135,7 @@ var _stockpile: ResourceStockpileState
 var _core_hud: Node
 var _combat_hud: Node
 var _invasion_hud: Node
+var _warning_hud: Node
 var _worker: WorkerRuntime
 var _worker2: WorkerRuntime
 var _soldier: SoldierRuntime
@@ -366,17 +389,47 @@ func _test_invasion_controller_surface() -> void:
 	_check(source.contains("class_name InvasionController"), "§24 InvasionController existe")
 	_check(source.contains("extends Node"), "§24 o controller é um Node simples")
 	_check(source.contains("enum InvasionState"), "§25 InvasionState é local")
-	_check(source.contains("NOT_STARTED, ACTIVE, VICTORY, DEFEAT"),
-			"§25 os quatro estados aparecem exatamente na ordem pedida")
+	_check(source.contains("NOT_STARTED, PREPARATION, ACTIVE, VICTORY, DEFEAT"),
+			"§2/T13 os cinco estados aparecem exatamente na ordem pedida")
+	for state_name in ["NOT_STARTED", "PREPARATION", "ACTIVE", "VICTORY", "DEFEAT"]:
+		_check(source.contains(state_name), "§2/T13 o estado %s existe" % state_name)
 	_check(source.contains("INVADER_COUNT := 2"), "§30 a quantidade 2 mora num const")
-	for signal_name in ["invasion_started", "invasion_victory", "invasion_defeat",
-			"active_invaders_changed"]:
-		_check(source.contains("signal " + signal_name), "§38 o signal %s existe" % signal_name)
-	for forbidden in ["func _process(", "func _physics_process(", "Wave", "Threat",
+	# §3/T13: os 60 segundos de produção moram num @export, não espalhados em literals.
+	_check(source.contains("@export var preparation_duration: float = 60.0"),
+			"§3/T13 a duração de produção é @export 60.0")
+	# §4/T13 e §5/T13: o resto do tempo é contagem por delta com clamp em zero.
+	_check(source.contains("_preparation_time_remaining"), "§4/T13 o restante mora no controller")
+	_check(source.contains("func _process(delta: float)"), "§5/T13 a contagem anda por delta")
+	_check(source.contains("maxf(_preparation_time_remaining - delta, 0.0)"),
+			"§4/T13 o countdown clampa no zero")
+	_check(source.contains("set_process(true)"), "§5/T13 o countdown só acorda na preparação")
+	_check(source.contains("set_process(false)"), "§5/§79/T13 fora da preparação ele dorme")
+	_check(source.contains("if _state != InvasionState.PREPARATION"),
+			"§79/T13 o processamento se desliga em qualquer outro estado")
+	_check(source.contains("func begin_preparation()"), "§6/T13 existe begin_preparation()")
+	_check(source.contains("if _state != InvasionState.NOT_STARTED"),
+			"§8/T13 só NOT_STARTED abre preparação")
+	_check(source.contains("func preparation_time_remaining()"),
+			"§4/T13 o restante é lido de fora sem varrer nada")
+	_check(source.contains("NOT_STARTED and _state != InvasionState.PREPARATION"),
+			"§13/T13 start_invasion() aceita a preparação e nada além disso")
+	_check(source.contains("_displayed_second"), "§10/T13 o emit de HUD é por segundo virado")
+	for forbidden in ["create_timer", "Timer.new", "func _physics_process(", "Wave", "Threat",
 			"CombatManager", "EnemySpawner", "EnemyFactory", "queue_free", "EventBus",
 			"get_tree().get_nodes_in_group", "add_to_group"]:
 		_check(not source.contains(forbidden),
 				"§24/§38/§91/§92 invasion_controller.gd não contém %s" % forbidden)
+	# §38/§91/T13: a varredura do countdown lê código, não a prosa que descreve o que
+	# não existe. await e Timer node são justamente as duas cadeias que §5 proíbe.
+	var countdown_code := _code_of(INVASION_CONTROLLER_SOURCE_PATH)
+	for forbidden in ["await", "Timer", "SceneTreeTimer", "get_tree().paused", "time_scale"]:
+		_check(not countdown_code.contains(forbidden),
+				"§5/§80/T13 o countdown não contém %s" % forbidden)
+	# §5/T13: a contagem é delta puro — nem Timer node, nem cadeia de awaits.
+	for signal_name in ["invasion_started", "invasion_victory", "invasion_defeat",
+			"active_invaders_changed", "preparation_started", "preparation_time_changed"]:
+		_check(source.contains("signal " + signal_name), "§38/§9/T13 o signal %s existe"
+				% signal_name)
 	_check(source.contains("is_action_pressed(\"start_invasion\")"),
 			"§26 a largada sai de uma ação do InputMap, não de keycode solto")
 	_check(not source.contains("KEY_F"), "§26 nenhum keycode hardcoded")
@@ -387,6 +440,10 @@ func _test_invasion_controller_surface() -> void:
 	for lookup in ["get_node(\"/root", "Engine.get_main_loop", "autoload"]:
 		_check(not code.to_lower().contains(lookup.to_lower()),
 				"§28 nada de lookup global (%s)" % lookup)
+	# §33/T13: quem conhece o Ninho é a composition root. O controller nunca sai
+	# procurando a construção na árvore.
+	for nest in ["Nest", "Construction", "construction_completed"]:
+		_check(not code.contains(nest), "§33/T13 o controller não caça %s na árvore" % nest)
 	_check(_count_files("res://systems/combat", "*.gd") == 1,
 			"§24/§91 exatamente um script em systems/combat")
 	_check(_count_files("res://systems/combat", "invasion_controller.gd") == 1,
@@ -397,18 +454,47 @@ func _test_hud_surface() -> void:
 	var source := _source(INVASION_HUD_SOURCE_PATH)
 	for line in [HINT_LINE, WAITING_STATUS, ACTIVE_STATUS, VICTORY_STATUS, DEFEAT_STATUS]:
 		_check(source.contains(line), "§39 a linha exata \"%s\" está no HUD" % line)
+	# §17/T13: as três linhas da preparação são texto de produção, não de teste.
+	for line in [PREPARATION_ALERT, PREPARATION_COUNTDOWN_PREFIX, PREPARATION_ADVICE]:
+		_check(source.contains(line), "§17/T13 a linha da preparação \"%s\" está no HUD" % line)
 	_check(not source.contains("func _process("), "§40 o HUD de invasão não tem _process")
 	_check(not source.contains("_physics_process"), "§40 o HUD de invasão não roda por frame")
 	for signal_name in ["invasion_started", "invasion_victory", "invasion_defeat",
-			"active_invaders_changed"]:
+			"active_invaders_changed", "preparation_started", "preparation_time_changed"]:
 		_check(source.contains(signal_name + ".connect"),
-				"§38/§40 o HUD consome %s por signal" % signal_name)
+				"§38/§40/§9/T13 o HUD consome %s por signal" % signal_name)
 	var core_hud := _source(CORE_HUD_SOURCE_PATH)
 	_check(core_hud.contains("integrity_changed.connect"),
 			"§8/§57 a Integrity do Core HUD chega por signal")
 	_check(not core_hud.contains("func _process("), "§8 o Core HUD não consulta por frame")
-	_check(_source(GAME_MAIN_SOURCE_PATH).contains("_invasion_hud.bind"),
+	var main := _source(GAME_MAIN_SOURCE_PATH)
+	_check(main.contains("_invasion_hud.bind"),
 			"§40 a composition root liga o HUD ao controller")
+	# §18/§19/§20/T13: o aviso é PanelContainer + Label, sem animação, som ou VFX, e só
+	# aparece em PREPARATION.
+	var warning := _source(INVASION_WARNING_HUD_SOURCE_PATH)
+	_check(warning.contains("extends PanelContainer"), "§18/T13 o aviso é um PanelContainer")
+	_check(warning.contains("AMEAÇA DETECTADA"), "§19/T13 o aviso nomeia a ameaça")
+	_check(warning.contains("preparation_started.connect"),
+			"§20/T13 o aviso acorda pelo preparation_started")
+	_check(warning.contains("invasion_started.connect"),
+			"§20/T13 o aviso se apaga no invasion_started")
+	_check(warning.contains("preparation_time_changed.connect"),
+			"§51/T13 os segundos do aviso vêm do signal de tempo")
+	var warning_code := _code_of(INVASION_WARNING_HUD_SOURCE_PATH)
+	for forbidden in ["func _process(", "_physics_process", "create_timer", "Tween",
+			"AnimationPlayer", "AudioStream", "CameraShake", "VFX", "Particles"]:
+		_check(not warning_code.contains(forbidden), "§18/§75/T13 o aviso não faz %s" % forbidden)
+	# §21/T13: a regra de mouse_filter mora no .tscn, que é o que vai para a tela.
+	var warning_scene_text := _source(INVASION_WARNING_SCENE_PATH)
+	var warning_nodes := warning_scene_text.count("[node name=")
+	_check(warning_nodes == 4
+			and warning_scene_text.count("mouse_filter = 2") == warning_nodes,
+			"§21/T13 os %d nós de Control do aviso são todos IGNORE no .tscn" % warning_nodes)
+	_check(warning_scene_text.contains("visible = false"),
+			"§31/T13 o aviso nasce escondido no próprio .tscn")
+	_check(main.contains("_invasion_warning_hud.bind"),
+			"§40/T13 a composition root liga o aviso ao controller")
 
 
 # --------------------------------------------------------------- Escopos (§90–§94)
@@ -421,10 +507,12 @@ func _test_scope_guards() -> void:
 			"CombatManager", "EnemySpawner", "EnemyFactory", "GameOverScreen",
 			"NavigationAgent3D", "NavigationRegion3D", "NavigationMesh", "avoidance_enabled",
 			"AStar3D", "FlowField", "auto_aggro", "nearest_enemy", "regenerate_integrity",
-			"repair_core", "experience_reward", "loot_table", "EventBus", "threat_level"]:
+			"repair_core", "experience_reward", "loot_table", "EventBus", "threat_level",
+			"GameClock", "TimeManager", "DayNightManager", "EventManager", "StoryManager",
+			"MilestoneManager", "WarningManager", "ThreatSystem", "wave_index"]:
 		var offenders := _files_containing(sources, forbidden)
 		_check(offenders.is_empty(),
-				"§90–§94 nenhum código de produção contém %s, achado em %s"
+				"§90–§94/§75–§78 nenhum código de produção contém %s, achado em %s"
 						% [forbidden, offenders])
 	_check(_collect_gd_files("res://systems").size() == 5,
 			"§98 systems/ continua com exatamente cinco scripts de controle, obtido %d"
@@ -436,6 +524,16 @@ func _test_scope_guards() -> void:
 				"§23/§32 game_main.gd não contém %s" % forbidden)
 	_check(main.contains("ENEMY_SCENE"), "§28 GameMain conhece a cena da Fera para injetá-la")
 	_check(main.contains("_invasion.setup("), "§28 GameMain injeta as dependências da invasão")
+	# §33/§77/T13: o gatilho do Ninho é uma conexão explícita da composition root, e a
+	# partida nunca joga sozinha (§64/T13).
+	_check(main.contains("_construction.nest_completed.connect"),
+			"§33/T13 GameMain conecta o Ninho concluído")
+	_check(main.contains("_invasion.begin_preparation()"),
+			"§6/T13 o único efeito do Ninho sobre a invasão é abrir a preparação")
+	_check(not main.contains("start_invasion()"),
+			"§32/T13 GameMain não larga a invasão direto, muito menos no Ninho")
+	for auto in ["_worker.build(", "auto_build", "auto_mine", "auto_recruit"]:
+		_check(not main.contains(auto), "§64/T13 nada na produção se constrói sozinho (%s)" % auto)
 	var settings := _source(PROJECT_SETTINGS_PATH)
 	_check(not settings.contains("[autoload]"), "§24/§38 nada de autoload no projeto")
 	var selection := _source(SELECTION_SOURCE_PATH)
@@ -465,6 +563,11 @@ func _test_boot_without_enemies() -> void:
 			"§25 o controller abre em NOT_STARTED")
 	_check(_invasion.active_invaders() == 0, "§36 active_invaders começa em 0")
 	_check(_invasion.invaders().is_empty(), "§34 nenhuma criatura registrada antes do F")
+	# §31/§36/T13: a partida abre sem ameaça anunciada — countdown parado e aviso occulto.
+	_check(_close(_invasion.preparation_time_remaining(), 0.0),
+			"§36/T13 o tempo restante abre em 0, obtido %f"
+					% _invasion.preparation_time_remaining())
+	_check(not _warning_hud.visible, "§31/T13 o aviso de ameaça começa escondido")
 	_check(_close(_core_state.integrity, INTEGRITY), "§1 Integrity 100 no início")
 	_check(_core.is_inside_tree() and is_instance_valid(_core_state),
 			"§23 o Núcleo está na árvore e vivo")
@@ -487,6 +590,13 @@ func _test_invasion_hud_initial() -> void:
 	var offenders := _controls_not_ignoring(panel)
 	_check(offenders.is_empty(), "§40 todo Control do painel de invasão é IGNORE, %s"
 			% [offenders])
+	# §21/§31/T13: o aviso também é composto, começa escondido e não segura clique nenhum.
+	var warning := _scene.get_node("UI/InvasionWarningPanel")
+	_check(warning is InvasionWarningHud, "§19/T13 o painel de aviso está composto no GameMain")
+	_check(not warning.visible, "§31/T13 o aviso nasce escondido")
+	var warning_offenders := _controls_not_ignoring(warning)
+	_check(warning_offenders.is_empty(), "§21/T13 todo Control do aviso é IGNORE, %s"
+			% [warning_offenders])
 
 
 func _test_spawn_points() -> void:
@@ -596,7 +706,7 @@ func _test_no_regen_in_scene() -> void:
 func _test_start_invasion_by_input() -> void:
 	var before_invaders := _enemies_in_scene()
 	_check(before_invaders.is_empty(), "§65 antes do F a cena tem 0 inimigos")
-	_press_key(KEY_F)
+	await _press_f_and_launch()
 	await _advance(0.05)
 	var invaders := _enemies_in_scene()
 	_check(invaders.size() == 2,
@@ -607,12 +717,14 @@ func _test_start_invasion_by_input() -> void:
 			% _started_events)
 	_check(_remaining_trace.size() == 1 and _remaining_trace[0] == 2,
 			"§38/§39 contagem registrada %s" % [_remaining_trace])
-	# Os invasores já marcham quando a medição acontece: um F e um intervalo de física
-	# separam o ponto de largada do corpo, então a prova é "nasceu naquele marco".
+	# Os invasores já marcham quando a medição acontece: desde a Tarefa 13 o F abre a
+	# preparação e é o cronômetro que planta as Feras, então a prova é "nasceu naquele
+	# marco", com a folga de LAUNCH_BIRTH_TOLERANCE medidos depois da largada.
 	var drift_a := invaders[0].global_position.distance_to(SPAWN_A)
 	var drift_b := invaders[1].global_position.distance_to(SPAWN_B)
 	var distinct_points := SPAWN_A.distance_to(SPAWN_B) > 2.0 * BEAST_RADIUS
-	_check(distinct_points and drift_a < 0.2 and drift_b < 0.2,
+	_check(distinct_points and drift_a < LAUNCH_BIRTH_TOLERANCE
+			and drift_b < LAUNCH_BIRTH_TOLERANCE,
 			"§29/§34 os dois invasores nasceram cada um no seu SpawnPoint, afastados "
 					+ "(%f, %f)" % [drift_a, drift_b])
 	_check(invaders[0].state != invaders[1].state,
@@ -644,6 +756,11 @@ func _test_start_invasion_by_input() -> void:
 	_check(_text_of(_combat_hud, "EnemyLabel") == BEAST_LINE_FULL,
 			"§33/T11 o painel de combate passou a mostrar a Fera invasora, obtido %s"
 					% _text_of(_combat_hud, "EnemyLabel"))
+	# §70/T13: o aviso não fica por cima do combate — apagou no mesmo instante da largada.
+	_check(not _warning_hud.visible, "§70/T13 o aviso sumiu quando a invasão virou ACTIVE")
+	_check(_text_of(_invasion_hud, "HintLabel") == HINT_LINE,
+			"§17/T13 o painel de status voltou a dica normal no ACTIVE, obtido %s"
+					% _text_of(_invasion_hud, "HintLabel"))
 
 
 func _test_second_f_does_not_duplicate() -> void:
@@ -657,6 +774,8 @@ func _test_second_f_does_not_duplicate() -> void:
 			"§66 o estado continua ACTIVE")
 	_check(not _invasion.start_invasion(),
 			"§66 start_invasion() recusa uma segunda largada")
+	_check(not _invasion.begin_preparation(),
+			"§15/T13 com a invasão ACTIVE o F não reabre preparação nenhuma")
 
 
 func _test_advance_simultaneous() -> void:
@@ -1022,6 +1141,9 @@ func _test_combat_priority_over_core() -> void:
 
 
 func _test_constructions_ignored() -> void:
+	# §32/T13: esta cena conclui o Ninho, e o Ninho concluído é o gatilho da preparação.
+	# O cronômetro fica mantido para que as Feras só apareçam pela via que a cena testa.
+	_invasion.preparation_duration = HELD_PREPARATION
 	await _build_nest()
 	await _build_barracks()
 	var nest := _construction.nest()
@@ -1067,7 +1189,7 @@ func _test_intercept_holds_one_invader() -> void:
 	var arrived := await _wait_until(
 			func() -> bool: return not _soldier.has_move_target(), 8.0)
 	_check(arrived, "§71 o Soldado foi postado na rota do Invader001")
-	_press_key(KEY_F)
+	await _press_f_and_launch()
 	await _advance(0.6)
 	var invaders := _invasion.invaders()
 	_check(invaders.size() == 2, "§71 a invasão de teste tem duas Feras")
@@ -1219,7 +1341,7 @@ func _test_passive_enemy_still_idle() -> void:
 
 
 func _test_defeat_flow() -> void:
-	_press_key(KEY_F)
+	await _press_f_and_launch()
 	await _advance(0.1)
 	var enemies := _enemies_in_scene()
 	_check(enemies.size() == 2, "§79 a invasão sem defesa começou com duas Feras")
@@ -1269,7 +1391,9 @@ func _test_defeat_flow() -> void:
 	_check(still_alive,
 			"§94 a cena seguiu viva um segundo depois: nada de congelar, menu ou reinício")
 	var ui_children := _scene.get_node("UI").get_child_count()
-	_check(ui_children == 8,
+	# §83/T13: a contagem de painéis é literal e mudou porque o aviso de ameaça é um
+	# painel novo. Nada de Game Over: antes eram 8, agora 8 debug + 1 aviso.
+	_check(ui_children == 9,
 			"§94 nenhum painel de Game Over apareceu, filhos de UI = %d" % ui_children)
 	var second := _invasion.invaders()[1]
 	second.receive_damage(BEAST_HP)
@@ -1286,6 +1410,10 @@ func _test_end_to_end_defense() -> void:
 	var enemies := _enemies_in_scene()
 	_check(enemies.is_empty() and _core_state.population == 1,
 			"§86 a campanha defensiva abre sem inimigo e com 1 Worker")
+	# §32/T13: o Ninho desta cena é construído no meio do caminho e, desde a Tarefa 13,
+	# concluí-lo abre a preparação. A contagem fica mantida para que a largada aconteça
+	# no fim da campanha, exatamente como nas versões anteriores da suíte.
+	_invasion.preparation_duration = HELD_PREPARATION
 	_set_essence(20.0)
 	_press_key(KEY_I)
 	await _advance(0.4)
@@ -1311,6 +1439,12 @@ func _test_end_to_end_defense() -> void:
 	await _right_click(nest.global_position)
 	var nest_done := await _wait_until(func() -> bool: return nest.is_completed(), 30.0)
 	_check(nest_done, "§86-3 os Workers construíram o Ninho")
+	# §32/T13: o Ninho caiu pronto e a partida inteira entrou em preparação — sem F,
+	# sem chamada direta, sem nenhum botão novo.
+	_check(_invasion.invasion_state() == InvasionController.InvasionState.PREPARATION,
+			"§32/T13 a campanha real entrou em PREPARATION sozinha")
+	_check(_enemies_in_scene().is_empty(),
+			"§27/T13 a preparação da campanha real ainda não tem Fera nenhuma")
 
 	await _mine_with_two_workers(_rock_with_id(SECOND_ORE_ROCK_ID))
 	_check(_stockpile.get_amount(ORE) == 3, "§86-4 a segunda rocha rendeu mais 3 minério")
@@ -1344,8 +1478,13 @@ func _test_end_to_end_defense() -> void:
 			% _core_state.integrity)
 
 	var started_at := Engine.get_physics_frames()
+	# §15/T13: no meio da preparação já aberta, o F da campanha não pula nada. A largada
+	# vem em seguida pelo mesmo portão do zero.
 	_press_key(KEY_F)
 	await _advance(0.1)
+	_check(_invasion.invasion_state() == InvasionController.InvasionState.PREPARATION,
+			"§15/T13 o F dentro da preparação não adiantou a invasão")
+	await _launch_invasion_now()
 	var invaders := _enemies_in_scene()
 	_check(invaders.size() == 2, "§86-7 F lançou as duas Feras na campanha real")
 	var first := invaders[0]
@@ -1423,12 +1562,16 @@ func _boot_scene() -> void:
 	_recruitment = _scene.get_node(
 			"Systems/SoldierRecruitmentController") as SoldierRecruitmentController
 	_invasion = _scene.get_node("Systems/InvasionController") as InvasionController
+	# §14/§16/T13: o F passou a abrir a PREPARATION de 60 s. Esta suíte exercita a
+	# invasão em si, então o harness encurta o mesmo @export que a produção usa.
+	_invasion.preparation_duration = HARNESS_PREPARATION
 	_deposit = _scene.get_node("World/DungeonRoot/Deposit001") as ResourceDepositRuntime
 	_core = _scene.get_node("World/DungeonRoot/MainCore") as CoreRuntime
 	_worker = _scene.get_node("World/DungeonRoot/Worker001") as WorkerRuntime
 	_core_hud = _scene.get_node("UI/CoreDebugPanel")
 	_combat_hud = _scene.get_node("UI/CombatDebugPanel")
 	_invasion_hud = _scene.get_node("UI/InvasionDebugPanel")
+	_warning_hud = _scene.get_node("UI/InvasionWarningPanel")
 	_stockpile = _deposit.stockpile
 	_core_state = _core.core_state()
 	# A geração passiva de Essência é congelada: recompensa falsa não pode passar por ela.
@@ -1501,6 +1644,7 @@ func _free_scene() -> void:
 	_core_hud = null
 	_combat_hud = null
 	_invasion_hud = null
+	_warning_hud = null
 	_worker = null
 
 
@@ -1890,6 +2034,29 @@ func _press_key(physical_keycode: int) -> void:
 	root.push_input(event)
 	event.pressed = false
 	root.push_input(event)
+
+
+## §14/T13: o F da Tarefa 12 virou atalho da preparação. Para esta suíte, que exercita
+## a invasão em si, "apertar F" só termina quando o cronômetro já largou as Feras.
+func _press_f_and_launch() -> void:
+	_press_key(KEY_F)
+	var launched := await _wait_until(
+			func() -> bool:
+				return _invasion.invasion_state() == InvasionController.InvasionState.ACTIVE,
+			3.0)
+	_check(launched, "§14/T13 o F abriu a preparação e o cronômetro largou a invasão")
+
+
+## §32/§12/T13: nas cenas que constroem o Ninho antes da largada, o gatilho automático
+## já abriu uma preparação mantida. A suíte então entra pelo mesmo portão por onde o
+## cronômetro entra quando o zero chega — nenhum caminho de spawn paralelo.
+func _launch_invasion_now() -> void:
+	_check(_invasion.invasion_state() == InvasionController.InvasionState.PREPARATION,
+			"§32/T13 o Ninho concluído abriu a preparação desta cena")
+	_check(_enemies_in_scene().is_empty(), "§27/T13 nenhuma Fera nasce antes do zero")
+	_check(_invasion.start_invasion(),
+			"§12/T13 a largada reusa start_invasion(), sem duplicar o spawn")
+	await _advance(0.05)
 
 
 # --------------------------------------------------------- Leitura de fontes e HUD

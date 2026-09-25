@@ -31,6 +31,7 @@ const ENEMY_SCENE := preload("res://units/enemies/EnemyRuntime.tscn")
 @onready var _military_hud: MilitaryDebugHud = $UI/MilitaryDebugPanel
 @onready var _combat_hud: CombatDebugHud = $UI/CombatDebugPanel
 @onready var _invasion_hud: InvasionDebugHud = $UI/InvasionDebugPanel
+@onready var _invasion_warning_hud: InvasionWarningHud = $UI/InvasionWarningPanel
 @onready var _selection_box: SelectionBox = $UI/SelectionBox
 @onready var _selection: SelectionController = $Systems/SelectionController
 @onready var _construction: ConstructionController = $Systems/ConstructionController
@@ -86,7 +87,13 @@ func _ready() -> void:
 			[_invasion_point_a, _invasion_point_b])
 	_invasion.invasion_started.connect(_on_invasion_started)
 	_invasion_hud.bind(_invasion)
+	_invasion_warning_hud.bind(_invasion)
 	_combat_hud.bind_recruitment(_recruitment, barracks_definition.soldier_definition)
+
+	# §6/§33/T13: o Ninho concluído é o que anuncia a ameaça. A conexão é uma linha,
+	# feita aqui, sobre um signal que o ConstructionController já emitia — a invasão
+	# não procura Ninho nenhum na árvore e não existe sistema de eventos.
+	_construction.nest_completed.connect(_on_nest_completed)
 
 	_bind_rocks()
 
@@ -102,6 +109,12 @@ func _ready() -> void:
 func _on_invasion_started(invaders: Array) -> void:
 	for enemy in invaders:
 		_combat_hud.bind_enemy(enemy)
+
+
+## §6/T13: o primeiro Ninho concluído é o momento em que o domínio passa a ser visto.
+## Aqui só existe a passagem — quem conta os 60 segundos é o InvasionController.
+func _on_nest_completed(_nest: NestRuntime) -> void:
+	_invasion.begin_preparation()
 
 
 func _bind_rocks() -> void:

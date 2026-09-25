@@ -1,4 +1,4 @@
-[gd_scene load_steps=31 format=3]
+[gd_scene load_steps=32 format=3]
 
 [ext_resource type="Script" path="res://game/game_main.gd" id="1_game"]
 [ext_resource type="Script" path="res://camera/camera_controller.gd" id="2_camera"]
@@ -27,6 +27,7 @@
 [ext_resource type="PackedScene" path="res://ui/hud/CombatDebugHud.tscn" id="25_combat_hud"]
 [ext_resource type="Script" path="res://systems/combat/invasion_controller.gd" id="26_invasion"]
 [ext_resource type="PackedScene" path="res://ui/hud/InvasionDebugHud.tscn" id="27_invasion_hud"]
+[ext_resource type="PackedScene" path="res://ui/hud/InvasionWarningHud.tscn" id="28_warning_hud"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMaterial"]
 albedo_color = Color(0.22, 0.26, 0.3, 1.0)
@@ -174,3 +175,5 @@ script = ExtResource("26_invasion")
 [node name="CombatDebugPanel" parent="UI" instance=ExtResource("25_combat_hud")]
 
 [node name="InvasionDebugPanel" parent="UI" instance=ExtResource("27_invasion_hud")]
+
+[node name="InvasionWarningPanel" parent="UI" instance=ExtResource("28_warning_hud")]

@@ -443,11 +443,17 @@ func _test_scope_guards() -> void:
 	var invasion_source := _source(INVASION_CONTROLLER_SOURCE_PATH)
 	_check(_count_occurrences(invasion_source, ".instantiate()") == 1,
 			"§32/§92/T12 a invasão tem exatamente um ponto de criação de criatura")
+	# §24/§90/T12: o controller continua sem varrer grupo, sem gerente e sem física por
+	# frame. Desde a Tarefa 13 ele tem exatamente UM `func _process(` — o countdown de
+	# preparação (§5/§79 da nova tarefa), que não consulta unidade nenhuma. O que esta
+	# guarda protegia continua de pé: nenhum loop de combate, nenhuma varredura da árvore.
 	for forbidden in ["get_nodes_in_group", "get_first_node_in_group", "find_children",
 			"CombatManager", "ThreatManager", "WaveManager", "EnemyFactory", "NavMesh",
-			"NavigationAgent", "func _process(", "func _physics_process("]:
+			"NavigationAgent", "func _physics_process("]:
 		_check(not invasion_source.contains(forbidden),
 				"§24/§90/T12 InvasionController não usa %s" % forbidden)
+	_check(_count_occurrences(invasion_source, "func _process(") == 1,
+			"§5/§79/T13 o único _process do controller é o countdown, documentado em T13")
 	for manager in ["CombatManager", "EnemyManager", "ThreatManager", "ICombatant",
 			"CombatantBase", "AttackComponent", "HealthComponent", "TargetingComponent",
 			"UnitStateBase", "EventBus", "UnitRegistry", "EnemyFactory", "ArmyManager"]:
