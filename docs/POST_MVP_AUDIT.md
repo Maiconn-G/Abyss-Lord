@@ -83,6 +83,9 @@ D6  Integridade zero: Game Over real ou DEFEAT sem tela (linha 14)
 D7  Custo de construção em tempo ou em trabalho (linha 19)
 ```
 
+Lista preservada como registrada na auditoria. Todas as sete foram decididas depois, na
+Tarefa 16 — ver §8 ao final deste documento e `docs/DESIGN_DECISIONS_POST_MVP.md`.
+
 ---
 
 ## 2. Camadas do projeto
@@ -276,5 +279,99 @@ Units (State/Runtime) → ainda aguardar segundo combatente real ou morte de Wor
 Population spawning   → ainda aguardar terceiro tipo de criação
 Combat                → ainda aguardar segundo inimigo/combatente real
 Progression           → ainda aguardar Core Lv.3 (só existe uma aresta Lv.1 → Lv.2)
-Rooms/Salas           → ainda aguardar a quarta sala (Mina depende da decisão D4)
+Rooms/Salas           → ainda aguardar a quarta sala (a Mina depende da decisão D4)
+```
+
+---
+
+## 8. Decisões tomadas após a auditoria
+
+Tarefa 16. A tabela do §1 acima **não foi alterada** por esta tarefa: ela é a fotografia do
+As-Built no commit `5fff237`, tirada contra o GDD que existia naquele momento. O design mudou
+depois disso, e as linhas `IMPLEMENTADO DIFERENTE` / `NÃO IMPLEMENTADO` continuam valendo como
+registro histórico daquele instante. As decisões formais, com motivo, impacto e matriz de
+alinhamento do código, estão em `docs/DESIGN_DECISIONS_POST_MVP.md`.
+
+| Decisão | Assunto | Resolvido | Linhas da tabela §1 afetadas |
+| --- | --- | --- | --- |
+| D1 | Trabalhadores no MVP | máximo 2 (1 inicial + 1 invocável) | 2 |
+| D2 | Custo da evolução Nv.1 → Nv.2 | 1 Cristal Abissal + 25 Essências | 6, 7 |
+| D3 | População base Nv.2 | base 12, Ninho +4, efetiva 16 | 11, 13 |
+| D4 | Rochas × Mina × Depósito | papéis distintos; Mina é conteúdo do Nv.2 | 5, 8 |
+| D5 | Biomassa | entra na progressão Nv.2, não retroativamente | 4 |
+| D6 | Integridade 0 | regra de derrota; tela de Game Over é apresentação futura | 14 |
+| D7 | Construção | `work_required` + `work_speed`; sem duração fixa em segundos | 19, 20 |
+
+### D1 — Workers
+
+```text
+Oficial: o MVP tem 1 Trabalhador Abissal inicial + 1 invocável, máximo 2.
+A linha 2 da tabela (§1) deixa de ser divergência: o código sempre esteve correto;
+quem pedia 3 trabalhadores era o GDD, e o GDD foi corrigido (§89).
+```
+
+### D2 — Cristal Abissal e evolução
+
+```text
+Oficial: Nv.1 → Nv.2 custa 1 Cristal Abissal + 25 Essências, e o Cristal é recompensa
+estrutural da primeira vitória na invasão.
+
+Este é o ÚNICO item da auditoria que segue em aberto no código: as linhas 6 e 7 continuam
+válidas como estado atual. O design foi fechado; a implementação do Cristal vira a próxima
+tarefa de gameplay, e nada foi implementado na Tarefa 16.
+```
+
+### D3 — População base × efetiva
+
+```text
+Oficial: capacidade base do Core (Nv.1 = 8, Nv.2 = 12) + bônus de construção (Ninho +4)
+= capacidade efetiva (Nv.1 + Ninho = 12, Nv.2 + Ninho = 16).
+
+As linhas 11 e 13 descreviam o GDD antigo, que não conhecia o conceito de bônus. O código
+(`core_level_2.tres` = 12, `CoreState.get_population_capacity()`) agora é a regra oficial,
+e o §8 do GDD passou a documentar base / bônus / efetiva.
+```
+
+### D4 — Rochas, Mina e Depósito
+
+```text
+Oficial: Rochas de Minério = extração finita (exploração e expansão).
+         Mina = infraestrutura produtiva permanente/renovável, desbloqueada no Nv.2.
+         Depósito de recursos = ponto de entrega/estoque; NÃO é a Mina.
+
+A linha 5 deixa de ser divergência (o GDD agora descreve a rocha como extração finita e
+move a Mina para o Nv.2). A linha 8 permanece `NÃO IMPLEMENTADO`, mas passa a ser um item
+de escopo: a Mina é conteúdo pós-MVP, não um requisito faltante do MVP.
+```
+
+### D5 — Biomassa
+
+```text
+Oficial: Biomassa não entra retroativamente no MVP concluído; é recurso da progressão Nv.2.
+A linha 4 continua verdadeira sobre o código e deixa de descrever uma obrigação do MVP.
+```
+
+### D6 — Núcleo destruído
+
+```text
+Oficial: Integridade 0 = estado de derrota da run. O InvasionController.DEFEAT já expressa
+a mecânica; tela de Game Over, reinício e load são camada de apresentação posterior.
+A linha 14 continua descrevendo a apresentação ausente; a regra mecânica está alinhada.
+```
+
+### D7 — Construção por trabalho
+
+```text
+Oficial: construções têm `work_required`; Workers têm `work_speed`; o tempo em segundos é
+consequência emergente do trabalho combinado, não um campo do prédio.
+Linhas 19 e 20: o tempo (`work_required` 4/6, `work_speed = 1.0`) já é a regra oficial; os
+outros quatro atributos de §18 continuam fora do MVP.
+```
+
+### Situação consolidada
+
+```text
+Fechadas por alinhamento do GDD ao código:  D1, D3, D4 (escopo), D5, D6 (regra), D7
+Aberta no código:                           D2 — Cristal Abissal ainda não existe
+Migrada de "faltante" para "pós-MVP":       Mina (D4), Biomassa (D5)
 ```

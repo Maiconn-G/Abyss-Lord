@@ -336,7 +336,7 @@ Destruir o Núcleo significa destruir o domínio.
 | Nv. | Categoria     | População base | Salas principais | Função dominante   |
 | --- | ------------- | -------------: | ---------------: | ------------------ |
 | 1   | Covil         |              8 |                4 | Sobrevivência      |
-| 2   | Refúgio       |             16 |                8 | Produção           |
+| 2   | Refúgio       |             12 |                8 | Produção           |
 | 3   | Masmorra      |             30 |               12 | Militarização      |
 | 4   | Fortaleza     |             50 |               18 | Expansão regional  |
 | 5   | Domínio       |             80 |               25 | Diplomacia         |
@@ -347,6 +347,31 @@ Destruir o Núcleo significa destruir o domínio.
 | 10  | Trono Abissal |           600+ |         Especial | Endgame            |
 
 Valores são metas iniciais de balanceamento e não números definitivos.
+
+## Base, bônus e capacidade efetiva
+
+A coluna acima é **capacidade base**: o que o Núcleo fornece sozinho.
+
+**Population Capacity Base**
+
+→ capacidade fornecida pelo Núcleo, definida pelo nível dele.
+
+**Population Capacity Bonus**
+
+→ capacidade fornecida por construções. O Ninho Abissal entrega +4.
+
+**Effective Population Capacity**
+
+= base + bônus
+
+| Estado         | Base | Bônus | Efetiva |
+| -------------- | ---: | ----: | ------: |
+| Nv.1 sem Ninho |    8 |     0 |       8 |
+| Nv.1 com Ninho |    8 |    +4 |      12 |
+| Nv.2 com Ninho |   12 |    +4 |      16 |
+
+A capacidade efetiva, portanto, depende de infraestrutura — não apenas do nível do
+Núcleo. Subir de nível nunca é o único caminho para mais população.
 
 ---
 
@@ -364,7 +389,18 @@ Pode ser reduzida por:
 
 Se chegar a zero:
 
-**Game Over.**
+**o Núcleo é destruído e a run termina em estado de derrota.**
+
+Essa é a regra.
+
+A apresentação da derrota é uma camada separada, e pode vir depois:
+
+* tela de Game Over;
+* reinício da run;
+* carregar um save.
+
+Enquanto essa camada não existir, o estado mecânico de derrota já cumpre a regra. Não se
+confunda *não ter tela de Game Over* com *não ter derrota*.
 
 Entretanto, cair em combate com o avatar do jogador não encerra imediatamente a campanha.
 
@@ -404,6 +440,10 @@ Exemplo:
 
 **63 / 100.**
 
+Essência também é a parte **energética** do custo de evolução do Núcleo. A evolução
+Nv.1 → Nv.2 cobra 25 Essências **e** 1 Cristal Abissal: os dois papéis coexistem e um
+não substitui o outro.
+
 ---
 
 # 11. RECURSOS PRINCIPAIS
@@ -412,7 +452,7 @@ O jogo terá quatro recursos centrais.
 
 ## Essência
 
-Recurso mágico.
+Recurso mágico e **energia operacional** do domínio.
 
 Obtido através de:
 
@@ -425,15 +465,23 @@ Obtido através de:
 Usado para:
 
 * invocação;
+* recrutamento;
 * magia;
 * evolução;
 * portais.
+
+Essência é gasta no dia a dia. Ela **não** é o marcador de marco: quem registra que o
+jogador atravessou um momento estrutural da campanha é o Cristal Abissal.
 
 ---
 
 ## Biomassa
 
 Recurso orgânico.
+
+**Implementação: pós-MVP, durante a progressão do Núcleo Nv.2 (Vertical Slice).** Ela
+não entra retroativamente no MVP já concluído e não é obrigatória para fechar o
+Nv.1 → Nv.2.
 
 Obtido através de:
 
@@ -458,9 +506,30 @@ Recurso industrial.
 
 Obtido em:
 
+* rochas de minério;
 * minas;
 * ruínas;
 * comércio.
+
+Os dois primeiros itens são papéis diferentes e não se substituem:
+
+**Rochas de Minério**
+
+→ depósitos finitos no mapa;
+
+→ explorados por escavação, no ritmo da expansão;
+
+→ esgotam quando minerados, e empurram o jogador para cavalar mais fundo.
+
+**Mina**
+
+→ infraestrutura permanente e renovável;
+
+→ desbloqueada no Núcleo Nv.2;
+
+→ produz Minério ao longo do tempo, sem depender de rocha restante.
+
+O **depósito de recursos** do MVP não é a Mina. Ver §17.
 
 Usado para:
 
@@ -473,10 +542,15 @@ Usado para:
 
 ## Cristais Abissais
 
-Recurso raro estratégico.
+Recurso raro estratégico: **chave de progressão**, não recurso operacional comum.
+
+O jogador não gasta Cristal para construir paredes nem para invocar unidades do dia a
+dia. Cristal é gasto uma vez, em um marco.
 
 Obtido através de:
 
+* marcos importantes da campanha — a primeira invasão sobrevivida é o primeiro deles, e
+  entrega exatamente **1 Cristal Abissal**;
 * chefes;
 * outros Núcleos;
 * regiões profundas;
@@ -484,10 +558,13 @@ Obtido através de:
 
 Usado para:
 
-* evolução do Núcleo;
+* evolução do Núcleo (Nv.1 → Nv.2 cobra 1 Cristal + 25 Essências);
 * grandes mutações;
 * unidades heroicas;
 * construções especiais.
+
+Cristal é armazenado quando recebido e permanece disponível até ser gasto; a evolução só
+pode ocorrer quando o Núcleo possui, ao mesmo tempo, o Cristal e a Essência do custo.
 
 ---
 
@@ -642,7 +719,10 @@ Centro do domínio.
 
 ## Ninho
 
-Aumenta população.
+Aumenta população: **+4 de Population Capacity Bonus** (ver §8).
+
+É a primeira sala do MVP, e é ela que transforma a capacidade base do Núcleo em
+capacidade efetiva.
 
 ## Dormitório
 
@@ -658,11 +738,21 @@ Gera Essência.
 
 ## Mina
 
-Extrai Minério.
+Extrai Minério ao longo do tempo.
 
-## Armazém
+Infraestrutura **produtiva**: permanente, renovável, desbloqueada no Núcleo Nv.2. Não
+faz parte dos requisitos do MVP Nv.1 → Nv.2, onde o Minério vem de rochas finitas.
 
-Aumenta capacidade.
+## Armazém / Depósito
+
+Ponto de **entrega e estoque**. Não produz nada.
+
+A distinção é oficial:
+
+* **Depósito** → recebe e guarda o que o Trabalhador coleta;
+* **Mina** → estrutura que produz Minério por conta própria.
+
+O Depósito do MVP não é, e não deve ser tratado como, a Mina da tabela acima.
 
 ## Quartel
 
@@ -720,14 +810,54 @@ Protege recursos raros.
 
 # 18. CONSTRUÇÃO
 
+## Regra oficial: trabalho, não relógio
+
 Toda construção possui:
 
-* custo;
-* tempo;
-* espaço;
-* trabalhadores necessários;
-* requisitos;
-* manutenção.
+* **custo** — recurso e quantidade, pagos de uma vez no início da obra;
+* **work_required** — quantidade de trabalho que a obra exige.
+
+Cada Trabalhador possui:
+
+* **work_speed** — quanto trabalho ele aplica por segundo.
+
+Construção **não** tem duração fixa em segundos. O tempo é emergente:
+
+tempo aproximado = work_required ÷ trabalho combinado dos Workers na obra
+
+Exemplos oficiais, com os números do MVP:
+
+**Ninho Abissal**
+
+* work_required = 4
+* 1 Worker @ 1 trabalho/s ≈ 4 s
+* 2 Workers ≈ 2 s
+
+**Quartel Abissal**
+
+* work_required = 6
+* 1 Worker @ 1 trabalho/s ≈ 6 s
+* 2 Workers ≈ 3 s
+
+Segundos são **consequência** do trabalho, não campo do prédio. Não existe "tempo de
+construção" para ser configurado.
+
+## Trabalhadores na obra
+
+Não há mínimo de trabalhadores por sala.
+
+**Qualquer Worker capaz pode contribuir**, e múltiplos Workers aceleram a mesma obra.
+Escalar mão de obra é decisão do jogador, não pré-requisito da sala.
+
+## Fora do MVP
+
+Espaço ocupado, requisitos de sala anterior, manutenção e módulos existem como
+intenção de design, e entram depois:
+
+* **espaço** → sala ocupa cells;
+* **requisitos** → sala exige outra antes;
+* **manutenção** → custo recorrente;
+* **módulos** → personalização por sala.
 
 Algumas salas recebem módulos.
 
@@ -2499,25 +2629,33 @@ Conteúdo:
 
 Nv.1 → Nv.2.
 
+**Até 2 Trabalhadores**
+
+1 Worker inicial + 1 Worker invocável. Máximo do MVP = 2.
+
 **3 recursos**
 
 Essência
-Biomassa
 Minério
+Cristal Abissal, como recompensa-chave da primeira invasão
 
-Cristais entram como recompensa final.
+Biomassa **não** é obrigatória para concluir o MVP: entra na progressão do Nv.2.
 
 **2 tipos de unidade**
 
 Trabalhador
 Soldado
 
-**4 salas**
+**Salas do MVP**
 
 Núcleo
 Ninho
-Mina
 Quartel
+Depósito de recursos — infraestrutura de estoque, não sala produtiva
+
+**Mina**
+
+Fora do MVP. Conteúdo inicial do Núcleo Nv.2.
 
 **1 inimigo**
 
@@ -2533,29 +2671,49 @@ Jogador inicia com:
 
 Núcleo Nv.1.
 
-3 trabalhadores.
+1 Trabalhador Abissal.
 
 Pouca Essência.
 
 Objetivo:
 
-1. coletar recursos;
-2. escavar;
-3. descobrir Minério;
-4. construir Ninho;
-5. aumentar população;
-6. construir Quartel;
-7. criar soldados;
-8. preparar defesa;
-9. sobreviver a uma invasão;
-10. receber Cristal;
-11. evoluir para Núcleo Nv.2.
+1. começar com Núcleo Nv.1 + Worker001;
+2. escavar recursos;
+3. transportar Minério até o Depósito;
+4. invocar Worker002 gastando Essência;
+5. construir o Ninho;
+6. aumentar a Population Capacity;
+7. receber o aviso de invasão e atravessar a PREPARATION;
+8. minerar novo Minério;
+9. construir o Quartel;
+10. recrutar o Soldado gastando Essência;
+11. preparar a defesa;
+12. sobreviver à invasão;
+13. receber 1 Cristal Abissal;
+14. reunir/manter 25 Essências;
+15. consumir 1 Cristal Abissal + 25 Essências;
+16. evoluir o Núcleo Nv.1 → Nv.2.
 
 Fim da demo.
+
+A ordem entre o passo 4 e o passo 5 é flexível: invocar Worker002 antes ou depois do
+Ninho funciona nos dois casos, porque a capacidade base do Nv.1 (8) já comporta dois
+Trabalhadores. O que não é flexível é o resto — o Cristal do passo 13 é pré-requisito
+do passo 16.
 
 ---
 
 # 90. CRITÉRIO DE SUCESSO DO MVP
+
+O MVP está concluído quando o Núcleo evolui para Nv.2, e isso exige que o jogador tenha:
+
+* construído a infraestrutura básica (Ninho e Quartel);
+* formado a primeira defesa (1 Soldado);
+* sobrevivido à primeira invasão;
+* conquistado o Cristal Abissal;
+* pago o custo energético da evolução (25 Essências).
+
+Aí vem o critério que importa:
 
 O MVP será considerado bem-sucedido se o jogador sentir vontade de:
 
@@ -2567,9 +2725,19 @@ Se o loop não provocar isso, adicionar dezenas de sistemas não resolverá o pr
 
 # 91. VERTICAL SLICE
 
-Após o MVP:
+O Vertical Slice **começa a partir do Núcleo Nv.2**. O MVP termina exatamente na porta do
+Nv.2, e o corte vertical é o que existe depois dela.
 
-Núcleo Nv.1–3.
+Candidatos explícitos de abertura do slice:
+
+* **Mina** — primeira infraestrutura produtiva renovável;
+* **Biomassa** — segundo recurso orgânico, com fazendas e criaturas;
+* **mais Trabalhadores** — a população acima de 2 deixa de ser limite de MVP;
+* **economia renovável** — produção contínua substituindo extração finita de rochas.
+
+Depois desses quatro, o resto do slice:
+
+Núcleo Nv.2–3.
 
 Recursos completos.
 
@@ -2674,6 +2842,14 @@ Sandbox.
 ---
 
 # 95. O QUE NÃO ENTRA NO MVP
+
+Do MVP Nv.1 → Nv.2 ficaram explicitamente fora:
+
+* **Biomassa como sistema implementado** → entra na progressão do Nv.2;
+* **Mina** → infraestrutura produtiva do Nv.2, não requisito do MVP;
+* **Trabalhadores adicionais além de 2** → o MVP fecha com 1 inicial + 1 invocável.
+
+Nenhum desses três foi cortado do jogo. São pós-MVP, e o MVP não os espera.
 
 Não implementar inicialmente:
 
@@ -2893,3 +3069,25 @@ A primeira meta real de desenvolvimento é produzir uma versão jogável onde um
 **começar com o Núcleo Nv.1 e sobreviver até evoluí-lo para Nv.2.**
 
 Esse será o primeiro marco de Abyss Lord.
+
+## O marco foi alcançado
+
+O primeiro marco acima **foi alcançado**: o MVP técnico está concluído. Um jogador sai
+do Núcleo Nv.1, escava, constrói Ninho e Quartel, invoca o segundo Trabalhador, recruta
+o Soldado, sobrevive à única invasão e evolui o Núcleo para Nv.2 — por teclado e mouse,
+sem comando de debug.
+
+Existe uma divergência aberta entre design e código, e ela é intencional:
+
+**Design canônico (este documento):**
+
+Nv.1 → Nv.2 custa 1 Cristal Abissal + 25 Essências.
+
+**As-built (código atual):**
+
+Nv.1 → Nv.2 custa apenas 25 Essências. Cristal Abissal não existe no jogo.
+
+O design mudou primeiro. O código ainda não foi alinhado, e nenhuma linha deste
+documento afirma que o Cristal já foi implementado. A trilha de alinhamento está em
+`docs/DESIGN_DECISIONS_POST_MVP.md`, e a fotografia do que o código fazia no momento da
+auditoria está preservada em `docs/POST_MVP_AUDIT.md`.
