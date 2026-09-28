@@ -232,10 +232,14 @@ func _test_nest_definition() -> void:
 	_check(typeof(definition.work_required) == TYPE_FLOAT, "work_required é float")
 	_check(definition.population_capacity_bonus == 4, "§46 population_capacity_bonus = 4")
 	_check(typeof(definition.population_capacity_bonus) == TYPE_INT, "bônus populacional é int")
+	# §9/§10/T15: os três campos de obra agora são herdados da ConstructionDefinition,
+	# então a lista própria da NestDefinition encolheu para os três campos do Ninho e os
+	# três herdados aparecem logo depois. A guarda continua sendo exata e continua
+	# barrando qualquer campo novo: são sempre seis nomes, nenhum a mais.
 	_check(_script_fields("res://core/definitions/nest_definition.gd")
-			== ["nest_type_id", "display_name", "build_resource", "build_cost",
-					"work_required", "population_capacity_bonus"],
-			"§5 NestDefinition só expõe os 6 campos previstos")
+			== ["nest_type_id", "display_name", "population_capacity_bonus",
+					"build_resource", "build_cost", "work_required"],
+			"§5 + §9/§10 NestDefinition expõe exatamente os 6 campos previstos, 3 próprios + 3 da base")
 	_check(_core_definition().population_capacity == 8,
 			"§27 core_level_1.tres continua com capacidade base 8")
 
@@ -251,9 +255,15 @@ func _test_nest_state_initial() -> void:
 	_check(state.definition == definition, "NestState referencia a Definition")
 	_check(_close(state.remaining_work, 4.0), "§47 remaining_work inicia em 4.0")
 	_check(not state.is_completed(), "§47 Ninho novo não nasce concluído")
+	# §13/§15/T15: `instance_id` entrou na lista porque é o campo único da
+	# ConstructionState; `nest_id` continua respondendo, mas agora como leitura do mesmo
+	# valor, não como segunda cópia. A lista segue exata — nenhum boolean de conclusão e
+	# nenhum outro campo apareceu com a herança.
 	_check(_instance_fields(state)
-			== ["definition", "nest_id", "remaining_work"],
-			"§7 completed é derivado, não duplicado como campo")
+			== ["nest_id", "definition", "instance_id", "remaining_work"],
+			"§7 + §13/§15 completed é derivado e o id não é duplicado: só os 4 campos da base + Ninho")
+	_check(state.nest_id == state.instance_id,
+			"§15/T15 nest_id é leitura do instance_id da base, não um segundo valor")
 	_check(_has_signal(state, "work_changed"), "§9 NestState tem signal work_changed")
 	_check(_has_signal(state, "construction_completed"),
 			"§9 NestState tem signal construction_completed")

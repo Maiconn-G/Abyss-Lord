@@ -65,7 +65,11 @@ func build_nest() -> bool:
 		return false
 	if not _consume_build_cost(_definition):
 		return false
-	_nest = _instantiate_site(_scene, _definition, NEST_INSTANCE_ID, _build_point)
+	# §23/T15: quem sabe que o Ninho usa NestState é a própria rota do Ninho. O type
+	# switch "definition is BarracksDefinition" desapareceu junto com o _make_state.
+	_nest = _instantiate_site(
+			_scene, _definition, NestState.new(_definition, NEST_INSTANCE_ID),
+			_build_point) as NestRuntime
 	_nest.state.construction_completed.connect(_on_nest_completed.bind(_nest))
 	nest_built.emit(_nest)
 	return true
@@ -77,7 +81,8 @@ func build_barracks() -> bool:
 	if not _consume_build_cost(_barracks_definition):
 		return false
 	_barracks = _instantiate_site(_barracks_scene, _barracks_definition,
-			BARRACKS_INSTANCE_ID, _barracks_build_point)
+			BarracksState.new(_barracks_definition, BARRACKS_INSTANCE_ID),
+			_barracks_build_point) as BarracksRuntime
 	_barracks.state.construction_completed.connect(_on_barracks_completed.bind(_barracks))
 	barracks_built.emit(_barracks)
 	return true
@@ -85,26 +90,25 @@ func build_barracks() -> bool:
 
 # O consumo é atômico porque ResourceStockpileState.consume_resource() só desconta
 # quando o saldo cobre o custo inteiro.
-func _consume_build_cost(definition) -> bool:
+# §17/T15: a assinatura agora é tipada — custo e recurso vêm da ConstructionDefinition,
+# então o controller não precisa mais de parâmetro sem tipo para ler os dois campos.
+func _consume_build_cost(definition: ConstructionDefinition) -> bool:
 	return _stockpile.consume_resource(definition.build_resource, definition.build_cost)
 
 
+## §22/T15: helper genérico de montagem — cena, Definition, State e ponto de obra. Ele
+## escolhe nada: quem decide que Ninho usa NestState e Quartel usa BarracksState são as
+## duas rotas acima, que continuam explícitas. Não há Factory nem Registry.
 func _instantiate_site(
 		scene: PackedScene,
-		definition,
-		instance_id: String,
-		build_point: Node3D) -> Node3D:
-	var site = scene.instantiate()
+		definition: ConstructionDefinition,
+		state: ConstructionState,
+		build_point: Node3D) -> ConstructionRuntime:
+	var site := scene.instantiate() as ConstructionRuntime
 	_dungeon_root.add_child(site)
 	site.global_position = build_point.global_position
-	site.setup(definition, _make_state(definition, instance_id))
+	site.setup(definition, state)
 	return site
-
-
-func _make_state(definition, instance_id: String):
-	if definition is BarracksDefinition:
-		return BarracksState.new(definition, instance_id)
-	return NestState.new(definition, instance_id)
 
 
 func _on_nest_completed(nest: NestRuntime) -> void:

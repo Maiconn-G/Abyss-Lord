@@ -1,28 +1,13 @@
 class_name NestState
-extends RefCounted
+extends ConstructionState
 
-signal work_changed(remaining: float, total: float)
-signal construction_completed
-
-var definition: NestDefinition
-var nest_id: String
-var remaining_work: float
+## §15/T15: a classe pública do Ninho continua existindo e continua respondendo por
+## `nest_id`; o que mudou é que ela não reimplementa mais a regra de obra. O id é lido
+## do campo único da base — não há duas cópias do mesmo valor.
+var nest_id: String:
+	get:
+		return instance_id
 
 
 func _init(nest_definition: NestDefinition, id: String) -> void:
-	definition = nest_definition
-	nest_id = id
-	remaining_work = nest_definition.work_required
-
-
-func apply_work(amount: float) -> void:
-	if amount <= 0.0 or is_completed():
-		return
-	remaining_work = maxf(remaining_work - amount, 0.0)
-	work_changed.emit(remaining_work, definition.work_required)
-	if remaining_work <= 0.0:
-		construction_completed.emit()
-
-
-func is_completed() -> bool:
-	return remaining_work <= 0.0
+	super(nest_definition, id)

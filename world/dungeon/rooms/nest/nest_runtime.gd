@@ -1,26 +1,9 @@
 class_name NestRuntime
-extends StaticBody3D
+extends ConstructionRuntime
 
-@export var definition: NestDefinition
-
-var state: NestState
-
-@onready var _construction_visual: Node3D = $ConstructionVisual
-@onready var _completed_visual: Node3D = $CompletedVisual
-
-
-func setup(nest_definition: NestDefinition, nest_state: NestState) -> void:
-	definition = nest_definition
-	state = nest_state
-	_show_progress()
-	state.construction_completed.connect(_show_progress)
-
-
-func is_completed() -> bool:
-	return state != null and state.is_completed()
-
-
-func _show_progress() -> void:
-	var completed := is_completed()
-	_construction_visual.visible = not completed
-	_completed_visual.visible = completed
+## §19/T15: o Ninho continua tendo classe, cena e identidade próprias — é `is NestRuntime`
+## que o ConstructionController, o HUD e as suítes reconhecem, e é NestRuntime.tscn que
+## traz os meshes de ovo abissal (§21). Toda a regra de obra veio da base.
+##
+## O efeito do Ninho não mora aqui: o bônus de capacidade populacional é aplicado pelo
+## ConstructionController a partir da NestDefinition, exatamente como antes da refatoração.
