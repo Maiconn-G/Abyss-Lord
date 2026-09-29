@@ -1,0 +1,78 @@
+# Fonte única da regressão: tests/run_all_tests.ps1.
+# O workflow não lista suítes — ele só prepara um checkout limpo, baixa a engine
+# oficial pinada e chama o mesmo runner que desenvolvedor usa localmente.
+name: Abyss Lord CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    name: Godot Regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      GODOT_VERSION: 4.6.1-stable
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download official Godot (pinned version)
+        run: |
+          archive="Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          url="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/${archive}"
+          install_dir="$RUNNER_TEMP/godot"
+          mkdir -p "$install_dir"
+          curl --fail --location --silent --show-error \
+               --retry 3 --retry-all-errors \
+               --output "$RUNNER_TEMP/$archive" "$url"
+          unzip -q "$RUNNER_TEMP/$archive" -d "$install_dir"
+          binary="$install_dir/Godot_v${GODOT_VERSION}_linux.x86_64"
+          if [ ! -f "$binary" ]; then
+            echo "binário esperado não foi extraído: $binary"
+            echo "conteúdo extraído:"
+            ls -l "$install_dir"
+            exit 1
+          fi
+          chmod +x "$binary"
+          echo "GODOT_BIN=$binary" >> "$GITHUB_ENV"
+
+      - name: Verify engine version
+        run: |
+          version_output=$("$GODOT_BIN" --version 2>&1 | tail -n 1)
+          echo "$version_output"
+          if ! printf '%s' "$version_output" | grep -q '4\.6\.1'; then
+            echo "o CI exige Godot 4.6.1; a engine baixada reporta: $version_output"
+            exit 1
+          fi
+
+      - name: Bootstrap project (import + class cache)
+        run: |
+          # Um checkout limpo não tem .godot/: sem este passo o class_name cache
+          # global não existe e as suítes não resolvem as classes do projeto.
+          set -o pipefail
+          "$GODOT_BIN" --headless --editor --path "$GITHUB_WORKSPACE" --quit 2>&1 |
+            tee "$RUNNER_TEMP/bootstrap.log"
+          if grep -Eqi 'SCRIPT ERROR|Parse Error|Cannot open' "$RUNNER_TEMP/bootstrap.log"; then
+            echo "a inicialização do projeto reportou erro de script/import"
+            exit 1
+          fi
+
+      - name: Run regression suites
+        shell: pwsh
+        run: ./tests/run_all_tests.ps1
