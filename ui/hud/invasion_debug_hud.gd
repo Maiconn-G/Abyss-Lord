@@ -30,6 +30,30 @@ func bind(controller: InvasionController) -> void:
 	_remaining_label.text = NO_INVASION_YET
 
 
+## §45/§77/T18: o ciclo de vida restaurado vem como dado, e §75 proíbe reemitir os sinais
+## de marco para isso. Este refresh é a leitura do estado em texto — a mesma linha que os
+## handlers escreveriam, só que depois de uma carga.
+func refresh(controller: InvasionController) -> void:
+	_hint_label.text = HINT_LINE
+	match controller.invasion_state():
+		InvasionController.InvasionState.PREPARATION:
+			_hint_label.text = PREPARATION_ALERT
+			_remaining_label.text = PREPARATION_ADVICE
+			_show_countdown(controller.preparation_time_remaining())
+		InvasionController.InvasionState.ACTIVE:
+			_status_label.text = ACTIVE_STATUS
+			_show_remaining(controller.active_invaders())
+		InvasionController.InvasionState.VICTORY:
+			_status_label.text = VICTORY_STATUS
+			_show_remaining(0)
+		InvasionController.InvasionState.DEFEAT:
+			_status_label.text = DEFEAT_STATUS
+			_show_remaining(0)
+		_:
+			_status_label.text = WAITING_STATUS
+			_remaining_label.text = NO_INVASION_YET
+
+
 ## §17/T13: durante a preparação as três linhas do painel viram o aviso. O contador de
 ## inimigos não existe ainda — nada foi criado (§27/T13).
 func _on_preparation_started(_duration: float) -> void:

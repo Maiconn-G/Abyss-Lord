@@ -48,6 +48,35 @@ func has_cargo() -> bool:
 	return carried_amount > 0
 
 
+## §23/§25/T18: devolução do que o Worker é e do que ele carrega. A carga entra pelo
+## mesmo par (recurso, quantidade) que o Save nomeia por id semântico, e a faixa é a do
+## `carry_capacity` da Definition — uma pilha de 3 no arquivo não vira 30 por engano de
+## dígito. `level` e `experience` são persistidos porque §23 os pede e o State os tem;
+## hoje nada os muda em gameplay, e restaurar 1/0.0 é devolver o que já estava lá.
+func restore_persistent_state(
+		value_health: float,
+		value_level: int,
+		value_experience: float,
+		cargo_definition: ResourceDefinition,
+		cargo_amount: int) -> bool:
+	if value_health < 0.0 or value_health > definition.max_health:
+		return false
+	if value_level < 1 or value_experience < 0.0:
+		return false
+	if cargo_amount < 0 or cargo_amount > definition.carry_capacity:
+		return false
+	if cargo_amount > 0 and cargo_definition == null:
+		return false
+	if cargo_amount == 0 and cargo_definition != null:
+		return false
+	_apply_health(value_health)
+	level = value_level
+	experience = value_experience
+	carried_resource = cargo_definition
+	carried_amount = cargo_amount
+	return true
+
+
 func _apply_health(value: float) -> void:
 	var maximum := definition.max_health
 	var next := clampf(value, 0.0, maximum)

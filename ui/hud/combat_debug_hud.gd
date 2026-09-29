@@ -33,15 +33,38 @@ func bind_enemy(enemy: EnemyRuntime) -> void:
 		return
 	_enemy_states.append(enemy.state)
 	_enemy_name = enemy.definition.display_name
-	enemy.state.health_changed.connect(_on_state_changed)
-	enemy.state.died.connect(_on_enemy_died)
+	if not enemy.state.health_changed.is_connected(_on_state_changed):
+		enemy.state.health_changed.connect(_on_state_changed)
+	if not enemy.state.died.is_connected(_on_enemy_died):
+		enemy.state.died.connect(_on_enemy_died)
+	_refresh()
+
+
+## §77/T18: a carga restaura unidades sem emitir `soldier_recruited` nem `invasion_started`
+## (§75), e os States recriados não são os que este painel conhecia. `refresh_units` troca
+## a coleção por quem está em campo agora — ligação repetida no mesmo State é descartada
+## pelo guard de `bind_enemy`, porque um load duas vezes é a mesma tela.
+func refresh_units(soldier: SoldierRuntime, invaders: Array) -> void:
+	_enemy_states.clear()
+	_soldier_state = null
+	for invader in invaders:
+		bind_enemy(invader)
+	bind_soldier(soldier)
+
+
+func bind_soldier(soldier: SoldierRuntime) -> void:
+	if soldier == null:
+		_soldier_state = null
+		_refresh()
+		return
+	_soldier_state = soldier.state
+	if not soldier.state.health_changed.is_connected(_on_state_changed):
+		soldier.state.health_changed.connect(_on_state_changed)
 	_refresh()
 
 
 func _on_soldier_recruited(soldier: SoldierRuntime) -> void:
-	_soldier_state = soldier.state
-	soldier.state.health_changed.connect(_on_state_changed)
-	_refresh()
+	bind_soldier(soldier)
 
 
 func _on_state_changed(_current: float, _maximum: float) -> void:

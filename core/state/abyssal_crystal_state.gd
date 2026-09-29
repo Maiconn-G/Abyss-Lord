@@ -43,3 +43,16 @@ func consume(amount_to_consume: int) -> bool:
 	amount -= amount_to_consume
 	amount_changed.emit(amount)
 	return true
+
+
+## §76/T18: o caminho da persistência. Não é `add`, porque o Save não concede nada — ele
+## devolve um número que já foi ganho, inclusive um número menor que o atual, quando a
+## partida carregada é mais antiga que a sessão. Um valor impossível (negativo) não é
+## aceito e não emite sinal nenhum; o válido chega ao HUD por uma única emissão, já com
+## o estado final (§77/T18).
+func restore(value: int) -> bool:
+	if value < 0:
+		return false
+	amount = value
+	amount_changed.emit(amount)
+	return true

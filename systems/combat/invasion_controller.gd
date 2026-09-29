@@ -135,19 +135,12 @@ func start_invasion() -> bool:
 	set_process(false)
 	_preparation_time_remaining = 0.0
 	for index in INVADER_COUNT:
-		var enemy := _scene.instantiate() as EnemyRuntime
-		enemy.name = "Invader%03d" % (index + 1)
 		# §35: cada invasor tem o próprio State; a única coisa compartilhada é a
 		# Definition, que nunca guarda número mutável.
-		enemy.setup(_definition, EnemyState.new(_definition, "invader_%03d" % (index + 1)))
-		_dungeon_root.add_child(enemy)
-		enemy.global_position = _spawn_points[index].global_position
-		enemy.enemy_died.connect(_on_invader_died)
-		_invaders.append(enemy)
+		_create_invader(index, "invader_%03d" % (index + 1),
+				_spawn_points[index].global_position)
 		_active_invaders += 1
-		# §42: o alvo estratégico é entregue por referência direta.
-		enemy.start_invasion(_core)
-	_core.core_state().destroyed.connect(_on_core_destroyed)
+	_connect_core_destroyed()
 	_state = InvasionState.ACTIVE
 	invasion_started.emit(_invaders.duplicate())
 	active_invaders_changed.emit(_active_invaders)
@@ -171,6 +164,121 @@ func _on_invader_died(_defeated: EnemyRuntime) -> void:
 		if _abyssal_crystal != null:
 			_abyssal_crystal.add(FIRST_VICTORY_CRYSTAL_REWARD)
 		invasion_victory.emit()
+
+
+## §45/§49/§75/T18: o ciclo de vida volta como dado, não como replay. Nada aqui chama
+## `begin_preparation` nem `start_invasion`, e nada emite `invasion_victory` ou
+## `invasion_defeat` — são os dois sinais que concedem o Cristal (§51/§54/T18), e
+## reemiti-los numa carga daria de novo uma conquista que o arquivo já registra. A
+## contagem restaurada sai pelo sinal de número.
+##
+## §46/§47: PREPARATION volta com o segundo exato do arquivo. Não se reseta para 60 e o
+## tempo com o jogo fechado não é simulado.
+##
+## §49/§50/§81: em ACTIVE renasce só quem estava vivo, e cada Fera recebe
+## `start_invasion(core)` porque marchar sobre o Núcleo é o estado da campanha, não uma
+## ordem transitória do jogador.
+##
+## §52: DEFEAT é terminal — sem invasores recriados, sem nova PREPARATION.
+##
+## §67: os registros são validados por inteiro antes de qualquer mutação. Se um deles não
+## fecha, a campanha em curso não é tocada.
+func restore_lifecycle(
+		value_state: InvasionState,
+		remaining: float,
+		invader_records: Array) -> bool:
+	if value_state < InvasionState.NOT_STARTED or value_state > InvasionState.DEFEAT:
+		return false
+	if remaining < 0.0:
+		return false
+	var known_ids: Array[String] = []
+	for index in INVADER_COUNT:
+		known_ids.append("invader_%03d" % (index + 1))
+	var seen_ids: Array[String] = []
+	for record in invader_records:
+		if not _is_restorable_record(record, known_ids, seen_ids):
+			return false
+		seen_ids.append(record["invader_id"])
+	_clear_invaders()
+	_state = value_state
+	_active_invaders = 0
+	_preparation_time_remaining = remaining if value_state == InvasionState.PREPARATION else 0.0
+	_displayed_second = _displayed_second_of(_preparation_time_remaining)
+	set_process(value_state == InvasionState.PREPARATION)
+	if value_state == InvasionState.PREPARATION:
+		preparation_started.emit(preparation_duration)
+		preparation_time_changed.emit(_preparation_time_remaining, preparation_duration)
+		return true
+	if value_state != InvasionState.ACTIVE:
+		return true
+	for record in invader_records:
+		_spawn_restored_invader(record)
+		_active_invaders += 1
+	_connect_core_destroyed()
+	active_invaders_changed.emit(_active_invaders)
+	return true
+
+
+## §50/T18: um registro só é restaurável se a identidade é canônica, se ela não se repete
+## e se a vida está na faixa de um invasor vivo. O `enemy_id` é lido do arquivo e resolve
+## a Definition canônica daqui — não existe `load()` de caminho vindo do Save (§16/§71).
+func _is_restorable_record(record: Variant, known_ids: Array[String], seen_ids: Array[String]) -> bool:
+	if not (record is Dictionary):
+		return false
+	var invader_id := String(record.get("invader_id", ""))
+	if not known_ids.has(invader_id) or seen_ids.has(invader_id):
+		return false
+	var health := float(record.get("health", -1.0))
+	if health <= 0.0 or health > _definition.max_health:
+		return false
+	return record.get("position") is Vector3
+
+
+func _spawn_restored_invader(record: Dictionary) -> void:
+	var invader_id := String(record["invader_id"])
+	var enemy := _create_invader(known_invader_index(invader_id), invader_id,
+			record["position"])
+	enemy.state.restore_health(float(record["health"]))
+
+
+## §32/§92/T12 + §49/T18: um único ponto de criação de criatura no ciclo inteiro. A largada
+## e a carga passam por aqui justamente para que restaurar uma campanha não invente uma
+## segunda maneira de nascer Fera — nome do Node, State próprio, posição, escuta da morte,
+## ordem de marcha e registro no exército são sempre os mesmos cinco passos.
+func _create_invader(index: int, invader_id: String, position: Vector3) -> EnemyRuntime:
+	var enemy := _scene.instantiate() as EnemyRuntime
+	enemy.name = "Invader%03d" % (index + 1)
+	enemy.setup(_definition, EnemyState.new(_definition, invader_id))
+	_dungeon_root.add_child(enemy)
+	enemy.global_position = position
+	enemy.enemy_died.connect(_on_invader_died)
+	_invaders.append(enemy)
+	# §42: o alvo estratégico é entregue por referência direta.
+	enemy.start_invasion(_core)
+	return enemy
+
+
+## §14/T18: a posição canônica de um registro não decide o nome do Node — quem deriva o
+## índice é o id semântico, que é a identidade estável do Save.
+func known_invader_index(invader_id: String) -> int:
+	return invader_id.substr("invader_".length()).to_int() - 1
+
+
+func _clear_invaders() -> void:
+	for enemy in _invaders:
+		if is_instance_valid(enemy):
+			enemy.stand_down()
+			enemy.queue_free()
+	_invaders.clear()
+
+
+## §132/T18: `destroyed` é conexão de carga, não de largada — num load repetido o mesmo
+## CoreState continuaria vivo e o connection duplicada falharia. O guardado é a forma
+## honesta de dizer "quem detém o ciclo já escuta a morte do Núcleo".
+func _connect_core_destroyed() -> void:
+	var destroyed := _core.core_state().destroyed
+	if not destroyed.is_connected(_on_core_destroyed):
+		destroyed.connect(_on_core_destroyed)
 
 
 func _on_core_destroyed() -> void:

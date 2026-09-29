@@ -57,6 +57,14 @@ func bind(
 		# §49: o Cristal muda por signal, no instante em que a invasão o concede. Nada
 		# aqui pergunta o valor por frame.
 		crystal.amount_changed.connect(_on_crystal_changed)
+	refresh()
+
+
+## §53/§77/T18: `mvp_completed` e `evolution_unlocked` são marcos, e §75 não permite
+## reemitir nenhum deles para restaurar. O degrau já fechado é derivado do estado do
+## Núcleo — exatamente como §53 manda —, e é dessa derivação que a linha celebrada volta.
+func refresh() -> void:
+	_completed = _controller != null and _controller.is_at_target_level()
 	_show_status()
 
 

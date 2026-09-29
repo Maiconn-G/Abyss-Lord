@@ -37,3 +37,16 @@ func apply_work(amount: float) -> void:
 
 func is_completed() -> bool:
 	return remaining_work <= 0.0
+
+
+## §36/T18: "Restore não é gameplay". `apply_work(999)` simularia trabalho e, se a obra
+## fechasse, dispararia `construction_completed` — que é exatamente o evento que paga o
+## bônus populacional e anuncia a ameaça (§32/T18 proíbe as duas coisas). Aqui só existe
+## escrita do número salvo, com a mesma regra de faixa do trabalho normal, e o sinal que
+## sai é o de progresso, já com o valor carregado.
+func restore_remaining_work(value: float) -> bool:
+	if value < 0.0 or value > definition.work_required:
+		return false
+	remaining_work = value
+	work_changed.emit(remaining_work, definition.work_required)
+	return true

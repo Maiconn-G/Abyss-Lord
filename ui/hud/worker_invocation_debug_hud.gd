@@ -6,6 +6,7 @@ extends PanelContainer
 
 var _core_state: CoreState
 var _definition: WorkerDefinition
+var _controller: WorkerInvocationController
 var _invoked := false
 
 
@@ -15,12 +16,23 @@ func bind(
 		definition: WorkerDefinition) -> void:
 	_core_state = core_state
 	_definition = definition
+	_controller = controller
 	_hint_label.text = "[I] Invocar %s — %d Essência" % [
 		definition.display_name, roundi(definition.summon_essence_cost)]
 	controller.worker_summoned.connect(_on_worker_summoned)
 	core_state.essence_changed.connect(_on_core_changed)
 	core_state.population_changed.connect(_on_core_changed)
 	core_state.population_capacity_changed.connect(_on_core_changed)
+	refresh()
+
+
+## §26/§77/T18: `worker_summoned` é o instante da conquista, e a carga não o reemitiu. A
+## flag histórica do controller é a mesma prova que §26 pede para o jogo, então é dela que
+## a linha sai — inclusive quando o Save diz que o segundo Worker nunca existiu.
+func refresh() -> void:
+	if _controller == null:
+		return
+	_invoked = _controller.worker_ever_summoned()
 	_show_status()
 
 

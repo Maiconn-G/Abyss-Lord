@@ -424,10 +424,26 @@ func _test_invasion_controller_surface() -> void:
 			"§13/T13 start_invasion() aceita a preparação e nada além disso")
 	_check(source.contains("_displayed_second"), "§10/T13 o emit de HUD é por segundo virado")
 	for forbidden in ["create_timer", "Timer.new", "func _physics_process(", "Wave", "Threat",
-			"CombatManager", "EnemySpawner", "EnemyFactory", "queue_free", "EventBus",
+			"CombatManager", "EnemySpawner", "EnemyFactory", "EventBus",
 			"get_tree().get_nodes_in_group", "add_to_group"]:
 		_check(not source.contains(forbidden),
 				"§24/§38/§91/§92 invasion_controller.gd não contém %s" % forbidden)
+	# §24/§38/§91/§92 + §45/§67/T18: a lista acima proibia `queue_free` porque o dono do ciclo
+	# nunca foi o algoz — quem derruba Fera é o combate e o controller só conta. A Tarefa 18
+	# trouxe uma única exceção legítima: `restore_lifecycle` precisa esvaziar o exército antes
+	# de aplicar o arquivo, e esvaziar sem libertar deixaria dois exércitos no mesmo mundo. A
+	# proteção não foi enfraquecida, foi movida para o fato verificável: existe um `queue_free`
+	# no arquivo inteiro e ele mora dentro de `_clear_invaders` — o laço de morte continua sem
+	# libertar nada.
+	var clearing_at := source.find("func _clear_invaders(")
+	var freeing_at := source.find("queue_free")
+	var clearing_end := source.find("func ", clearing_at + 1) if clearing_at >= 0 else -1
+	_check(source.count("queue_free") == 1
+			and clearing_at >= 0
+			and freeing_at > clearing_at
+			and freeing_at < clearing_end,
+			"§24/§45/T18 o único queue_free está em _clear_invaders, %d/%d"
+					% [clearing_at, freeing_at])
 	# §38/§91/T13: a varredura do countdown lê código, não a prosa que descreve o que
 	# não existe. await e Timer node são justamente as duas cadeias que §5 proíbe.
 	var countdown_code := _code_of(INVASION_CONTROLLER_SOURCE_PATH)
@@ -527,9 +543,13 @@ func _test_scope_guards() -> void:
 	# do Núcleo, que é o único degrau de progressão do MVP. A exigência continua exata:
 	# um controller novo exige uma tarefa nova, nunca um Manager genérico (árvore de
 	# upgrades, ProgressionManager, MilestoneManager). Antes 5, agora 6.
-	_check(_collect_gd_files("res://systems").size() == 6,
-			"§98 systems/ continua com exatamente seis scripts de controle, obtido %d"
-					% _collect_gd_files("res://systems").size())
+	# §98/T18: a contagem volta a subir, e pelo mesmo motivo legítimo — a persistência da
+	# campanha é um sistema real, não um Manager. São sete controllers (SaveGameController,
+	# §10/§11) mais CampaignSnapshot, o contrato do arquivo (§6), que não controla nada:
+	# apenas conhece a forma do JSON e valida estrutura. Antes 6, agora 8.
+	_check(_collect_gd_files("res://systems").size() == 8,
+			"§98/T18 systems/ tem exatamente sete controllers e um contrato de schema, "
+					+ "obtido %d" % _collect_gd_files("res://systems").size())
 	var main := _source(GAME_MAIN_SOURCE_PATH)
 	for forbidden in ["Enemy001", "_spawn_initial_enemy", "EnemySpawnPoint", "queue_free(_core",
 			"remove_child(_core"]:

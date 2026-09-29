@@ -9,6 +9,12 @@ class_name CameraController
 @export var tilt_degrees: float = 45.0
 @export var movement_bound: float = 15.0
 
+## §55/§116/T18: o InputMap casa uma ação de tecla simples mesmo quando o jogador segura
+## outro modificador, e Ctrl+S é exatamente a letra S desta câmera. Sem esta guarda cada save
+## arrastaria a view para trás; as duas ações de persistência são as únicas com combinação da
+## campanha, então elas mandam no chord e o S sozinho continua sendo WASD.
+const PERSISTENCE_ACTIONS: Array[String] = ["save_game", "load_game"]
+
 @onready var _camera: Camera3D = $Camera3D
 
 var _zoom_distance: float = 20.0
@@ -31,6 +37,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _move(delta: float) -> void:
+	for action in PERSISTENCE_ACTIONS:
+		if Input.is_action_pressed(action):
+			return
 	var input_axis := Input.get_vector("camera_left", "camera_right", "camera_forward", "camera_backward")
 	if input_axis == Vector2.ZERO:
 		return

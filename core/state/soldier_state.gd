@@ -33,6 +33,26 @@ func is_dead() -> bool:
 	return health <= 0.0
 
 
+## §76/T18: o caminho da persistência. Não é `damage` nem `heal`, porque o Save não
+## reconta uma história de combate — ele devolve a tropa ao número que estava no
+## arquivo. Por isso a validação é de faixa e o sinal é do valor final, emitido uma
+## vez. Nunca emite `died`: um soldado ferido que carrega vida zero não existe no
+## Save, e recriar um morto dispararia a cadeia de baixa do recrutamento.
+func restore_persistent_state(
+		value_health: float,
+		value_level: int,
+		value_experience: float) -> bool:
+	if value_health <= 0.0 or value_health > definition.max_health:
+		return false
+	if value_level < 1 or value_experience < 0.0:
+		return false
+	health = value_health
+	level = value_level
+	experience = value_experience
+	health_changed.emit(health, definition.max_health)
+	return true
+
+
 func _apply_health(value: float) -> void:
 	var maximum := definition.max_health
 	var next := clampf(value, 0.0, maximum)

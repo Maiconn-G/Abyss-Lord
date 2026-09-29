@@ -106,6 +106,44 @@ func add_population_capacity_bonus(amount: int) -> void:
 	population_capacity_changed.emit(population, get_population_capacity())
 
 
+## §18/T18: restaurar não é jogar. Nada aqui passa por `damage`, `add_essence` nem
+## `evolve_to`, porque nenhum deles expressa a operação "o domínio volta a ser este":
+## a evolução trocaria a Integrity pelo teto novo (e §19/T18 exige o valor salvo, não o
+## teto), e `destroyed`/`evolved` anunciariam como novidade um evento que o jogador já
+## viveu (§20/§54/T18). A validação é a mesma regra de faixa dos caminhos normais —
+## número fora de domínio devolve false e não toca em nada.
+##
+## §77/T18: os sinais do fim são os de valor, uma emissão por número, já com o estado
+## final. Não existe sequência intermediária: quem escuta recebe a campanha carregada.
+func restore_persistent_state(
+		core_definition: CoreDefinition,
+		value_integrity: float,
+		value_essence: float,
+		value_population: int,
+		value_capacity_bonus: int) -> bool:
+	if core_definition == null:
+		return false
+	if value_integrity < 0.0 or value_integrity > core_definition.max_integrity:
+		return false
+	if value_essence < 0.0 or value_essence > core_definition.max_essence:
+		return false
+	if value_capacity_bonus < 0:
+		return false
+	var capacity := core_definition.population_capacity + value_capacity_bonus
+	if value_population < 0 or value_population > capacity:
+		return false
+	definition = core_definition
+	level = core_definition.level
+	integrity = value_integrity
+	essence = value_essence
+	population_capacity_bonus = value_capacity_bonus
+	population = value_population
+	integrity_changed.emit(integrity, core_definition.max_integrity)
+	essence_changed.emit(essence, core_definition.max_essence)
+	population_changed.emit(population, capacity)
+	return true
+
+
 ## §8/T14: a única transição existente é para um nível superior. Mesma Definition,
 ## Definition nula e nível menor caem aqui antes de qualquer escrita, então §9 fica
 ## garantido por construção: nunca existe um instante com level novo e limites velhos.

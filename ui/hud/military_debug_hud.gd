@@ -38,6 +38,14 @@ func bind(
 	core_state.essence_changed.connect(_on_core_changed)
 	core_state.population_changed.connect(_on_core_changed)
 	core_state.population_capacity_changed.connect(_on_core_changed)
+	refresh()
+
+
+## §28/§77/T18: `soldier_recruited` e os dois sinais do Quartel são conquistas, e a carga
+## não os reemitiu. A flag histórica do controller e a obra que ele carrega são o que o
+## painel precisa — o Quartel pode voltar inacabado ou ausente, e o Soldado pode sumir.
+func refresh() -> void:
+	_soldier_recruited = _recruitment.ever_recruited()
 	_show_status()
 
 

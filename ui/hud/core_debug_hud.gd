@@ -17,10 +17,7 @@ func bind_core(state: CoreState) -> void:
 	# §44/T14: o título acompanhava a Definition estática da cena. Com evolução, o nível
 	# passa a ser dado do State, então ele também entra pelo signal.
 	state.evolved.connect(_on_evolved)
-	_show_level(state.level)
-	_show_integrity(state.integrity, state.definition.max_integrity)
-	_show_essence(state.essence, state.definition.max_essence)
-	_show_population(state.population, state.get_population_capacity())
+	refresh(state)
 
 
 func _on_evolved(_old_level: int, new_level: int) -> void:
@@ -41,6 +38,16 @@ func _on_population_changed(current: int, capacity: int) -> void:
 
 func _on_population_capacity_changed(current_population: int, new_capacity: int) -> void:
 	_show_population(current_population, new_capacity)
+
+
+## §77/T18: o nível é a única linha que não tem signal próprio de carga — §75 proíbe
+## reemitir `evolved` para restaurar, e sem esta leitura o título ficaria preso ao nível
+## da cena enquanto o resto do painel já mostra o Núcleo carregado.
+func refresh(state: CoreState) -> void:
+	_show_level(state.level)
+	_show_integrity(state.integrity, state.definition.max_integrity)
+	_show_essence(state.essence, state.definition.max_essence)
+	_show_population(state.population, state.get_population_capacity())
 
 
 func _show_level(level: int) -> void:

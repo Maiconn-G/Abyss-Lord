@@ -278,8 +278,11 @@ func _test_scope_guards() -> void:
 						% [forbidden, named])
 
 	# §13: o Cristal não trouxe um controller junto. systems/ continua com seis.
-	_check(_collect_gd_files(SYSTEMS_DIR).size() == 6,
-			"§13 systems/ continua com exatamente seis controllers, obtido %d"
+	# §98/T18: a pasta passou a ter sete controllers e um contrato de schema porque a
+	# persistência da campanha é um sistema real da campanha (SaveGameController, §10/§11)
+	# e CampaignSnapshot é o contrato do arquivo (§6), não um Manager genérico.
+	_check(_collect_gd_files(SYSTEMS_DIR).size() == 8,
+			"§13/T18 systems/ tem sete controllers e o contrato de schema, obtido %d"
 					% _collect_gd_files(SYSTEMS_DIR).size())
 	# §101: State RefCounted, sem polling.
 	var state_code := _code_of(CRYSTAL_STATE_SOURCE)

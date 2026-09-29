@@ -31,6 +31,18 @@ func is_dead() -> bool:
 	return health <= 0.0
 
 
+## §76/T18: devolver ao invasor a vida que o arquivo registrou. Não é `damage`: o Save
+## não reinterpreta o combate, ele restaura o número. Valida faixa e emite o sinal com o
+## valor final, uma vez. Nunca emite `died` — um inim vivo com vida zerada não é uma
+## campanha possível, e o sinal derrubaria contagem e recompensa numa carga limpa.
+func restore_health(value: float) -> bool:
+	if value <= 0.0 or value > definition.max_health:
+		return false
+	health = value
+	health_changed.emit(health, definition.max_health)
+	return true
+
+
 func _apply_health(value: float) -> void:
 	var maximum := definition.max_health
 	var next := clampf(value, 0.0, maximum)

@@ -54,6 +54,22 @@ func evolve_to(new_definition: CoreDefinition) -> bool:
 	return true
 
 
+## §68/T18: a cena sempre nasce no Nv.1 e o Save pode trazer o Nv.2 — ou o contrário, se
+## a campanha salva era evoluída e o arquivo carregado é anterior. Aqui só se troca a
+## referência de Definition e a casca visual que dela depende: escala e detalhe. Não é
+## `evolve_to`: não se cobra Essência nem Cristal para abrir um arquivo, nenhum sinal de
+## evolução é emitido, e a operação é bidirecional porque apresentação não tem história.
+func restore_level_view(core_definition: CoreDefinition) -> void:
+	if core_definition == null:
+		return
+	_definition = core_definition
+	var at_target := core_definition.level > 1
+	scale = Vector3.ONE * LEVEL_2_VISUAL_SCALE if at_target else Vector3.ONE
+	var detail := get_node_or_null(LEVEL_2_DETAIL_PATH) as MeshInstance3D
+	if detail != null:
+		detail.visible = at_target
+
+
 ## §16/T14: como a geração lê a taxa da própria referência, atualizar `_definition` é
 ## o único trabalho necessário para o Nv.2 passar a produzir 1.5/s.
 func definition() -> CoreDefinition:

@@ -62,7 +62,7 @@ IMPLEMENTAÇÃO EXTRA       o código tem algo que o GDD não pede
 | 25 | `Definition → State → Runtime → Visual` | §83 | é exatamente a estrutura do projeto, em todas as famílias (§3 abaixo) | IMPLEMENTADO COMO GDD |
 | 26 | Conteúdo data-driven em Resources | §84 | 10 `.tres` de dados em `data/`; nenhum número de gameplay hardcoded nos Runtimes | IMPLEMENTADO COMO GDD |
 | 27 | Managers globais | §85: RunManager, WorldManager, DungeonManager, EconomyManager, PopulationManager, ArmyManager, DiplomacyManager, AssimilationManager, EventManager, SaveManager | nenhum deles existe; o projeto usa controllers com dependências injetadas por `GameMain` | IMPLEMENTADO DIFERENTE (deliberado — ver §4) |
-| 28 | Save | §75 | inexistente | NÃO IMPLEMENTADO (previsto: §95) |
+| 28 | Save | §75 | `SaveGameController` + `CampaignSnapshot`: a campanha inteira em `user://campaign_save.json` (`save_version = 1`), escrita atômica com backup, Ctrl+S/Ctrl+L pelo InputMap; schema documentado em `docs/SAVE_SCHEMA_V1.md` | IMPLEMENTADO COMO GDD (Tarefa 18) |
 | 29 | Sistema de Ameaça | §13 | `InvasionController` tem uma única invasão roteada; não há medidor de ameaça | NÃO IMPLEMENTADO (previsto: §95) |
 | 30 | Mapa regional, diplomacia, facções, expedições | §40–§49, §51 | inexistentes | NÃO IMPLEMENTADO (previsto: §95) |
 | 31 | Avatar do jogador e dois modos de controle | §31, §32 | inexistentes — só há RTS | NÃO IMPLEMENTADO (previsto: §95) |
@@ -243,7 +243,10 @@ registrada nas 15 suítes.
 
 ```text
 1. Save/Load inexistente (§75 do GDD). Qualquer fechamento de partida perde tudo;
-   impede teste de regressão de campanha longa.
+   impede teste de regressão de campanha longa. FECHADO NA TAREFA 18 — a campanha salva e
+   carrega por `user://campaign_save.json`, e `tests/test_save_load.gd` é a regressão de
+   campanha que faltava; o que continua aberto aqui é a apresentação (tela de load, slot
+   múltiplo), não a persistência.
 2. Health duplicado em três States (§5.2) com regras de morte diferentes; um quarto
    combatente vai triplicar o custo de mudança.
 3. Transação de spawn duplicada em dois controllers (§5.2); o terceiro tipo de unidade

@@ -86,6 +86,29 @@ func unlock_after_victory() -> void:
 	evolution_unlocked.emit()
 
 
+## §53/T18: o degrau já fechado é uma leitura derivada do CoreState, não uma flag copiada
+## do arquivo. Se o Nível do Núcleo no Save já é o do destino, a campanha passou pelo MVP
+## — e só isso o painel precisa saber.
+func is_at_target_level() -> bool:
+	if _state == null or _target_definition == null:
+		return false
+	return _state.level >= _target_definition.level
+
+
+## §53/§20/§54/T18: o estado do controller volta por derivação, como o próprio §53 pede.
+## A vitória liberta a chave; o Nv.2 no CoreState diz que a transação já aconteceu. Nada
+## aqui cobra Essência, gasta Cristal ou emite `mvp_completed` — os dois primeiros são
+## custo e o terceiro é conquista, e reexecutar qualquer um num load seria reproduzir a
+## história em vez de restaurar o estado. `evolution_unlocked` também não é reemitido: o
+## painel é atualizado pela passagem de refresh do controller de persistência, e uma carga
+## não é o instante em que a conquista aconteceu.
+func restore_progression(victory_achieved: bool) -> bool:
+	if _state == null:
+		return false
+	_unlocked = victory_achieved or is_at_target_level()
+	return true
+
+
 ## §35/§38: esta é a pré-validação inteira. Tudo o que pode falhar falha aqui, antes de
 ## qualquer consumo, então o caminho abaixo do `if not can_evolve()` não tem como
 ## cobrar e não evoluir (§36). As três condições são independentes e somadas: a vitória

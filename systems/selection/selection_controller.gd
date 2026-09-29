@@ -45,6 +45,21 @@ func clear_selection() -> void:
 	_replace_selection([])
 
 
+## §4/§121/T18: seleção e arrasto são a entrada do jogador, não o estado da campanha. Um
+## load devolve o mundo sem memória de quem estava marcado: a caixa é fechada, os flags de
+## drag somem e a seleção é limpa pelos caminhos normais, desligando o SelectionIndicator
+## de quem continua na árvore. `_purge_dead_units()` vem antes porque uma carga também
+## liberta invasores, e a lista de selecionados pode apontar para um Node em remoção.
+func reset_transient_input() -> void:
+	_drag_pending = false
+	_drag_box_active = false
+	_drag_origin = Vector2.ZERO
+	if selection_box != null:
+		selection_box.end_drag()
+	_purge_dead_units()
+	clear_selection()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	_purge_dead_units()
 	if event.is_action_pressed("select_unit"):

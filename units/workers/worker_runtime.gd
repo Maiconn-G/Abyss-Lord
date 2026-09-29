@@ -41,6 +41,16 @@ func set_selected(value: bool) -> void:
 	_selection_indicator.visible = value
 
 
+## §34/§74/T18: a ordem que o Save guarda é a de onde o Worker está e o que ele carrega,
+## nunca a de para onde ele ia. Depois de restaurar estado e posição é preciso limpar a
+## intenção transitória — alvo de escavação, coleta, obra e destino de caminhada — porque
+## ela aponta para Nodes da partida anterior, já liberados. O indicador de carga volta a
+## existir pelo State: quem carrega minério ao salvar aparece carregando ao carregar.
+func reset_transient_order() -> void:
+	_cancel_action()
+	_carry_indicator.visible = state.has_cargo()
+
+
 func move_to(target: Vector3) -> void:
 	if _is_delivering():
 		return

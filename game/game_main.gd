@@ -6,6 +6,11 @@ const BARRACKS_SCENE := preload("res://world/dungeon/rooms/barracks/BarracksRunt
 const WORKER_SCENE := preload("res://units/workers/WorkerRuntime.tscn")
 const SOLDIER_SCENE := preload("res://units/soldiers/SoldierRuntime.tscn")
 const ENEMY_SCENE := preload("res://units/enemies/EnemyRuntime.tscn")
+const ROCK_SCENE := preload("res://world/dungeon/rock/RockRuntime.tscn")
+## §10/§11/T18: a persistência é um controller como os outros — criado e injetado aqui,
+## na raiz de composição. Ele não é Autoload, não se procura na árvore e não descobre
+## caminho de arquivo sozinho (§127).
+const SAVE_SCRIPT := preload("res://systems/persistence/save_game_controller.gd")
 
 @export var core_definition: CoreDefinition
 @export var worker_definition: WorkerDefinition
@@ -52,6 +57,7 @@ const ENEMY_SCENE := preload("res://units/enemies/EnemyRuntime.tscn")
 ## Núcleo principal, entregue por referência a quem concede e a quem cobra. Não é child
 ## Node porque é RefCounted, e não vira dois estados separados um por consumidor.
 var _abyssal_crystal_state: AbyssalCrystalState
+var _save: SaveGameController
 
 
 func _ready() -> void:
@@ -123,6 +129,7 @@ func _ready() -> void:
 	# não procura Ninho nenhum na árvore e não existe sistema de eventos.
 	_construction.nest_completed.connect(_on_nest_completed)
 
+	_setup_save(stockpile_state, core_state)
 	_bind_rocks()
 
 	core_state.try_add_population(1)
@@ -145,20 +152,73 @@ func _on_nest_completed(_nest: NestRuntime) -> void:
 	_invasion.begin_preparation()
 
 
+## §37/§39/T18: apresentar as Rochas canônicas ao Save é o que as torna conhecidas mesmo
+## depois de o Runtime virar monte e sair da cena. O State que o ledger guarda é o do
+## próprio Runtime, entregue por `register_rock` — a cena não cria State de Rocha a mais.
 func _bind_rocks() -> void:
 	for child in _dungeon.get_children():
-		if child is RockRuntime:
-			var rock := child as RockRuntime
-			rock.setup(rock.definition, RockState.new(rock.definition, rock.rock_id))
-			rock.resource_drop_requested.connect(_spawn_resource_drop)
+		var rock := child as RockRuntime
+		if rock != null:
+			_save.register_rock(rock)
 
 
-func _spawn_resource_drop(
-		resource: ResourceDefinition,
-		amount: int,
-		world_position: Vector3,
-		source_id: String) -> void:
-	var pile := RESOURCE_PILE_SCENE.instantiate() as ResourcePileRuntime
-	pile.position = Vector3(world_position.x, 0.0, world_position.z)
-	_dungeon.add_child(pile)
-	pile.setup(resource, ResourcePileState.new(resource, source_id + "_drop", amount))
+## §10/§11/§16/T18: o controller de persistência nasce aqui e recebe tudo por parâmetro —
+## os States que ele fotografa, os controllers que ele restaura e a whitelist de Definition
+## e cenas com que a campanha foi montada. Ele não é Autoload, não se procura na árvore e
+## não escolhe caminho de arquivo (§127).
+func _setup_save(stockpile_state: ResourceStockpileState, core_state: CoreState) -> void:
+	_save = SAVE_SCRIPT.new()
+	_save.name = "SaveGameController"
+	$Systems.add_child(_save)
+	_save.setup(
+			_core,
+			core_state,
+			_abyssal_crystal_state,
+			stockpile_state,
+			_dungeon,
+			_selection,
+			_construction,
+			_invocation,
+			_recruitment,
+			_invasion,
+			_evolution)
+	_save.bind_restore_materials(
+			worker_definition,
+			barracks_definition.soldier_definition,
+			enemy_definition,
+			nest_definition,
+			barracks_definition,
+			[core_definition, core_level_2_definition],
+			_resource_materials(),
+			ROCK_SCENE,
+			RESOURCE_PILE_SCENE)
+	# §77/§80/T18: a carga não emite os sinais de conquista — ela devolve números. É aqui
+	# que os painéis são realinhados com a campanha que o arquivo descreve.
+	_save.load_succeeded.connect(_on_load_succeeded)
+
+
+## §71/T18: as Resources que a campanha conhece são as únicas que um load pode resolver, e
+## elas vêm da própria cena — o recurso do Depósito e o rendimento de cada Rocha.
+func _resource_materials() -> Array:
+	var materials: Array = [iron_ore_definition]
+	for child in _dungeon.get_children():
+		var rock := child as RockRuntime
+		if rock != null and rock.definition.yield_resource != null \
+				and not materials.has(rock.definition.yield_resource):
+			materials.append(rock.definition.yield_resource)
+	return materials
+
+
+## §74/§77/T18: o último passo da ordem de restauração é a UI. Cada painel relê o estado
+## que já foi aplicado; nenhum refresh reconstitui campanha.
+func _on_load_succeeded(_path: String) -> void:
+	var core_state := _core.core_state()
+	_hud.refresh(core_state)
+	_resource_hud.refresh()
+	_construction_hud.refresh()
+	_invocation_hud.refresh()
+	_military_hud.refresh()
+	_combat_hud.refresh_units(_recruitment.soldier(), _invasion.invaders())
+	_invasion_hud.refresh(_invasion)
+	_invasion_warning_hud.refresh(_invasion)
+	_evolution_hud.refresh()

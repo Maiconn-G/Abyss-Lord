@@ -777,10 +777,14 @@ func _test_scope_guards() -> void:
 			"§83 o controller nunca lê a capacidade base da Definition")
 	_check(controller_source.contains("SUMMONED_UNIT_ID"),
 			"§14 o id do segundo Worker é a constante worker_002")
+	# §26/T18: a lista ganha a flag histórica do segundo Worker. Ela é o que §26 exige —
+	# "não derive exclusivamente pela existência do Runtime" —, e continua sendo um bool do
+	# próprio controller, não um roster: nem lista, nem registry, exatamente como §44 pede.
 	_check(_instance_fields(_invocation)
 			== ["_core_state", "_definition", "_scene", "_dungeon_root", "_spawn_point",
-					"_deposit", "_summoned_worker"],
-			"§44 o controller guarda apenas o Worker invocado, sem roster global")
+					"_deposit", "_summoned_worker", "_worker_002_summoned"],
+			"§44/§26 o controller guarda apenas o Worker invocado e a flag histórica, "
+					+ "sem roster global")
 	for field in _instance_fields(_invocation):
 		_check(not field.ends_with("_list") and not field.ends_with("_roster")
 				and not field.ends_with("_registry") and not field.ends_with("_units"),

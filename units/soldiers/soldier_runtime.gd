@@ -60,6 +60,17 @@ func body_radius() -> float:
 	return shape.radius if shape != null else 0.5
 
 
+## §34/§74/T18: alvo de ataque, cooldown e destino de caminhada são transitórios — o Save
+## registra que o Soldado existe, vivo e ferido, não a quem ele ia morder. A limpeza
+## desengaja o inimigo da partida anterior antes de qualquer ordem nova e devolve a
+## unidade ao ócio sem física, exatamente como um Soldado recém-invocado.
+func reset_transient_order() -> void:
+	_cancel_attack()
+	_mode = ActionMode.IDLE
+	_stop_walking()
+	set_physics_process(false)
+
+
 func move_to(target: Vector3) -> void:
 	if _defeated:
 		return
