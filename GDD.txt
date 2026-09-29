@@ -3077,7 +3077,7 @@ do Núcleo Nv.1, escava, constrói Ninho e Quartel, invoca o segundo Trabalhador
 o Soldado, sobrevive à única invasão e evolui o Núcleo para Nv.2 — por teclado e mouse,
 sem comando de debug.
 
-Existe uma divergência aberta entre design e código, e ela é intencional:
+Design e código estão alinhados, e o histórico desse alinhamento importa:
 
 **Design canônico (este documento):**
 
@@ -3085,9 +3085,16 @@ Nv.1 → Nv.2 custa 1 Cristal Abissal + 25 Essências.
 
 **As-built (código atual):**
 
-Nv.1 → Nv.2 custa apenas 25 Essências. Cristal Abissal não existe no jogo.
+Nv.1 → Nv.2 custa 1 Cristal Abissal + 25 Essências. O Cristal Abissal existe no jogo como
+chave de progressão: `core/definitions/abyssal_crystal_definition.gd`,
+`data/progression/abyssal_crystal.tres` e `core/state/abyssal_crystal_state.gd`. Ele é
+entregue uma única vez pela vitória na primeira invasão (`InvasionController`, constante
+`FIRST_VICTORY_CRYSTAL_REWARD = 1`), cobrado na evolução junto com a Essência
+(`core_level_2.tres`: `evolution_crystal_cost = 1`, `evolution_essence_cost = 25`), e nunca
+entra na economia operacional — não é minério, não é pilha, não é carga de Trabalhador e
+não mora no depósito.
 
-O design mudou primeiro. O código ainda não foi alinhado, e nenhuma linha deste
-documento afirma que o Cristal já foi implementado. A trilha de alinhamento está em
-`docs/DESIGN_DECISIONS_POST_MVP.md`, e a fotografia do que o código fazia no momento da
-auditoria está preservada em `docs/POST_MVP_AUDIT.md`.
+O desenho canônico e o código divergiam de propósito até aqui: o design mudou primeiro na
+Tarefa 16 e o código foi alinhado na Tarefa 17. A trilha dessa decisão está em
+`docs/DESIGN_DECISIONS_POST_MVP.md` (D2, agora alinhada), e a fotografia do que o código
+fazia no momento da auditoria continua preservada em `docs/POST_MVP_AUDIT.md`.

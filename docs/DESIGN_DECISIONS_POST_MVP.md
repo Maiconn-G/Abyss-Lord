@@ -7,9 +7,10 @@ nenhum `.gd`, `.tscn` ou `.tres` de produção foi alterado aqui.
 ```text
 auditadas em        = 5fff237 feat: add level 2 abyssal core evolution
 decididas em        = Tarefa 16 (documental)
+alinadas no código  = Tarefa 17 (D2 — Cristal Abissal); as demais já eram o jogo
 GDD atualizado por  = esta tarefa (seções §8, §9, §10, §11, §17, §18, §88, §89, §90,
-                      §91, §95, §104)
-jogo executado      = o mesmo da Tarefa 15: mesmos números, mesmo loop, mesmas teclas
+                      §91, §95, §104), com §104 reescrito na Tarefa 17
+jogo executado      = D2 deixou de ser planejamento: o Núcleo agora só evolui com o Cristal
 ```
 
 Nenhuma decisão termina em `PENDENTE`. Onde o código ainda não bate com a decisão, isso
@@ -71,15 +72,21 @@ Cristal passa a ser o registro de que o jogador atravessou um marco.
 
 **Impacto:**
 
-§10, §11, §88, §89 e §90 do GDD atualizados. É a **única** decisão desta lista que o
-código ainda não implementa — ver matriz de alinhamento.
+§10, §11, §88, §89 e §90 do GDD atualizados na Tarefa 16, e §104 reescrito na Tarefa 17,
+quando o código passou a bater com o design. Era a **única** decisão desta lista que o
+código ainda não implementava; deixou de ser.
 
-**Evidência no código hoje:** `data/core/core_level_2.tres` (`evolution_essence_cost =
-25`), `systems/progression/core_evolution_controller.gd` (destrava por vitória na
-invasão, cobra Essência, tecla V). Não existe `CristalDefinition`, estoque de cristal nem
-recompensa por invasão.
+**Evidência no código hoje:** `core/definitions/abyssal_crystal_definition.gd` e
+`data/progression/abyssal_crystal.tres` (a chave, com `crystal_id` e `display_name`),
+`core/state/abyssal_crystal_state.gd` (contador `add`/`consume`/`has` com
+`amount_changed`), `systems/combat/invasion_controller.gd` (`FIRST_VICTORY_CRYSTAL_REWARD`
+entregue uma única vez na transição ACTIVE → VICTORY), `data/core/core_level_2.tres`
+(`evolution_essence_cost = 25`, `evolution_crystal_cost = 1`) e
+`systems/progression/core_evolution_controller.gd` (destrava por vitória, cobra as duas
+moedas na mesma transação, tecla V). O Cristal é criado uma vez em `game/game_main.gd` e
+injetado em quem concede, quem cobra e quem mostra; não entra em depósito, pilha nem carga.
 
-**STATUS: DECIDIDO**
+**STATUS: DECIDIDO — ALINHADO NO CÓDIGO NA TAREFA 17**
 
 ---
 
@@ -250,15 +257,17 @@ sumirem. Nenhum impacto no código: o modelo sempre foi esse.
 
 ---
 
-## Próximas alterações necessárias no código
+## Alinhamento entre design e código
 
-Isto é planejamento, não implementação. Nada desta coluna mudou nesta tarefa.
+A matriz abaixo foi aberta na Tarefa 16 como planejamento. A linha D2 foi executada pela
+**Tarefa 17 — feat: add abyssal crystal progression key**, e as demais já eram o jogo.
 
 ```text
 Decisão / regra                       | Código                                        | Ação
 ------------------------------------- | --------------------------------------------- | -------------------------
 D1  MVP com no máximo 2 Workers       | 1 cena + 1 invocável                        | já alinhado
-D2  1 Cristal + 25 Essências          | só 25 Essências; Cristal não existe         | CÓDIGO PRECISA ALINHAR
+D2  1 Cristal + 25 Essências          | Cristal definido, entregue na vitória e      | ALINHADO NA TAREFA 17
+                                      | cobrado com a Essência na mesma transação   |
 D3  Nv.2 base 12, Ninho +4, efet. 16  | core_level_2.tres 12, Ninho +4              | já alinhado
 D4  Rochas finitas / Mina Nv.2        | rochas esgotáveis, Depósito de entrega      | já alinhado (Mina = feature futura)
 D5  Biomassa pós-MVP                  | inexistente                                 | já alinhado (feature futura)
@@ -266,33 +275,41 @@ D6  Integridade 0 = derrota           | destroyed → InvasionState.DEFEAT      
 D7  work_required, não segundos       | ConstructionDefinition/State + work_speed   | já alinhado
 ```
 
-Seis das sete decisões já eram o jogo. A sétima é o único trabalho de gameplay aberto.
+As sete decisões são o jogo. Nenhuma linha desta tabela está em aberto.
 
 ---
 
-## Próxima alteração de gameplay
+## Alteração de gameplay executada: Tarefa 17
 
 **Cristal Abissal** — recompensa da primeira invasão e pré-requisito da evolução
-Nv.1 → Nv.2.
-
-É a única divergência imediata entre design canônico e código, e ela altera o fechamento
-do MVP, então vem antes de qualquer outro conteúdo. Escopo previsto quando for implementado
-(não implementado aqui):
+Nv.1 → Nv.2. O escopo planejado acima foi implementado por inteiro:
 
 ```text
-Definition e State do Cristal (recurso não-operacional, estoque próprio do Núcleo)
-recompensa de 1 Cristal na victory da primeira invasão
-custo de evolução: 1 Cristal + 25 Essências, consumidos atomicamente
-pré-requisito de unlock: possuir o Cristal, além da vitória e da Essência
-HUD: painel de evolução mostra o Cristal como condição faltante
-testes: nova suíte + suítes existentes invertidas onde a regra antiga era assertada
+Definition e State do Cristal            core/definitions/abyssal_crystal_definition.gd,
+                                         data/progression/abyssal_crystal.tres,
+                                         core/state/abyssal_crystal_state.gd (RefCounted)
+recompensa de 1 Cristal na victory       InvasionController.FIRST_VICTORY_CRYSTAL_REWARD,
+                                         uma vez só, nada em DEFEAT nem em morte avulsa
+custo 1 Cristal + 25 Essências           core_level_2.tres: evolution_crystal_cost = 1,
+                                         evolution_essence_cost = 25; cobrança única,
+                                         pré-validada, com rollback se o destino recusar
+pré-requisito de unlock                  vitória + Essência + chave, as três somadas
+HUD                                      CoreEvolutionDebugHud ganhou a linha
+                                         "Cristal Abissal: 0 / 1" e o status
+                                         "Cristal Abissal necessário"
+testes                                   tests/test_abyssal_crystal_progression.gd (251
+                                         asserts) + suítes antigas transformadas para a
+                                         regra nova, nenhuma guarda enfraquecida
 ```
 
-Até lá, o estado oficial é o registrado em §104 do GDD:
+O que a decisão **não** abriu: Mina, Biomassa, terceiro Trabalhador, Nv.3, segunda
+invasão, outros Cristais, qualquer uso do Cristal como minério/pilha/cota/artesanato,
+gerentes genéricos de recompensa, custo, inventário, progressão ou transação, e
+Save/Load. A trilha disso continua em `docs/POST_MVP_AUDIT.md`.
+
+O estado oficial de §104 do GDD deixou de ser uma divergência:
 
 ```text
 DESIGN CANÔNICO: 1 Cristal Abissal + 25 Essências
-AS-BUILT:        25 Essências somente
+AS-BUILT:        1 Cristal Abissal + 25 Essências
 ```
-
-Isso é intencional e temporário. O design mudou primeiro; o código é alinhado depois.

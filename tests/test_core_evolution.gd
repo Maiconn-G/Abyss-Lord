@@ -30,6 +30,9 @@ const CORE_1_PATH := "res://data/core/core_level_1.tres"
 const CORE_2_PATH := "res://data/core/core_level_2.tres"
 const NEST_1_PATH := "res://data/rooms/abyss_nest.tres"
 const ENEMY_DEFINITION_PATH := "res://data/units/enemies/cave_beast.tres"
+## §29/T17: a chave que a Tarefa 17 acrescentou à conta. O rig desta suíte passou a
+## montá-la porque a regra antiga (Vitória + Essência) deixou de ser condição suficiente.
+const CRYSTAL_PATH := "res://data/progression/abyssal_crystal.tres"
 
 const CORE_DEFINITION_SOURCE := "res://core/definitions/core_definition.gd"
 const CORE_STATE_SOURCE := "res://core/state/core_state.gd"
@@ -56,6 +59,8 @@ const CAPACITY_LV1 := 8
 const CAPACITY_LV2 := 12
 const NEST_BONUS := 4
 const COST := 25.0
+## §26/§62/T17: o preço em Cristais do Nv.2, cobrado na moeda da Tarefa 17.
+const CRYSTAL_COST := 1
 const SOLDIER_COST := 15.0
 const WORKER_COST := 10.0
 const RATE_LV1 := 1.0
@@ -639,9 +644,14 @@ func _test_controller_transactions() -> void:
 	var evolution := rig["evolution"] as CoreEvolutionController
 	var state := rig["state"] as CoreState
 	var core := rig["core"] as CoreRuntime
+	var crystal := rig["crystal"] as AbyssalCrystalState
 	evolution.unlock_after_victory()
+	# §88/T17: este rig era a prova de que "Vitória + Essência" fechava a conta. A regra
+	# canônica da Tarefa 16 tem uma terceira metade, então o caso foi transformado, não
+	# apagado: a chave passa a existir no rig e o preço cobrado passa a ser os dois.
+	crystal.add(CRYSTAL_COST)
 
-	# §71/§103: um ponto abaixo do preço.
+	# §71/§103: um ponto abaixo do preço, com a chave na mão.
 	_set_essence_to(state, 24.0)
 	_check(not evolution.can_evolve(), "§71 com 24 de Essência can_evolve é false")
 	_press_key(KEY_V)
@@ -649,15 +659,19 @@ func _test_controller_transactions() -> void:
 	_check(state.level == 1 and _close(state.essence, 24.0),
 			"§71/§103 V com Essência insuficiente não evoluiu nem cobrou (level %d, %f)"
 					% [state.level, state.essence])
+	_check(crystal.amount == CRYSTAL_COST,
+			"§34/T17 rejeitar por Essência não gastou o Cristal, %d" % crystal.amount)
 
-	# §72: o preço exato.
+	# §72: o preço exato, nas duas moedas.
 	_set_essence_to(state, COST)
-	_check(evolution.can_evolve(), "§72 com exatamente 25 can_evolve é true")
+	_check(evolution.can_evolve(), "§72 com 25 de Essência e a chave can_evolve é true")
 	_press_key(KEY_V)
 	await _advance(0.2)
 	_check(state.level == 2, "§72 a tecla levou o Núcleo ao Lv.2")
 	_check(_close(state.essence, 0.0, 0.01),
 			"§72/§106 custo aplicado uma vez, essência %f" % state.essence)
+	_check(crystal.amount == 0,
+			"§35/T17 o Cristal foi cobrado junto, sobrou %d" % crystal.amount)
 	_check(_close(state.integrity, INTEGRITY_LV2),
 			"§72/§12 a Integrity do Lv.2 abriu no teto, %f" % state.integrity)
 	_check(core.definition() == load(CORE_2_PATH), "§72/§16 o Runtime trocou a referência")
@@ -668,6 +682,7 @@ func _test_controller_transactions() -> void:
 	await _advance(0.2)
 	_check(_snapshot(state) == after_first,
 			"§74/§38 o segundo V não alterou level, essence nem integrity")
+	_check(crystal.amount == 0, "§41/T17 o segundo V não cobriu o Cristal de novo")
 	_check(state.level == 2, "§91/§74 continua Lv.2, não existe Lv.3")
 	_check(_mvp_events == 1, "§88 mvp_completed uma única vez, %d" % _mvp_events)
 	_free_rig()
@@ -710,6 +725,7 @@ func _test_defeat_does_not_unlock() -> void:
 	var evolution := rig["evolution"] as CoreEvolutionController
 	var invasion := rig["invasion"] as InvasionController
 	var state := rig["state"] as CoreState
+	var crystal := rig["crystal"] as AbyssalCrystalState
 	_reset_capture()
 	_capture_controller(evolution)
 	_press_key(KEY_F)
@@ -738,6 +754,7 @@ func _test_victory_unlocks_by_signal() -> void:
 	var evolution := rig["evolution"] as CoreEvolutionController
 	var invasion := rig["invasion"] as InvasionController
 	var state := rig["state"] as CoreState
+	var crystal := rig["crystal"] as AbyssalCrystalState
 	_reset_capture()
 	_capture_controller(evolution)
 	_capture_state(state)
@@ -754,6 +771,10 @@ func _test_victory_unlocks_by_signal() -> void:
 	await _advance(0.3)
 	_check(invasion.invasion_state() == InvasionController.InvasionState.VICTORY,
 			"§70 o rig venceu")
+	# §16/§67/T17: no mesmo instante em que o ciclo vira VICTORY a chave entra no registro
+	# do domínio — antes de qualquer tecla, e sem ninguém pedir o estado a ninguém.
+	_check(crystal.amount == CRYSTAL_COST,
+			"§67/T17 a vitória concedeu o Cristal, %d" % crystal.amount)
 	_check(_unlock_events == 1, "§70 evolution_unlocked uma emissão, %d" % _unlock_events)
 	_check(evolution.is_unlocked(), "§70 is_unlocked é true depois de invasion_victory")
 	_check(_mvp_events == 0, "§88 destravar não é concluir, %d" % _mvp_events)
@@ -766,6 +787,8 @@ func _test_victory_unlocks_by_signal() -> void:
 	_press_key(KEY_V)
 	await _advance(0.4)
 	_check(state.level == 2, "§70/§28 o mesmo signal que abriu a porta fecha o ciclo")
+	_check(crystal.amount == 0,
+			"§67/T17 a vitória deu a chave e a evolução a cobrou, sobrou %d" % crystal.amount)
 	_check(_mvp_events == 1, "§88 mvp_completed exatamente uma vez, %d" % _mvp_events)
 	_check(_evolved_events == 1, "§58 no rig evolved saiu exatamente uma vez, %d"
 			% _evolved_events)
@@ -1313,7 +1336,16 @@ func _make_rig(with_invasion: bool, preparation: float) -> Dictionary:
 	_rig.add_child(_rig_evolution)
 	await process_frame
 	_rig_evolution.setup(_rig_core, _rig_state, load(CORE_2_PATH) as CoreDefinition)
-	var out := {"core": _rig_core, "state": _rig_state, "evolution": _rig_evolution}
+	# §15/T17: o rig monta a mesma figura da composition root — um único State de Cristal,
+	# vinculado a quem concede e a quem cobra. Criar dois seria testar outro jogo.
+	var crystal := _make_crystal_state()
+	_rig_evolution.bind_abyssal_crystal_state(crystal)
+	var out := {
+		"core": _rig_core,
+		"state": _rig_state,
+		"evolution": _rig_evolution,
+		"crystal": crystal,
+	}
 	if with_invasion:
 		var point_a := Marker3D.new()
 		point_a.name = "InvasionSpawnPointA"
@@ -1335,6 +1367,8 @@ func _make_rig(with_invasion: bool, preparation: float) -> Dictionary:
 				_rig_core,
 				[point_a, point_b])
 		_rig_invasion.preparation_duration = preparation
+		# §17/T17: o mesmo State que a evolução cobra é o que a invasão concede.
+		_rig_invasion.bind_abyssal_crystal_state(crystal)
 		# A mesma linha da composition root de produção — nada aqui é polling.
 		_rig_invasion.invasion_victory.connect(_rig_evolution.unlock_after_victory)
 		out["invasion"] = _rig_invasion
@@ -1357,8 +1391,21 @@ func _make_detached_rig() -> Dictionary:
 	root.add_child(_rig_evolution)
 	await process_frame
 	_rig_evolution.setup(_rig_core, _rig_state, load(CORE_2_PATH) as CoreDefinition)
+	var crystal := _make_crystal_state()
+	_rig_evolution.bind_abyssal_crystal_state(crystal)
 	_capture_controller(_rig_evolution)
-	return {"core": _rig_core, "state": _rig_state, "evolution": _rig_evolution}
+	return {
+		"core": _rig_core,
+		"state": _rig_state,
+		"evolution": _rig_evolution,
+		"crystal": crystal,
+	}
+
+
+## §15/T17: o State de Cristal de um rig. Carga feita pelo caminho de produção (a
+## Definition do .tres), nunca um número solto.
+func _make_crystal_state() -> AbyssalCrystalState:
+	return AbyssalCrystalState.new(load(CRYSTAL_PATH) as AbyssalCrystalDefinition)
 
 
 func _free_rig() -> void:

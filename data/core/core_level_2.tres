@@ -11,3 +11,4 @@ starting_essence = 30.0
 population_capacity = 12
 essence_generation_rate = 1.5
 evolution_essence_cost = 25.0
+evolution_crystal_cost = 1

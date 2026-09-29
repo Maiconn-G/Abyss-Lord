@@ -316,9 +316,12 @@ quem pedia 3 trabalhadores era o GDD, e o GDD foi corrigido (§89).
 Oficial: Nv.1 → Nv.2 custa 1 Cristal Abissal + 25 Essências, e o Cristal é recompensa
 estrutural da primeira vitória na invasão.
 
-Este é o ÚNICO item da auditoria que segue em aberto no código: as linhas 6 e 7 continuam
-válidas como estado atual. O design foi fechado; a implementação do Cristal vira a próxima
-tarefa de gameplay, e nada foi implementado na Tarefa 16.
+Na auditoria este era o único item ainda em aberto no código: as linhas 6 e 7 descreviam
+o estado real daquele instante (só Essência), e continuam valendo como registro histórico.
+D2 alinhada no código na Tarefa 17 — feat: add abyssal crystal progression key: existe
+AbyssalCrystalDefinition/State, a vitória da primeira invasão entrega 1 Cristal e a
+evolução cobra 1 Cristal + 25 Essências na mesma transação. A tabela do §1 não foi
+tocada por essa tarefa; ela é fotografia, não estado atual.
 ```
 
 ### D3 — População base × efetiva
@@ -372,6 +375,12 @@ outros quatro atributos de §18 continuam fora do MVP.
 
 ```text
 Fechadas por alinhamento do GDD ao código:  D1, D3, D4 (escopo), D5, D6 (regra), D7
-Aberta no código:                           D2 — Cristal Abissal ainda não existe
+Fechadas pelo código:                       D2 — Tarefa 17 implementou o Cristal Abissal
+                                            (feat: add abyssal crystal progression key)
 Migrada de "faltante" para "pós-MVP":       Mina (D4), Biomassa (D5)
+```
+
+```text
+Este bloco consolidado é o único texto do arquivo que acompanha o código atual. A tabela de
+§1 continua sendo a fotografia de 5fff237 e não é reescrita quando uma decisão fecha.
 ```

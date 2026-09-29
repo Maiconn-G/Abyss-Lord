@@ -32,6 +32,12 @@ layout_mode = 2
 mouse_filter = 2
 text = "Sobreviva à primeira invasão."
 
+[node name="CrystalLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+text = "Cristal Abissal: 0 / 1"
+
 [node name="StatsLabel" type="Label" parent="VBox"]
 visible = false
 unique_name_in_owner = true

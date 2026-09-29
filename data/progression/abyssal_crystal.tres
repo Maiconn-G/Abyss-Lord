@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="AbyssalCrystalDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/definitions/abyssal_crystal_definition.gd" id="1_crystal_def"]
+
+[resource]
+script = ExtResource("1_crystal_def")
+crystal_id = &"abyssal_crystal"
+display_name = "Cristal Abissal"

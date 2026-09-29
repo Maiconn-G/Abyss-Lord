@@ -12,6 +12,12 @@ const INVADER_COUNT := 2
 ## encurta essa mesma variável (§16/T13); nenhuma tecla de produção pula o timer.
 @export var preparation_duration: float = 60.0
 
+## §19/T17: a recompensa da primeira invasão é uma linha escrita aqui, e não um
+## `RewardDefinition` nem um RewardManager. A escolha é deliberada: existe uma invasão,
+## um desfecho vitorioso e uma chave. No dia em que houver uma segunda recompensa, aí
+## sim o número vira dado — antes disso seria infraestrutura para um caso só.
+const FIRST_VICTORY_CRYSTAL_REWARD := 1
+
 signal invasion_started(invaders: Array)
 signal invasion_victory
 signal invasion_defeat
@@ -23,6 +29,7 @@ var _definition: EnemyDefinition
 var _scene: PackedScene
 var _dungeon_root: Node3D
 var _core: CoreRuntime
+var _abyssal_crystal: AbyssalCrystalState
 var _spawn_points: Array[Node3D] = []
 var _invaders: Array[EnemyRuntime] = []
 var _state: InvasionState = InvasionState.NOT_STARTED
@@ -50,6 +57,14 @@ func setup(
 	_dungeon_root = dungeon_root
 	_core = core
 	_spawn_points.assign(spawn_points)
+
+
+## §17/§18/T17: o dono do ciclo de vida passa a conhecer o registro de conquista do
+## domínio. A assinatura de `setup` não mudou — os harnesses da Tarefa 12 e da Tarefa 13
+## continuam ligados em três/quatro argumentos e simplesmente não têm Cristal nenhum,
+## que é o retrato exato de uma partida sem vitória.
+func bind_abyssal_crystal_state(crystal: AbyssalCrystalState) -> void:
+	_abyssal_crystal = crystal
 
 
 func invasion_state() -> InvasionState:
@@ -148,6 +163,13 @@ func _on_invader_died(_defeated: EnemyRuntime) -> void:
 	# Zero não ressuscita ninguém — e não entrega ganho algum (§41).
 	if _active_invaders == 0:
 		_state = InvasionState.VICTORY
+		# §16/§20/§23/T17: a marca fica no domínio no instante em que a vitória
+		# acontece. Uma vez só, porque a linha acima já tirou o ciclo de ACTIVE e
+		# qualquer callback redundante que chegar depois morre na guarda do topo deste
+		# método. E sem pilha no mapa: o Cristal é um contador do Núcleo, não um item
+		# que um Worker precise carregar até o Depósito.
+		if _abyssal_crystal != null:
+			_abyssal_crystal.add(FIRST_VICTORY_CRYSTAL_REWARD)
 		invasion_victory.emit()
 
 

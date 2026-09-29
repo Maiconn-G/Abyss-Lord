@@ -83,6 +83,10 @@ const DEPOSIT_HALF := 0.6
 const BARRACKS_WORK := 6.0
 const NEST_WORK := 4.0
 const ORE := &"iron_ore"
+## §89/T17: a única recompensa que a vitória entrega. O id existe para esta suíte provar
+## que ele NÃO entra no depósito operacional, e o valor é o da constante do controller.
+const CRYSTAL_ID := &"abyssal_crystal"
+const CRYSTAL_REWARD := 1
 
 ## Geometria da aproximação: distância de cada ponto de largada até o Núcleo.
 const SPAWN_A_DISTANCE := 10.7703
@@ -132,6 +136,11 @@ var _deposit: ResourceDepositRuntime
 var _core: CoreRuntime
 var _core_state: CoreState
 var _stockpile: ResourceStockpileState
+## §89/T17: a vitória deixou de ser "nenhuma recompensa". Ela continua sem dar Essência,
+## minério, XP, pilha nem population — mas entrega exatamente 1 Cristal Abissal, e este
+## State é o da própria cena (o mesmo que a evolução cobra). Os eventos contam a emissão.
+var _crystal: AbyssalCrystalState
+var _crystal_events := 0
 var _core_hud: Node
 var _combat_hud: Node
 var _invasion_hud: Node
@@ -835,6 +844,7 @@ func _test_victory_flow() -> void:
 	var essence_before := _core_state.essence
 	var ore_before := _stockpile.get_amount(ORE)
 	var piles_before := _piles_in_scene().size()
+	var crystal_before := _crystal.amount
 	var death_spot := first.global_position
 	first.receive_damage(BEAST_HP)
 	await _advance(0.1)
@@ -852,6 +862,13 @@ func _test_victory_flow() -> void:
 	var enemies := _enemies_in_scene()
 	_check(enemies.size() == 1 and not is_instance_valid(first),
 			"§47 a Fera derrotada saiu da cena")
+	# §89/T17: metade de uma vitória não paga nada. A marca é do ciclo fechado, não da
+	# morte avulsa — que é exatamente a confusão que a spec manda não cometer.
+	_check(crystal_before == 0,
+			"§89/T17 a cena chegou à vitória sem chave nenhuma, %d" % crystal_before)
+	_check(_crystal.amount == 0 and _crystal_events == 0,
+			"§89/T17 o primeiro kill não entregou Cristal, %d / %d eventos"
+					% [_crystal.amount, _crystal_events])
 	await _advance(0.1)
 	var screen := _screen(death_spot + Vector3(0.0, 0.4, 0.0))
 	var ray_enemy := _screen_hit(screen, ENEMY_LAYER)
@@ -881,6 +898,12 @@ func _test_victory_flow() -> void:
 			"§39 contagem final 0, obtido %s" % _text_of(_invasion_hud, "RemainingLabel"))
 	_check(_destroyed_events == 0 and _core_state.integrity > 0.0,
 			"§36 a vitória exige o Núcleo de pé (%f)" % _core_state.integrity)
+	# §41/T12 + §89/T17: a régua antiga continua inteira e continua exata. Vencer não dá
+	# Essência, não dá minério, não dá pilha, não dá population e não dá XP — o jogo
+	# simplesmente não tem sistema de experiência. O que mudou é uma linha da spec: a
+	# vitória agora deixa UMA marca de progressão, o Cristal Abissal, e é ela que fecha a
+	# conta da evolução Nv.2. Inverter a guarda antiga para "e nada" seria enfraquecê-la;
+	# ela continua valendo campo a campo, e a marca nova é cobrada logo abaixo.
 	_check(_close(_core_state.essence, essence_before),
 			"§41/§78 vencer não deu Essência (%f → %f)"
 					% [essence_before, _core_state.essence])
@@ -890,6 +913,14 @@ func _test_victory_flow() -> void:
 					% [ore_before, _stockpile.get_amount(ORE)])
 	_check(_population_trace.is_empty(),
 			"§41/§75 a morte dos invasores não mexeu em população %s" % [_population_trace])
+	_check(_stockpile.get_amount(CRYSTAL_ID) == 0,
+			"§89/T17 a marca não virou mercadoria: o depósito não conhece %s, %d"
+					% [CRYSTAL_ID, _stockpile.get_amount(CRYSTAL_ID)])
+	_check(_crystal.amount == crystal_before + CRYSTAL_REWARD,
+			"§89/T17 VICTORY entrega exatamente +%d Cristal Abissal (%d → %d)"
+					% [CRYSTAL_REWARD, crystal_before, _crystal.amount])
+	_check(_crystal_events == 1,
+			"§89/T17 a marca saiu por um único amount_changed, obtido %d" % _crystal_events)
 	_press_key(KEY_F)
 	await _advance(0.1)
 	var after_victory := _enemies_in_scene()
@@ -1409,6 +1440,11 @@ func _test_defeat_flow() -> void:
 	_check(_invasion.invasion_state() == InvasionController.InvasionState.DEFEAT
 			and _victory_events == 0,
 			"§36 matar invasor depois da derrota não converte em vitória")
+	# §89/T17: a marca é da vitória, e nada na derrota a entrega — nem o invasor caído
+	# depois do Zero, que continua sendo morte de combate e não desfecho de ciclo.
+	_check(_crystal.amount == 0 and _crystal_events == 0,
+			"§89/T17 derrota não concede Cristal, %d / %d eventos"
+					% [_crystal.amount, _crystal_events])
 
 
 # --------------------------------------------------------------- End-to-end (§86/§87)
@@ -1582,6 +1618,11 @@ func _boot_scene() -> void:
 	_warning_hud = _scene.get_node("UI/InvasionWarningPanel")
 	_stockpile = _deposit.stockpile
 	_core_state = _core.core_state()
+	# §89/T17: a chave da campanha, lida pelo controller que a cobra. A cena é de produção,
+	# então o InvasionController já a recebeu pelo bind de GameMain — nada aqui injeta.
+	_crystal = (_scene.get_node("Systems/CoreEvolutionController")
+			as CoreEvolutionController).abyssal_crystal_state()
+	_crystal_events = 0
 	# A geração passiva de Essência é congelada: recompensa falsa não pode passar por ela.
 	_core.set_process(false)
 	_integrity_events = 0
@@ -1602,6 +1643,7 @@ func _boot_scene() -> void:
 	_invasion.invasion_victory.connect(_on_invasion_victory)
 	_invasion.invasion_defeat.connect(_on_invasion_defeat)
 	_invasion.active_invaders_changed.connect(_on_active_invaders_changed)
+	_crystal.amount_changed.connect(_on_crystal_changed)
 
 
 func _on_integrity_changed(_current: float, _maximum: float) -> void:
@@ -1632,6 +1674,12 @@ func _on_active_invaders_changed(current: int) -> void:
 	_remaining_trace.append(current)
 
 
+## §89/T17: uma linha, e ela existe para contar. A recompensa nova é o Cristal, e o que a
+## suíte cobra é que ela saia uma vez e nenhuma mais.
+func _on_crystal_changed(_current: int) -> void:
+	_crystal_events += 1
+
+
 func _free_scene() -> void:
 	_probes.clear()
 	_soldier = null
@@ -1649,6 +1697,7 @@ func _free_scene() -> void:
 	_core = null
 	_core_state = null
 	_stockpile = null
+	_crystal = null
 	_core_hud = null
 	_combat_hud = null
 	_invasion_hud = null

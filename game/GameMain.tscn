@@ -1,4 +1,4 @@
-[gd_scene load_steps=35 format=3]
+[gd_scene load_steps=36 format=3]
 
 [ext_resource type="Script" path="res://game/game_main.gd" id="1_game"]
 [ext_resource type="Script" path="res://camera/camera_controller.gd" id="2_camera"]
@@ -31,6 +31,7 @@
 [ext_resource type="Resource" path="res://data/core/core_level_2.tres" id="29_core2_def"]
 [ext_resource type="Script" path="res://systems/progression/core_evolution_controller.gd" id="30_evolution"]
 [ext_resource type="PackedScene" path="res://ui/hud/CoreEvolutionDebugHud.tscn" id="31_evolution_hud"]
+[ext_resource type="Resource" path="res://data/progression/abyssal_crystal.tres" id="32_crystal_def"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMaterial"]
 albedo_color = Color(0.22, 0.26, 0.3, 1.0)
@@ -59,6 +60,7 @@ nest_definition = ExtResource("15_nest_def")
 barracks_definition = ExtResource("21_barracks_def")
 enemy_definition = ExtResource("24_enemy_def")
 core_level_2_definition = ExtResource("29_core2_def")
+abyssal_crystal_definition = ExtResource("32_crystal_def")
 
 [node name="World" type="Node3D" parent="."]
 
