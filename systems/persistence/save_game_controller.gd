@@ -48,6 +48,11 @@ var _soldier_definition: SoldierDefinition
 var _enemy_definition: EnemyDefinition
 var _nest_definition: NestDefinition
 var _barracks_definition: BarracksDefinition
+## §61/T20: a Definition da Mina entra na whitelist como material de restauração. O que o
+## arquivo diz é `production_elapsed`; o intervalo com que se confere esse número é daqui,
+## e caminho de cena nunca vem do JSON — a cena da Mina pertence ao ConstructionController,
+## que é quem a instancia em `restore_mine()`.
+var _mine_definition: MineDefinition
 var _rock_scene: PackedScene
 var _pile_scene: PackedScene
 var _core_definitions_by_level: Dictionary = {}
@@ -98,6 +103,7 @@ func bind_restore_materials(
 		enemy_definition: EnemyDefinition,
 		nest_definition: NestDefinition,
 		barracks_definition: BarracksDefinition,
+		mine_definition: MineDefinition,
 		core_definitions: Array,
 		resource_definitions: Array,
 		rock_scene: PackedScene,
@@ -107,6 +113,7 @@ func bind_restore_materials(
 	_enemy_definition = enemy_definition
 	_nest_definition = nest_definition
 	_barracks_definition = barracks_definition
+	_mine_definition = mine_definition
 	_rock_scene = rock_scene
 	_pile_scene = pile_scene
 	for definition in core_definitions:
@@ -272,6 +279,8 @@ func _soldier_record() -> Dictionary:
 
 ## §30/§31/§34: existe, o id semântico, o trabalho restante e a posição. Conclusão é
 ## derivada de `remaining_work <= 0` (§123) e por isso não há bool duplicado.
+##
+## §62/T20: a Mina entra na mesma seção. Ela é uma obra, e o que a diferencia é o relógio.
 func _constructions_record() -> Dictionary:
 	return {
 		CampaignSnapshot.SECTION_NEST:
@@ -279,7 +288,32 @@ func _constructions_record() -> Dictionary:
 		CampaignSnapshot.SECTION_BARRACKS:
 				_site_record(_construction.barracks(), CampaignSnapshot.BARRACKS_ID,
 						"barracks_id"),
+		CampaignSnapshot.SECTION_MINE: _mine_record(_construction.mine()),
 	}
+
+
+## §49/§50/T20: o arquivo guarda `production_elapsed`, porque é estado temporal real da
+## campanha. Não guarda intervalo, montante nem recurso produzido — os três vêm da
+## MineDefinition, e duplicá-los criaria duas verdades sobre a mesma Mina.
+##
+## A regra §50 é aplicada na escrita: obra incompleta não tem relógio, então o número que
+## sai para o arquivo é 0.0. Assim o documento que este controller produz já é o documento
+## que o validador espera, sem depender de normalização na leitura.
+func _mine_record(mine: MineRuntime) -> Dictionary:
+	if mine == null or mine.is_queued_for_deletion():
+		return {CampaignSnapshot.KEY_EXISTS: false}
+	var mine_state := mine.state as MineState
+	var recorded: Dictionary = {
+		CampaignSnapshot.KEY_EXISTS: true,
+		"mine_id": CampaignSnapshot.MINE_ID,
+		CampaignSnapshot.KEY_REMAINING_WORK: mine_state.remaining_work,
+		CampaignSnapshot.KEY_POSITION: CampaignSnapshot.encode_position(mine.global_position),
+	}
+	var elapsed := 0.0
+	if mine.is_completed():
+		elapsed = mine_state.production_elapsed
+	recorded[CampaignSnapshot.KEY_PRODUCTION_ELAPSED] = elapsed
+	return recorded
 
 
 func _site_record(site: ConstructionRuntime, instance_id: String, id_field: String) -> Dictionary:
@@ -478,6 +512,27 @@ func _validate_construction_bounds(campaign: Dictionary) -> String:
 			return "a campanha não tem Definition para %s" % pair[0]
 		if site[CampaignSnapshot.KEY_REMAINING_WORK] > definition.work_required:
 			return "%s com trabalho acima do exigido" % pair[0]
+	return _validate_mine_clock(
+			constructions[CampaignSnapshot.SECTION_MINE] as Dictionary)
+
+
+## §50/§51/T20: as duas invariantes do relógio da Mina. Obra incompleta não tem produção
+## andando, e obra completa tem relógio estritamente dentro de um intervalo — o que passa
+## do intervalo já virou minério e foi entregue ao estoque, então não é mais estado.
+## O intervalo é lido da MineDefinition injetada (§61), nunca do arquivo.
+func _validate_mine_clock(site: Dictionary) -> String:
+	if not site[CampaignSnapshot.KEY_EXISTS]:
+		return ""
+	if _mine_definition == null:
+		return "a campanha não tem Definition para mine"
+	var remaining := float(site[CampaignSnapshot.KEY_REMAINING_WORK])
+	var elapsed := float(site[CampaignSnapshot.KEY_PRODUCTION_ELAPSED])
+	if remaining > _mine_definition.work_required:
+		return "mine com trabalho acima do exigido"
+	if remaining > 0.0 and elapsed > 0.0:
+		return "mine incompleta com relógio de produção"
+	if remaining <= 0.0 and elapsed >= _mine_definition.production_interval:
+		return "mine com relógio acima do intervalo de produção"
 	return ""
 
 
@@ -642,6 +697,11 @@ func load_campaign() -> bool:
 ## §62/§64: leitura + parse + validação estrutural num passo só. Devolve Dictionary vazio
 ## para ausente, ilegível ou estruturalmente ruim, e guarda o motivo da última recusa.
 ## Um documento válido nunca é vazio: `campaign` tem sempre as sete seções (§69).
+##
+## §53/§55/§70/T20: este é o único ponto em que a versão do arquivo é conhecida antes de
+## o mundo ser tocado, então é aqui que a migração acontece. A sequência é a do contrato:
+## validar contra o schema da versão declarada, migrar, validar o resultado como V2. Nada
+## é aplicado antes, e um V1 que migra para um V2 ruim é recusado com o mundo intacto.
 func _read_document(path: String) -> Dictionary:
 	_last_read_reason = ""
 	if not FileAccess.file_exists(path):
@@ -652,7 +712,12 @@ func _read_document(path: String) -> Dictionary:
 	if not reason.is_empty():
 		_last_read_reason = reason
 		return {}
-	return parsed as Dictionary
+	var migrated := CampaignSnapshot.migrate_to_current(parsed as Dictionary)
+	reason = CampaignSnapshot.validate_document(migrated)
+	if not reason.is_empty():
+		_last_read_reason = reason
+		return {}
+	return migrated
 
 
 func _read_text(path: String) -> String:
@@ -698,7 +763,7 @@ func _fail(operation: String, reason: String) -> void:
 ## 8. Estoque
 ## 9. Rochas
 ## 10. Montes de recurso
-## 11. Ninho e Quartel
+## 11. Ninho, Quartel e Mina
 ## 12. Workers
 ## 13. Soldado
 ## 14. Invasion
@@ -823,6 +888,21 @@ func _restore_constructions(campaign: Dictionary) -> void:
 			_construction.restore_nest)
 	_restore_site(constructions[CampaignSnapshot.SECTION_BARRACKS] as Dictionary,
 			_construction.restore_barracks)
+	_restore_mine(constructions[CampaignSnapshot.SECTION_MINE] as Dictionary)
+
+
+## §63/§64/T20: a Mina tem rota própria porque tem um quarto número — o relógio de
+## produção — que as outras obras não têm. A ausência dela desmonta a obra sem cobrar e
+## sem emitir conquista; a presença dela devolve trabalho e elapsed exatamente como foram
+## gravados, e é `restore_mine()` que decide se o processo de produção liga.
+func _restore_mine(site: Dictionary) -> void:
+	if not bool(site.get(CampaignSnapshot.KEY_EXISTS, false)):
+		_construction.restore_mine(false, 0.0, Vector3.ZERO, 0.0)
+		return
+	_construction.restore_mine(true,
+			float(site[CampaignSnapshot.KEY_REMAINING_WORK]),
+			CampaignSnapshot.decode_position(site[CampaignSnapshot.KEY_POSITION]),
+			float(site[CampaignSnapshot.KEY_PRODUCTION_ELAPSED]))
 
 
 func _restore_site(site: Dictionary, restore: Callable) -> void:

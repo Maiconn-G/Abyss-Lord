@@ -1,0 +1,135 @@
+[gd_scene load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://world/dungeon/rooms/mine/mine_runtime.gd" id="1_runtime"]
+
+[sub_resource type="StandardMaterial3D" id="SiteMaterial"]
+albedo_color = Color(0.32, 0.3, 0.34, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="SiteStoneMaterial"]
+albedo_color = Color(0.5, 0.47, 0.42, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="MineWoodMaterial"]
+albedo_color = Color(0.34, 0.24, 0.15, 1)
+roughness = 0.92
+
+[sub_resource type="StandardMaterial3D" id="MineStoneMaterial"]
+albedo_color = Color(0.38, 0.4, 0.46, 1)
+roughness = 0.88
+
+[sub_resource type="StandardMaterial3D" id="MineEntranceMaterial"]
+albedo_color = Color(0.05, 0.07, 0.09, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="MineOreMaterial"]
+albedo_color = Color(0.42, 0.52, 0.66, 1)
+metallic = 0.2
+roughness = 0.35
+
+[sub_resource type="BoxMesh" id="SitePadMesh"]
+size = Vector3(2.2, 0.2, 2.2)
+material = SubResource("SiteMaterial")
+
+[sub_resource type="BoxMesh" id="SiteStoneMesh"]
+size = Vector3(0.4, 0.4, 0.4)
+material = SubResource("SiteStoneMaterial")
+
+[sub_resource type="BoxMesh" id="MinePadMesh"]
+size = Vector3(2.2, 0.25, 2.2)
+material = SubResource("MineStoneMaterial")
+
+[sub_resource type="BoxMesh" id="MinePostMesh"]
+size = Vector3(0.22, 1.2, 0.22)
+material = SubResource("MineWoodMaterial")
+
+[sub_resource type="BoxMesh" id="MineLintelMesh"]
+size = Vector3(1.8, 0.22, 0.28)
+material = SubResource("MineWoodMaterial")
+
+[sub_resource type="BoxMesh" id="MineEntranceMesh"]
+size = Vector3(1.2, 0.95, 0.24)
+material = SubResource("MineEntranceMaterial")
+
+[sub_resource type="SphereMesh" id="MineOreMesh"]
+radius = 0.2
+height = 0.4
+material = SubResource("MineOreMaterial")
+
+[sub_resource type="CylinderShape3D" id="MineShape"]
+radius = 1.1
+height = 2.0
+
+[node name="MineRuntime" type="StaticBody3D"]
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("1_runtime")
+
+[node name="ConstructionVisual" type="Node3D" parent="."]
+
+[node name="SitePad" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+mesh = SubResource("SitePadMesh")
+
+[node name="Stone1" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.7, 0.4, 0.2)
+mesh = SubResource("SiteStoneMesh")
+
+[node name="Stone2" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 0.4, 0.6)
+mesh = SubResource("SiteStoneMesh")
+
+[node name="Stone3" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0.4, -0.6)
+mesh = SubResource("SiteStoneMesh")
+
+[node name="FramePiece" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.32, 0.6)
+mesh = SubResource("MineLintelMesh")
+
+[node name="CompletedVisual" type="Node3D" parent="."]
+visible = false
+
+[node name="GroundPad" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, 0)
+mesh = SubResource("MinePadMesh")
+
+[node name="Post1" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.7, 0.85, 0.6)
+mesh = SubResource("MinePostMesh")
+
+[node name="Post2" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.7, 0.85, 0.6)
+mesh = SubResource("MinePostMesh")
+
+[node name="Lintel" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0.6)
+mesh = SubResource("MineLintelMesh")
+
+[node name="Entrance" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.72, 0.55)
+mesh = SubResource("MineEntranceMesh")
+
+[node name="Ore1" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0.42, -0.45)
+mesh = SubResource("MineOreMesh")
+
+[node name="Ore2" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.35, 0.4, -0.65)
+mesh = SubResource("MineOreMesh")
+
+[node name="Ore3" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1, 0.38, -0.9)
+mesh = SubResource("MineOreMesh")
+
+[node name="Rock1" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9, 0.42, -0.05)
+mesh = SubResource("SiteStoneMesh")
+
+[node name="Rock2" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.9, 0.42, 0.15)
+mesh = SubResource("SiteStoneMesh")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+shape = SubResource("MineShape")

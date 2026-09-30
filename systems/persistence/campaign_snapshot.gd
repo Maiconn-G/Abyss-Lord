@@ -11,8 +11,12 @@ extends RefCounted
 ## Resource, um Node ou um caminho de arquivo escolhido pelo Save.
 
 const SAVE_FORMAT := "abyss_lord_campaign"
-## §7: a única versão existente. §8: arquivo de outra versão é recusado sem adivinhação.
-const SAVE_VERSION := 1
+## §45/T20: a Mina acrescenta estado persistente novo, então o formato escrito é o V2.
+## §56: V1 continua sendo lido — através da migração explícita abaixo — e nunca escrito.
+## §58: suporte é lista nominal, não "qualquer número inteiro": V0 e V3/999 são recusados.
+const SAVE_VERSION := 2
+const SAVE_VERSION_V1 := 1
+const SUPPORTED_VERSIONS: Array[int] = [SAVE_VERSION_V1, SAVE_VERSION]
 
 const ROOT_FORMAT := "format"
 const ROOT_VERSION := "save_version"
@@ -28,9 +32,11 @@ const SECTION_CONSTRUCTIONS := "constructions"
 const SECTION_WORLD := "world"
 const SECTION_INVASION := "invasion"
 
-## §30/§34: as duas obras têm chave e id próprios, e o arquivo os nomeia por inteiro.
+## §30/§34: cada obra tem chave e id próprios, e o arquivo os nomeia por inteiro.
+## §48/T20: `mine` entra como terceira chave de `constructions`, no mesmo formato.
 const SECTION_NEST := "nest"
 const SECTION_BARRACKS := "barracks"
+const SECTION_MINE := "mine"
 
 const INVASION_STATE_NAMES: Array[String] = [
 	"NOT_STARTED", "PREPARATION", "ACTIVE", "VICTORY", "DEFEAT"]
@@ -42,6 +48,8 @@ const SECOND_WORKER_ID := "worker_002"
 const SOLDIER_ID := "soldier_001"
 const NEST_ID := "nest_001"
 const BARRACKS_ID := "barracks_001"
+## §25/§48/T20: a identidade semântica da única Mina da tarefa.
+const MINE_ID := "mine_001"
 
 ## §17/§21/§30/§37/§48: os nomes de campo, uma única vez.
 const KEY_LEVEL := "level"
@@ -66,6 +74,9 @@ const KEY_CARRIED_RESOURCE := "carried_resource"
 const KEY_CARRIED_AMOUNT := "carried_amount"
 const KEY_EXISTS := "exists"
 const KEY_REMAINING_WORK := "remaining_work"
+## §49/T20: o relógio da Mina é estado temporal persistente. Intervalo, montante e recurso
+## produzidos são configuração da MineDefinition e por isso nunca aparecem no arquivo.
+const KEY_PRODUCTION_ELAPSED := "production_elapsed"
 const KEY_ROCKS := "rocks"
 const KEY_ROCK_ID := "rock_id"
 const KEY_EXCAVATED := "excavated"
@@ -115,7 +126,57 @@ static func decode_position(value: Variant) -> Vector3:
 ## §67/§69: a validação estrutural inteira, antes de qualquer mutação. Devolve String
 ## vazio quando o documento é aceitável e o motivo da recusa otherwise — é essa frase que
 ## chega em `operation_failed` (§60) e no console.
+##
+## §55/§60/T20: o documento é validado contra o schema da versão que ele mesmo declara.
+## Um V1 bom continua sendo aceito como V1; o que transforma ele em V2 é a migração
+## explícita abaixo, nunca uma condescendência do validador.
 static func validate_document(document: Variant) -> String:
+	var reason := _validate_envelope(document)
+	if not reason.is_empty():
+		return reason
+	var root := document as Dictionary
+	var campaign := root[ROOT_CAMPAIGN] as Dictionary
+	if int(root[ROOT_VERSION]) == SAVE_VERSION_V1:
+		return validate_v1(campaign)
+	return validate_v2(campaign)
+
+
+## §73: o V1 é o formato congelado em docs/SAVE_SCHEMA_V1.md — duas obras e nenhum relógio
+## de produção. Ele não ganha campo novo aqui: quem acrescenta o estado da Mina é a
+## migração, e o resultado dela passa a ser validado como V2.
+static func validate_v1(campaign: Dictionary) -> String:
+	return _validate_sections(campaign)
+
+
+## §47: V2 é o V1 inteiro mais `constructions.mine`. Nenhum campo antigo muda de nome, de
+## tipo ou de significado — é acréscimo, não releitura.
+static func validate_v2(campaign: Dictionary) -> String:
+	var reason := _validate_sections(campaign)
+	if not reason.is_empty():
+		return reason
+	return _validate_mine(campaign)
+
+
+## §53/§116: a rota de migração é uma função nomeada, não um registry. Quando existir V3,
+## ela entra como mais um passo desta mesma sequência — sem grafo e sem adaptador genérico.
+static func migrate_to_current(document: Dictionary) -> Dictionary:
+	var migrated := document.duplicate(true) as Dictionary
+	if int(migrated[ROOT_VERSION]) == SAVE_VERSION_V1:
+		migrated = migrate_v1_to_v2(migrated)
+	return migrated
+
+
+## §54: o único fato novo de um V1 migrado é que aquela campanha não tem Mina. Os números
+## de gameplay continuam sendo os mesmos valores do documento de entrada.
+static func migrate_v1_to_v2(document: Dictionary) -> Dictionary:
+	var migrated := document.duplicate(true) as Dictionary
+	migrated[ROOT_VERSION] = SAVE_VERSION
+	((migrated[ROOT_CAMPAIGN] as Dictionary)[SECTION_CONSTRUCTIONS] as Dictionary)[
+			SECTION_MINE] = {KEY_EXISTS: false}
+	return migrated
+
+
+static func _validate_envelope(document: Variant) -> String:
 	if not (document is Dictionary):
 		return "a raiz do arquivo não é um Dictionary"
 	var root := document as Dictionary
@@ -128,7 +189,10 @@ static func validate_document(document: Variant) -> String:
 		return "metadata não é um Dictionary"
 	if not (root.get(ROOT_CAMPAIGN) is Dictionary):
 		return "campaign não é um Dictionary"
-	var campaign := root[ROOT_CAMPAIGN] as Dictionary
+	return ""
+
+
+static func _validate_sections(campaign: Dictionary) -> String:
 	for section in [SECTION_CORE, SECTION_PROGRESSION, SECTION_ECONOMY, SECTION_UNITS,
 			SECTION_CONSTRUCTIONS, SECTION_WORLD, SECTION_INVASION]:
 		if not (campaign.get(section) is Dictionary):
@@ -154,9 +218,10 @@ static func validate_document(document: Variant) -> String:
 	return _validate_invasion(campaign)
 
 
-## §8: só a versão 1 existe. Uma migration não é implementada antes de haver v2 (§119).
+## §8/§58/T20: as versões nominalmente suportadas. V0, V3 e V999 são recusados sem
+## adivinhação, e um documento recusado não chega à etapa de aplicação (§67).
 static func is_supported_version(value: Variant) -> bool:
-	return _is_integral(value) and int(value) == SAVE_VERSION
+	return _is_integral(value) and SUPPORTED_VERSIONS.has(int(value))
 
 
 static func _validate_core(campaign: Dictionary) -> String:
@@ -284,6 +349,27 @@ static func _validate_site(site: Variant, field: String, instance_id: String) ->
 		return "constructions.%s é incompleto ou tem id errado" % field
 	if data[KEY_REMAINING_WORK] < 0.0:
 		return "constructions.%s tem trabalho negativo" % field
+	return ""
+
+
+## §48/§49/T20: a Mina é uma obra, então repete o formato de Ninho e Quartel e acrescenta
+## o relógio. A faixa superior de `production_elapsed` é a `production_interval` da
+## MineDefinition, e faixa contra Definition é domínio — mora no SaveGameController, não
+## aqui. O que este contrato pode afirmar sozinho é o tipo, a presença e o sinal.
+static func _validate_mine(campaign: Dictionary) -> String:
+	var mine: Variant = (campaign[SECTION_CONSTRUCTIONS] as Dictionary).get(SECTION_MINE)
+	if not (mine is Dictionary):
+		return "constructions.mine está ausente"
+	var data := mine as Dictionary
+	if not _is_bool(data, KEY_EXISTS):
+		return "constructions.mine precisa de exists"
+	if not data[KEY_EXISTS]:
+		return ""
+	if data.get("mine_id") != MINE_ID or not _is_number(data, KEY_REMAINING_WORK) \
+			or not _is_position(data) or not _is_number(data, KEY_PRODUCTION_ELAPSED):
+		return "constructions.mine é incompleto ou tem id errado"
+	if data[KEY_REMAINING_WORK] < 0.0 or data[KEY_PRODUCTION_ELAPSED] < 0.0:
+		return "constructions.mine tem valor negativo"
 	return ""
 
 
