@@ -4,9 +4,9 @@
 
 [node name="WorkerInvocationDebugPanel" type="PanelContainer"]
 offset_left = 16.0
-offset_top = 258.0
+offset_top = 286.0
 offset_right = 320.0
-offset_bottom = 316.0
+offset_bottom = 344.0
 mouse_filter = 2
 script = ExtResource("1_hud")
 

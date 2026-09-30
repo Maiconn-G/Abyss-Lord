@@ -266,7 +266,7 @@ func _test_scope_guards() -> void:
 	for forbidden in ["CrystalManager", "ProgressionResourceManager", "RewardManager",
 			"InvementManager", "InventoryManager", "ProgressionManager", "RewardDefinition",
 			"CostDefinition", "CostEntry", "ResourceCostArray", "TransactionManager",
-			"LootTable", "SaveSystem", "LoadSystem", "Mina", "Biomassa", "Worker003",
+			"LootTable", "SaveSystem", "LoadSystem", "Biomassa", "Worker003",
 			"CoreLevel3", "SecondInvasion", "CrystalPile", "CrystalMining", "CrystalShop",
 			"EventBus"]:
 		var offenders := _files_containing(sources, forbidden)
@@ -276,6 +276,18 @@ func _test_scope_guards() -> void:
 		_check(named.is_empty(),
 				"§96/§97 nenhum fonte de produção tem %s no nome, achado em %s"
 						% [forbidden, named])
+
+	# §119/T20: "Mina" saiu da lista acima porque a Tarefa 20 a construiu de verdade, e esta
+	# suíte é de T17 — ela não pode continuar proibindo uma obra que o projeto agora tem. A
+	# inversão é afirmativa: a Mina existe por Definition e State próprios, em arquivos
+	# próprios. O resto do juramento de T17 continua de pé ali em cima — Biomassa, Worker003,
+	# CoreLevel3 e SecondInvasion seguem proibidos, agora pela §112 de T20 também.
+	var mine_definitions := _files_containing(sources, "class_name MineDefinition")
+	_check(mine_definitions == ["res://core/definitions/mine_definition.gd"],
+			"§119/T20 a Mina tem uma Definition própria e única, obtido %s" % [mine_definitions])
+	var mine_states := _files_containing(sources, "class_name MineState")
+	_check(mine_states == ["res://core/state/mine_state.gd"],
+			"§119/T20 a Mina tem um State próprio e única, obtido %s" % [mine_states])
 
 	# §13: o Cristal não trouxe um controller junto. systems/ continua com seis.
 	# §98/T18: a pasta passou a ter sete controllers e um contrato de schema porque a

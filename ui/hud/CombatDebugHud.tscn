@@ -4,9 +4,9 @@
 
 [node name="CombatDebugPanel" type="PanelContainer"]
 offset_left = 16.0
-offset_top = 430.0
+offset_top = 458.0
 offset_right = 340.0
-offset_bottom = 488.0
+offset_bottom = 516.0
 mouse_filter = 2
 script = ExtResource("1_hud")
 

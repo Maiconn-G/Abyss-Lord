@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MineDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://core/definitions/mine_definition.gd" id="1_definition"]
+[ext_resource type="Resource" path="res://data/resources/iron_ore.tres" id="2_iron_ore"]
+
+[resource]
+script = ExtResource("1_definition")
+mine_type_id = &"abyss_mine"
+display_name = "Mina Abissal"
+required_core_level = 2
+build_resource = ExtResource("2_iron_ore")
+build_cost = 6
+work_required = 8.0
+output_resource = ExtResource("2_iron_ore")
+production_amount = 1
+production_interval = 10.0

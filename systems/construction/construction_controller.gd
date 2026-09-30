@@ -5,9 +5,12 @@ signal nest_built(nest: NestRuntime)
 signal nest_completed(nest: NestRuntime)
 signal barracks_built(barracks: BarracksRuntime)
 signal barracks_completed(barracks: BarracksRuntime)
+signal mine_built(mine: MineRuntime)
+signal mine_completed(mine: MineRuntime)
 
 const NEST_INSTANCE_ID := "nest_001"
 const BARRACKS_INSTANCE_ID := "barracks_001"
+const MINE_INSTANCE_ID := "mine_001"
 
 var _stockpile: ResourceStockpileState
 var _definition: NestDefinition
@@ -20,6 +23,10 @@ var _barracks_definition: BarracksDefinition
 var _barracks_scene: PackedScene
 var _barracks_build_point: Node3D
 var _barracks: BarracksRuntime
+var _mine_definition: MineDefinition
+var _mine_scene: PackedScene
+var _mine_build_point: Node3D
+var _mine: MineRuntime
 
 
 func setup(
@@ -45,6 +52,18 @@ func bind_core_state(core_state: CoreState) -> void:
 	_core_state = core_state
 
 
+## §26/T20: a Mina entra por vinculação própria em vez de transformar `setup()` em uma
+## assinatura de onze parâmetros. As chamadas antigas de Ninho e Quartel continuam
+## exatamente como estavam, e o controller continua conhecendo cada obra por nome.
+func bind_mine(
+		mine_definition: MineDefinition,
+		mine_scene: PackedScene,
+		mine_build_point: Node3D) -> void:
+	_mine_definition = mine_definition
+	_mine_scene = mine_scene
+	_mine_build_point = mine_build_point
+
+
 func nest() -> NestRuntime:
 	return _nest
 
@@ -53,11 +72,17 @@ func barracks() -> BarracksRuntime:
 	return _barracks
 
 
+func mine() -> MineRuntime:
+	return _mine
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("build_nest"):
 		build_nest()
 	elif event.is_action_pressed("build_barracks"):
 		build_barracks()
+	elif event.is_action_pressed("build_mine"):
+		build_mine()
 
 
 func build_nest() -> bool:
@@ -85,6 +110,26 @@ func build_barracks() -> bool:
 			_barracks_build_point.global_position) as BarracksRuntime
 	_barracks.state.construction_completed.connect(_on_barracks_completed.bind(_barracks))
 	barracks_built.emit(_barracks)
+	return true
+
+
+## §28/§29/§30/§31/T20: a Mina é a primeira obra com porta de entrada própria do Nv.2. A
+## ordem das guardas é o contrato: já existe uma Mina → nada; Nível do Núcleo abaixo do
+## exigido → nada, inclusive nenhum minério é tocado; saldo abaixo do custo → nada. Só
+## depois das três recusas o custo é cobrado, uma única vez.
+func build_mine() -> bool:
+	if _mine != null or _mine_definition == null:
+		return false
+	if _core_state == null or _core_state.level < _mine_definition.required_core_level:
+		return false
+	if not _consume_build_cost(_mine_definition):
+		return false
+	_mine = _instantiate_site(_mine_scene, _mine_definition,
+			MineState.new(_mine_definition, MINE_INSTANCE_ID),
+			_mine_build_point.global_position) as MineRuntime
+	_mine.bind_stockpile(_stockpile)
+	_mine.state.construction_completed.connect(_on_mine_completed.bind(_mine))
+	mine_built.emit(_mine)
 	return true
 
 
@@ -146,6 +191,40 @@ func restore_barracks(
 	return true
 
 
+## §63/§65/§66/T20: a carga da Mina segue a regra das outras duas obras — montar, não
+## construir. Não há cobrança dos 6 minério (quem pagou foi a partida anterior), não há
+## `mine_completed` falso, e o relógio de produção volta no número do arquivo em vez de
+## ser reiniciado por um avanço de gameplay. Reencontrar a Mina do load anterior ajusta
+## os números: é isso que mantém `mine()` único quando o mesmo save é carregado cinco vezes.
+func restore_mine(
+		exists: bool,
+		remaining_work: float,
+		site_position: Vector3,
+		production_elapsed: float) -> bool:
+	if not exists:
+		_remove_site(_mine)
+		_mine = null
+		return true
+	if _mine_definition == null:
+		return false
+	if is_instance_valid(_mine) and not _mine.is_queued_for_deletion():
+		if not _mine.state.restore_remaining_work(remaining_work):
+			return false
+		_mine.global_position = site_position
+		return _mine.restore_production(production_elapsed)
+	var state := MineState.new(_mine_definition, MINE_INSTANCE_ID)
+	if not state.restore_remaining_work(remaining_work):
+		return false
+	_mine = _instantiate_site(
+			_mine_scene, _mine_definition, state, site_position) as MineRuntime
+	_mine.bind_stockpile(_stockpile)
+	_mine.state.construction_completed.connect(_on_mine_completed.bind(_mine))
+	if not _mine.restore_production(production_elapsed):
+		return false
+	mine_built.emit(_mine)
+	return true
+
+
 ## §95/§100/T18: a rota de carga é de sincronização, não de "criar se não houver". Load
 ## repetido encontra o Runtime do load anterior e ajusta o trabalho restante em vez de
 ## recusar, e `exists = false` remove a obra que a partida construiu depois do save. A
@@ -190,3 +269,10 @@ func _on_nest_completed(nest: NestRuntime) -> void:
 
 func _on_barracks_completed(barracks: BarracksRuntime) -> void:
 	barracks_completed.emit(barracks)
+
+
+## §21/§35/T20: concluir a Mina não dá minério instantâneo e não concede bônus nenhum —
+## o que acontece é a obra parar de existir como canteiro e o relógio do MineRuntime ligar.
+## O signal existe para HUD e para as suítes testemunharem a conquista, não para produzir.
+func _on_mine_completed(mine: MineRuntime) -> void:
+	mine_completed.emit(mine)

@@ -381,6 +381,11 @@ Fechadas por alinhamento do GDD ao código:  D1, D3, D4 (escopo), D5, D6 (regra)
 Fechadas pelo código:                       D2 — Tarefa 17 implementou o Cristal Abissal
                                             (feat: add abyssal crystal progression key)
 Migrada de "faltante" para "pós-MVP":       Mina (D4), Biomassa (D5)
+Pós-MVP já entregue:                        Mina Abissal — Tarefa 20
+                                            (feat: add level 2 abyssal mine): primeiro
+                                            conteúdo do Vertical Slice Nv.2, sala construída
+                                            e produtiva gated em Núcleo Nv.2, save em V2
+Pendentes do mesmo bloco:                   Biomassa (D5)
 ```
 
 ```text

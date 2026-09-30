@@ -1,5 +1,11 @@
 # Save schema v1
 
+> **Documento histórico.** Este arquivo descreve `save_version = 1` como ele foi escrito na
+> Tarefa 18 e continua válido como referência do formato. A Tarefa 20 acrescentou
+> `constructions.mine` e publicou `save_version = 2`; a diferença entre os dois está em
+> `docs/SAVE_SCHEMA_V2.md`. Nada aqui foi reescrito para "casar" com o V2 — inclusive a
+> política de migração abaixo, que foi a promessa cumprida por ela.
+
 ## Objetivo
 
 Este arquivo documenta o formato de `campaign_save.json`: o que é gravado, onde, em que
