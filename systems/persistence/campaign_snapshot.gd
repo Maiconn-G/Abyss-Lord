@@ -12,11 +12,14 @@ extends RefCounted
 
 const SAVE_FORMAT := "abyss_lord_campaign"
 ## §45/T20: a Mina acrescenta estado persistente novo, então o formato escrito é o V2.
-## §56: V1 continua sendo lido — através da migração explícita abaixo — e nunca escrito.
-## §58: suporte é lista nominal, não "qualquer número inteiro": V0 e V3/999 são recusados.
-const SAVE_VERSION := 2
+## §45/T21: a Fazenda Fúngica acrescenta a quarta obra, então o formato escrito passa a ser o
+## V3. §56: V1 e V2 continuam sendo lidos — através da cadeia de migração explícita abaixo —
+## e nunca escritos. §58: suporte é lista nominal, não "qualquer número inteiro": V0 e V4/999
+## são recusados.
+const SAVE_VERSION := 3
 const SAVE_VERSION_V1 := 1
-const SUPPORTED_VERSIONS: Array[int] = [SAVE_VERSION_V1, SAVE_VERSION]
+const SAVE_VERSION_V2 := 2
+const SUPPORTED_VERSIONS: Array[int] = [SAVE_VERSION_V1, SAVE_VERSION_V2, SAVE_VERSION]
 
 const ROOT_FORMAT := "format"
 const ROOT_VERSION := "save_version"
@@ -34,9 +37,11 @@ const SECTION_INVASION := "invasion"
 
 ## §30/§34: cada obra tem chave e id próprios, e o arquivo os nomeia por inteiro.
 ## §48/T20: `mine` entra como terceira chave de `constructions`, no mesmo formato.
+## §47/T21: `fungal_farm` entra como quarta chave, também no mesmo formato.
 const SECTION_NEST := "nest"
 const SECTION_BARRACKS := "barracks"
 const SECTION_MINE := "mine"
+const SECTION_FUNGAL_FARM := "fungal_farm"
 
 const INVASION_STATE_NAMES: Array[String] = [
 	"NOT_STARTED", "PREPARATION", "ACTIVE", "VICTORY", "DEFEAT"]
@@ -50,6 +55,8 @@ const NEST_ID := "nest_001"
 const BARRACKS_ID := "barracks_001"
 ## §25/§48/T20: a identidade semântica da única Mina da tarefa.
 const MINE_ID := "mine_001"
+## §25/§48/T21: a identidade semântica da única Fazenda Fúngica da tarefa.
+const FUNGAL_FARM_ID := "fungal_farm_001"
 
 ## §17/§21/§30/§37/§48: os nomes de campo, uma única vez.
 const KEY_LEVEL := "level"
@@ -136,9 +143,12 @@ static func validate_document(document: Variant) -> String:
 		return reason
 	var root := document as Dictionary
 	var campaign := root[ROOT_CAMPAIGN] as Dictionary
-	if int(root[ROOT_VERSION]) == SAVE_VERSION_V1:
+	var version := int(root[ROOT_VERSION])
+	if version == SAVE_VERSION_V1:
 		return validate_v1(campaign)
-	return validate_v2(campaign)
+	if version == SAVE_VERSION_V2:
+		return validate_v2(campaign)
+	return validate_v3(campaign)
 
 
 ## §73: o V1 é o formato congelado em docs/SAVE_SCHEMA_V1.md — duas obras e nenhum relógio
@@ -150,6 +160,10 @@ static func validate_v1(campaign: Dictionary) -> String:
 
 ## §47: V2 é o V1 inteiro mais `constructions.mine`. Nenhum campo antigo muda de nome, de
 ## tipo ou de significado — é acréscimo, não releitura.
+##
+## §47/T21: V2 continua sendo o V2 congelado; quem acrescenta a Fazenda é a migração V2→V3.
+## Validar V2 aqui é validar o V2 que existia antes desta tarefa, e nunca um V2 "tolerante"
+## que aceitaria a chave nova.
 static func validate_v2(campaign: Dictionary) -> String:
 	var reason := _validate_sections(campaign)
 	if not reason.is_empty():
@@ -157,12 +171,27 @@ static func validate_v2(campaign: Dictionary) -> String:
 	return _validate_mine(campaign)
 
 
-## §53/§116: a rota de migração é uma função nomeada, não um registry. Quando existir V3,
-## ela entra como mais um passo desta mesma sequência — sem grafo e sem adaptador genérico.
+## §47/T21: V3 é o V2 inteiro mais `constructions.fungal_farm`. Nenhum campo de V1 nem de V2
+## muda de nome, de tipo ou de significado.
+static func validate_v3(campaign: Dictionary) -> String:
+	var reason := _validate_sections(campaign)
+	if not reason.is_empty():
+		return reason
+	reason = _validate_mine(campaign)
+	if not reason.is_empty():
+		return reason
+	return _validate_fungal_farm(campaign)
+
+
+## §53/§116: a rota de migração é uma sequência de funções nomeadas, não um registry. Cada
+## versão sobe exatamente um degrau, na ordem: V1→V2 e depois V2→V3. Não há atalho V1→V3 —
+## uma campanha V1 passa pelos dois degraus, e cada degrau acrescenta só o que é seu.
 static func migrate_to_current(document: Dictionary) -> Dictionary:
 	var migrated := document.duplicate(true) as Dictionary
 	if int(migrated[ROOT_VERSION]) == SAVE_VERSION_V1:
 		migrated = migrate_v1_to_v2(migrated)
+	if int(migrated[ROOT_VERSION]) == SAVE_VERSION_V2:
+		migrated = migrate_v2_to_v3(migrated)
 	return migrated
 
 
@@ -170,9 +199,21 @@ static func migrate_to_current(document: Dictionary) -> Dictionary:
 ## de gameplay continuam sendo os mesmos valores do documento de entrada.
 static func migrate_v1_to_v2(document: Dictionary) -> Dictionary:
 	var migrated := document.duplicate(true) as Dictionary
-	migrated[ROOT_VERSION] = SAVE_VERSION
+	migrated[ROOT_VERSION] = SAVE_VERSION_V2
 	((migrated[ROOT_CAMPAIGN] as Dictionary)[SECTION_CONSTRUCTIONS] as Dictionary)[
 			SECTION_MINE] = {KEY_EXISTS: false}
+	return migrated
+
+
+## §54/T21: o único fato novo de um V2 migrado é que aquela campanha não tem Fazenda
+## Fúngica. A Mina que o V2 já tinha é preservada exatamente como está — a migração
+## acrescenta, não reescreve. Como o V1 passa por `migrate_v1_to_v2()` antes de chegar aqui,
+## uma campanha V1 ganha `mine` e `fungal_farm` nos dois degraus, na ordem certa.
+static func migrate_v2_to_v3(document: Dictionary) -> Dictionary:
+	var migrated := document.duplicate(true) as Dictionary
+	migrated[ROOT_VERSION] = SAVE_VERSION
+	((migrated[ROOT_CAMPAIGN] as Dictionary)[SECTION_CONSTRUCTIONS] as Dictionary)[
+			SECTION_FUNGAL_FARM] = {KEY_EXISTS: false}
 	return migrated
 
 
@@ -370,6 +411,29 @@ static func _validate_mine(campaign: Dictionary) -> String:
 		return "constructions.mine é incompleto ou tem id errado"
 	if data[KEY_REMAINING_WORK] < 0.0 or data[KEY_PRODUCTION_ELAPSED] < 0.0:
 		return "constructions.mine tem valor negativo"
+	return ""
+
+
+## §48/§49/T21: a Fazenda Fúngica repete o formato de Mina — obra com relógio. O que este
+## contrato pode afirmar sozinho é o tipo, a presença e o sinal; a faixa superior contra a
+## `production_interval` é domínio e mora no SaveGameController. Note que aqui o topo da
+## faixa é **inclusive** (a diferença de §17), mas essa é uma regra contra Definition e não
+## contra schema — o contrato só recusa negativo.
+static func _validate_fungal_farm(campaign: Dictionary) -> String:
+	var farm: Variant = (campaign[SECTION_CONSTRUCTIONS] as Dictionary).get(SECTION_FUNGAL_FARM)
+	if not (farm is Dictionary):
+		return "constructions.fungal_farm está ausente"
+	var data := farm as Dictionary
+	if not _is_bool(data, KEY_EXISTS):
+		return "constructions.fungal_farm precisa de exists"
+	if not data[KEY_EXISTS]:
+		return ""
+	if data.get("fungal_farm_id") != FUNGAL_FARM_ID \
+			or not _is_number(data, KEY_REMAINING_WORK) \
+			or not _is_position(data) or not _is_number(data, KEY_PRODUCTION_ELAPSED):
+		return "constructions.fungal_farm é incompleto ou tem id errado"
+	if data[KEY_REMAINING_WORK] < 0.0 or data[KEY_PRODUCTION_ELAPSED] < 0.0:
+		return "constructions.fungal_farm tem valor negativo"
 	return ""
 
 

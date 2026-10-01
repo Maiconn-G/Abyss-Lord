@@ -1,0 +1,166 @@
+[gd_scene load_steps=20 format=3]
+
+[ext_resource type="Script" path="res://world/dungeon/rooms/fungal_farm/fungal_farm_runtime.gd" id="1_runtime"]
+
+[sub_resource type="StandardMaterial3D" id="SiteMaterial"]
+albedo_color = Color(0.3, 0.28, 0.32, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="SiteStoneMaterial"]
+albedo_color = Color(0.48, 0.45, 0.4, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="FarmSoilMaterial"]
+albedo_color = Color(0.24, 0.2, 0.15, 1)
+roughness = 0.98
+
+[sub_resource type="StandardMaterial3D" id="FarmCapMaterial"]
+albedo_color = Color(0.52, 0.24, 0.33, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="FarmStemMaterial"]
+albedo_color = Color(0.8, 0.76, 0.66, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="FarmSporeMaterial"]
+albedo_color = Color(0.72, 0.42, 0.55, 1)
+roughness = 0.7
+
+[sub_resource type="StandardMaterial3D" id="FarmVatMaterial"]
+albedo_color = Color(0.3, 0.38, 0.3, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="SitePadMesh"]
+size = Vector3(2.2, 0.2, 2.2)
+material = SubResource("SiteMaterial")
+
+[sub_resource type="BoxMesh" id="SiteStoneMesh"]
+size = Vector3(0.4, 0.4, 0.4)
+material = SubResource("SiteStoneMaterial")
+
+[sub_resource type="BoxMesh" id="FarmSoilMesh"]
+size = Vector3(2.3, 0.22, 2.3)
+material = SubResource("FarmSoilMaterial")
+
+[sub_resource type="CylinderMesh" id="FarmStemMesh"]
+top_radius = 0.09
+bottom_radius = 0.12
+height = 0.7
+material = SubResource("FarmStemMaterial")
+
+[sub_resource type="SphereMesh" id="FarmCapMesh"]
+radius = 0.34
+height = 0.4
+material = SubResource("FarmCapMaterial")
+
+[sub_resource type="SphereMesh" id="FarmSmallCapMesh"]
+radius = 0.22
+height = 0.26
+material = SubResource("FarmCapMaterial")
+
+[sub_resource type="SphereMesh" id="FarmSporeMesh"]
+radius = 0.07
+height = 0.14
+material = SubResource("FarmSporeMaterial")
+
+[sub_resource type="BoxMesh" id="FarmVatMesh"]
+size = Vector3(0.7, 0.5, 0.7)
+material = SubResource("FarmVatMaterial")
+
+[sub_resource type="CylinderShape3D" id="FarmShape"]
+radius = 1.1
+height = 2.0
+
+[node name="FungalFarmRuntime" type="StaticBody3D"]
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("1_runtime")
+
+[node name="ConstructionVisual" type="Node3D" parent="."]
+
+[node name="SitePad" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+mesh = SubResource("SitePadMesh")
+
+[node name="Stone1" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.7, 0.4, 0.2)
+mesh = SubResource("SiteStoneMesh")
+
+[node name="Stone2" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 0.4, 0.6)
+mesh = SubResource("SiteStoneMesh")
+
+[node name="Stone3" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0.4, -0.6)
+mesh = SubResource("SiteStoneMesh")
+
+[node name="SproutStem" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.35, -0.1)
+mesh = SubResource("FarmStemMesh")
+
+[node name="SproutCap" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.72, -0.1)
+mesh = SubResource("FarmSmallCapMesh")
+
+[node name="CompletedVisual" type="Node3D" parent="."]
+visible = false
+
+[node name="SoilBed" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.11, 0)
+mesh = SubResource("FarmSoilMesh")
+
+[node name="Stem1" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0.55, 0.4)
+mesh = SubResource("FarmStemMesh")
+
+[node name="Cap1" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0.95, 0.4)
+mesh = SubResource("FarmCapMesh")
+
+[node name="Stem2" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.55, 0.45, 0.55)
+mesh = SubResource("FarmStemMesh")
+
+[node name="Cap2" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.55, 0.82, 0.55)
+mesh = SubResource("FarmSmallCapMesh")
+
+[node name="Stem3" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2, 0.6, -0.7)
+mesh = SubResource("FarmStemMesh")
+
+[node name="Cap3" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2, 1.0, -0.7)
+mesh = SubResource("FarmCapMesh")
+
+[node name="Stem4" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.75, 0.4, -0.6)
+mesh = SubResource("FarmStemMesh")
+
+[node name="Cap4" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.75, 0.76, -0.6)
+mesh = SubResource("FarmSmallCapMesh")
+
+[node name="Spore1" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 1.25, 0.15)
+mesh = SubResource("FarmSporeMesh")
+
+[node name="Spore2" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 1.2, 0.75)
+mesh = SubResource("FarmSporeMesh")
+
+[node name="Spore3" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.05, 1.3, -0.85)
+mesh = SubResource("FarmSporeMesh")
+
+[node name="CultureVat1" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.85, 0.35, -0.1)
+mesh = SubResource("FarmVatMesh")
+
+[node name="CultureVat2" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9, 0.35, 0.05)
+mesh = SubResource("FarmVatMesh")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+shape = SubResource("FarmShape")

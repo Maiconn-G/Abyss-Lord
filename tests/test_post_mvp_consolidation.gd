@@ -247,11 +247,13 @@ func _test_no_tres_migration() -> void:
 	_check(not nest_text.contains("barracks") and not barracks_text.contains("nest_type_id"),
 			"§12 nenhum dado de uma sala vazou para a outra")
 	# §9/T20 nomeia o caminho exato da terceira Definition (`res://data/rooms/abyss_mine.tres`).
-	# A lista continua exata: o que a guarda proíbe é sala inventada, e uma sala com nome e
-	# valores escritos no contrato deixa de ser inventada quando o contrato passa a citá-la.
+	# T21 acrescenta a quarta (`abyss_fungal_farm.tres`), citada no mesmo contrato. O que a
+	# guarda proíbe continua sendo sala inventada, não a contagem: uma sala com nome e valores
+	# escritos no contrato deixa de ser inventada quando o contrato passa a citá-la.
 	_check(_files_with_extension("res://data/rooms", ".tres")
-			== ["abyss_barracks.tres", "abyss_mine.tres", "abyss_nest.tres"],
-			"§12/§2 T15 e §9 T20: as três Definitions da campanha, nenhuma sala inventada")
+			== ["abyss_barracks.tres", "abyss_fungal_farm.tres", "abyss_mine.tres",
+					"abyss_nest.tres"],
+			"§12/§2 T15, §9 T20 e §9 T21: as Definitions da campanha, nenhuma sala inventada")
 
 
 ## §45: a regra de obra vive uma vez. Com uma Definition sintética, o State base anda

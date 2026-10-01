@@ -218,9 +218,11 @@ func _test_crystal_is_not_an_operating_resource() -> void:
 	_check(definition != null and not (definition is ResourceDefinition),
 			"§55 AbyssalCrystalDefinition não herda ResourceDefinition")
 	_check(load(CRYSTAL_PATH) is Resource, "§4 ainda é um Resource, só que de progressão")
-	# §5/§99: o estoque operacional continua com um item só. Cristal ali seria contaminação.
-	_check(_files_in(DATA_RESOURCES_DIR, ".tres") == ["iron_ore.tres"],
-			"§99 data/resources continua só com iron_ore.tres, obtido %s"
+	# §5/§99: o estoque operacional continua sem Cristal. A Tarefa 21 acrescentou a Biomassa
+	# como segundo recurso operacional legítimo, então a lista deixou de ser um item só — o
+	# que §99 garante é a AUSÊNCIA do Cristal, não a contagem.
+	_check(not _files_in(DATA_RESOURCES_DIR, ".tres").has("abyssal_crystal.tres"),
+			"§99 data/resources não tem arquivo de Cristal, obtido %s"
 					% [_files_in(DATA_RESOURCES_DIR, ".tres")])
 	# §52: o painel de recursos não aprendeu a falar de Cristal.
 	var resource_hud := _code_of(RESOURCE_HUD_SOURCE)
