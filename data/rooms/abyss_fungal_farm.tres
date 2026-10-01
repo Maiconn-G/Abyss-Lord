@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="FungalFarmDefinition" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://core/definitions/fungal_farm_definition.gd" id="1_definition"]
+[ext_resource type="Resource" path="res://data/resources/iron_ore.tres" id="2_iron_ore"]
+[ext_resource type="Resource" path="res://data/resources/biomass.tres" id="3_biomass"]
+
+[resource]
+script = ExtResource("1_definition")
+farm_type_id = &"fungal_farm"
+display_name = "Fazenda Fúngica"
+required_core_level = 2
+build_resource = ExtResource("2_iron_ore")
+build_cost = 4
+work_required = 6.0
+output_resource = ExtResource("3_biomass")
+production_amount = 1
+production_interval = 8.0
+essence_cost_per_cycle = 4.0

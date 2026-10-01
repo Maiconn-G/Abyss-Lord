@@ -6,6 +6,10 @@ const BARRACKS_SCENE := preload("res://world/dungeon/rooms/barracks/BarracksRunt
 ## §17/T20: a cena da Mina entra na composition root como as outras duas obras — o
 ## controller recebe a cena por parâmetro e nunca procura caminho de arquivo sozinho.
 const MINE_SCENE := preload("res://world/dungeon/rooms/mine/MineRuntime.tscn")
+## §24/T21: a cena da Fazenda Fúngica entra na composition root pelo mesmo caminho — o
+## controller recebe a cena por parâmetro e nunca procura caminho de arquivo sozinho.
+const FUNGAL_FARM_SCENE := preload(
+		"res://world/dungeon/rooms/fungal_farm/FungalFarmRuntime.tscn")
 const WORKER_SCENE := preload("res://units/workers/WorkerRuntime.tscn")
 const SOLDIER_SCENE := preload("res://units/soldiers/SoldierRuntime.tscn")
 const ENEMY_SCENE := preload("res://units/enemies/EnemyRuntime.tscn")
@@ -31,6 +35,13 @@ const SAVE_SCRIPT := preload("res://systems/persistence/save_game_controller.gd"
 ## §8/§9/T20: a Definition da Mina é dado injetado, como cada outra obra. O nível exigido,
 ## o custo e o par (montante, intervalo) do rendimento vivem no .tres, não aqui.
 @export var mine_definition: MineDefinition
+## §6/§24/T21: a Definition da Fazenda Fúngica é dado injetado, como cada outra obra. O
+## nível exigido, o custo, o par (montante, intervalo) e o preço em Essência por ciclo vivem
+## no .tres, não aqui.
+@export var fungal_farm_definition: FungalFarmDefinition
+## §23/T21: o recurso orgânico. É uma ResourceDefinition como o Minério e mora no MESMO
+## estoque genérico — não há pilha, depósito nem State próprios para a Biomassa.
+@export var biomass_definition: ResourceDefinition
 
 @onready var _dungeon: Node3D = $World/DungeonRoot
 @onready var _core: CoreRuntime = $World/DungeonRoot/MainCore
@@ -39,6 +50,7 @@ const SAVE_SCRIPT := preload("res://systems/persistence/save_game_controller.gd"
 @onready var _build_point: Marker3D = $World/DungeonRoot/NestBuildPoint
 @onready var _barracks_build_point: Marker3D = $World/DungeonRoot/BarracksBuildPoint
 @onready var _mine_build_point: Marker3D = $World/DungeonRoot/MineBuildPoint
+@onready var _fungal_farm_build_point: Marker3D = $World/DungeonRoot/FungalFarmBuildPoint
 @onready var _spawn_point: Marker3D = $World/DungeonRoot/WorkerSpawnPoint
 @onready var _soldier_spawn_point: Marker3D = $World/DungeonRoot/SoldierSpawnPoint
 @onready var _invasion_point_a: Marker3D = $World/DungeonRoot/InvasionSpawnPointA
@@ -79,7 +91,9 @@ func _ready() -> void:
 	var stockpile_state := ResourceStockpileState.new()
 	_deposit.setup(stockpile_state)
 	_worker.set_resource_deposit(_deposit)
-	_resource_hud.bind_stockpile(stockpile_state, iron_ore_definition)
+	# §38/T21: o painel de recursos passa a acompanhar os dois recursos operacionais. A
+	# assinatura antiga de um recurso continua valendo; a Biomassa entra pelo segundo slot.
+	_resource_hud.bind_stockpile(stockpile_state, iron_ore_definition, biomass_definition)
 
 	_construction.setup(
 			stockpile_state,
@@ -94,8 +108,13 @@ func _ready() -> void:
 	# §26/T20: a Mina chega por vinculação própria, depois do Núcleo estar vinculado — é o
 	# nível do CoreState que abre a porta dela, e o controller já o tem.
 	_construction.bind_mine(mine_definition, MINE_SCENE, _mine_build_point)
+	# §24/§31/T21: a Fazenda Fúngica chega por vinculação própria, depois do Núcleo e da Mina
+	# — a porta dela tem as duas condições, e o controller já conhece ambas.
+	_construction.bind_fungal_farm(
+			fungal_farm_definition, FUNGAL_FARM_SCENE, _fungal_farm_build_point)
 	_construction_hud.bind(
-			_construction, stockpile_state, nest_definition, core_state, mine_definition)
+			_construction, stockpile_state, nest_definition, core_state,
+			mine_definition, fungal_farm_definition)
 
 	_invocation.setup(core_state, worker_definition, WORKER_SCENE, _dungeon, _spawn_point)
 	_invocation.bind_delivery_deposit(_deposit)
@@ -200,6 +219,7 @@ func _setup_save(stockpile_state: ResourceStockpileState, core_state: CoreState)
 			nest_definition,
 			barracks_definition,
 			mine_definition,
+			fungal_farm_definition,
 			[core_definition, core_level_2_definition],
 			_resource_materials(),
 			ROCK_SCENE,
@@ -209,10 +229,15 @@ func _setup_save(stockpile_state: ResourceStockpileState, core_state: CoreState)
 	_save.load_succeeded.connect(_on_load_succeeded)
 
 
-## §71/T18: as Resources que a campanha conhece são as únicas que um load pode resolver, e
-## elas vêm da própria cena — o recurso do Depósito e o rendimento de cada Rocha.
+## §71/T18/T21: as Resources que a campanha conhece são as únicas que um load pode resolver,
+## e elas vêm da própria cena — o recurso do Depósito, o rendimento de cada Rocha e, agora, a
+## Biomassa da Fazenda Fúngica (§96/T21). A Fazenda deposita Biomassa no mesmo estoque
+## genérico, então o id `biomass` precisa estar registrado aqui ou o save o recusaria como
+## recurso desconhecido.
 func _resource_materials() -> Array:
 	var materials: Array = [iron_ore_definition]
+	if biomass_definition != null and not materials.has(biomass_definition):
+		materials.append(biomass_definition)
 	for child in _dungeon.get_children():
 		var rock := child as RockRuntime
 		if rock != null and rock.definition.yield_resource != null \

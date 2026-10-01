@@ -53,6 +53,11 @@ var _barracks_definition: BarracksDefinition
 ## e caminho de cena nunca vem do JSON — a cena da Mina pertence ao ConstructionController,
 ## que é quem a instancia em `restore_mine()`.
 var _mine_definition: MineDefinition
+## §61/T21: a Definition da Fazenda entra na whitelist como material de restauração. O que o
+## arquivo diz é `production_elapsed`; a faixa com que se confere esse número é daqui, e
+## caminho de cena nunca vem do JSON — a cena da Fazenda pertence ao ConstructionController,
+## que é quem a instancia em `restore_fungal_farm()`.
+var _fungal_farm_definition: FungalFarmDefinition
 var _rock_scene: PackedScene
 var _pile_scene: PackedScene
 var _core_definitions_by_level: Dictionary = {}
@@ -104,6 +109,7 @@ func bind_restore_materials(
 		nest_definition: NestDefinition,
 		barracks_definition: BarracksDefinition,
 		mine_definition: MineDefinition,
+		fungal_farm_definition: FungalFarmDefinition,
 		core_definitions: Array,
 		resource_definitions: Array,
 		rock_scene: PackedScene,
@@ -114,6 +120,7 @@ func bind_restore_materials(
 	_nest_definition = nest_definition
 	_barracks_definition = barracks_definition
 	_mine_definition = mine_definition
+	_fungal_farm_definition = fungal_farm_definition
 	_rock_scene = rock_scene
 	_pile_scene = pile_scene
 	for definition in core_definitions:
@@ -281,6 +288,8 @@ func _soldier_record() -> Dictionary:
 ## derivada de `remaining_work <= 0` (§123) e por isso não há bool duplicado.
 ##
 ## §62/T20: a Mina entra na mesma seção. Ela é uma obra, e o que a diferencia é o relógio.
+## §62/T21: a Fazenda Fúngica entra pela mesma regra — obra com relógio. A Essência que ela
+## gasta por ciclo NÃO é campo do arquivo: o saldo de Essência já é `campaign.core.essence`.
 func _constructions_record() -> Dictionary:
 	return {
 		CampaignSnapshot.SECTION_NEST:
@@ -289,6 +298,8 @@ func _constructions_record() -> Dictionary:
 				_site_record(_construction.barracks(), CampaignSnapshot.BARRACKS_ID,
 						"barracks_id"),
 		CampaignSnapshot.SECTION_MINE: _mine_record(_construction.mine()),
+		CampaignSnapshot.SECTION_FUNGAL_FARM:
+				_fungal_farm_record(_construction.fungal_farm()),
 	}
 
 
@@ -312,6 +323,31 @@ func _mine_record(mine: MineRuntime) -> Dictionary:
 	var elapsed := 0.0
 	if mine.is_completed():
 		elapsed = mine_state.production_elapsed
+	recorded[CampaignSnapshot.KEY_PRODUCTION_ELAPSED] = elapsed
+	return recorded
+
+
+## §49/§50/T21: a mesma regra da Mina para a Fazenda — o arquivo guarda `production_elapsed`,
+## porque é estado temporal real da campanha. Intervalo, montante, recurso produzido e custo
+## de Essência vêm da FungalFarmDefinition, e duplicá-los criaria duas verdades sobre a mesma
+## Fazenda. O custo de Essência em particular JÁ está no arquivo, em `core.essence`: gravar o
+## custo por ciclo não é gravar saldo, e gravar saldo uma segunda vez seria duplicar.
+##
+## A regra §50 é aplicada na escrita: obra incompleta não tem relógio, então o número que sai
+## para o arquivo é 0.0.
+func _fungal_farm_record(farm: FungalFarmRuntime) -> Dictionary:
+	if farm == null or farm.is_queued_for_deletion():
+		return {CampaignSnapshot.KEY_EXISTS: false}
+	var farm_state := farm.state as FungalFarmState
+	var recorded: Dictionary = {
+		CampaignSnapshot.KEY_EXISTS: true,
+		"fungal_farm_id": CampaignSnapshot.FUNGAL_FARM_ID,
+		CampaignSnapshot.KEY_REMAINING_WORK: farm_state.remaining_work,
+		CampaignSnapshot.KEY_POSITION: CampaignSnapshot.encode_position(farm.global_position),
+	}
+	var elapsed := 0.0
+	if farm.is_completed():
+		elapsed = farm_state.production_elapsed
 	recorded[CampaignSnapshot.KEY_PRODUCTION_ELAPSED] = elapsed
 	return recorded
 
@@ -512,8 +548,12 @@ func _validate_construction_bounds(campaign: Dictionary) -> String:
 			return "a campanha não tem Definition para %s" % pair[0]
 		if site[CampaignSnapshot.KEY_REMAINING_WORK] > definition.work_required:
 			return "%s com trabalho acima do exigido" % pair[0]
-	return _validate_mine_clock(
+	var mine_reason := _validate_mine_clock(
 			constructions[CampaignSnapshot.SECTION_MINE] as Dictionary)
+	if not mine_reason.is_empty():
+		return mine_reason
+	return _validate_fungal_farm_clock(
+			constructions[CampaignSnapshot.SECTION_FUNGAL_FARM] as Dictionary)
 
 
 ## §50/§51/T20: as duas invariantes do relógio da Mina. Obra incompleta não tem produção
@@ -533,6 +573,28 @@ func _validate_mine_clock(site: Dictionary) -> String:
 		return "mine incompleta com relógio de produção"
 	if remaining <= 0.0 and elapsed >= _mine_definition.production_interval:
 		return "mine com relógio acima do intervalo de produção"
+	return ""
+
+
+## §50/§51/T21: as duas invariantes do relógio da Fazenda são as mesmas da Mina — obra
+## incompleta não tem produção andando, e obra completa tem relógio dentro de um intervalo.
+## A diferença é o topo da faixa: a Mina exige `elapsed < interval` (strict), porque um ciclo
+## inteiro acumulado já teria virado minério; a Fazenda aceita `elapsed <= interval`
+## (inclusive), porque §17 define que um ciclo pronto **parado esperando Essência** é um
+## estado legítimo da campanha. O intervalo é lido da Definition injetada, nunca do arquivo.
+func _validate_fungal_farm_clock(site: Dictionary) -> String:
+	if not site[CampaignSnapshot.KEY_EXISTS]:
+		return ""
+	if _fungal_farm_definition == null:
+		return "a campanha não tem Definition para fungal_farm"
+	var remaining := float(site[CampaignSnapshot.KEY_REMAINING_WORK])
+	var elapsed := float(site[CampaignSnapshot.KEY_PRODUCTION_ELAPSED])
+	if remaining > _fungal_farm_definition.work_required:
+		return "fungal_farm com trabalho acima do exigido"
+	if remaining > 0.0 and elapsed > 0.0:
+		return "fungal_farm incompleta com relógio de produção"
+	if remaining <= 0.0 and elapsed > _fungal_farm_definition.production_interval:
+		return "fungal_farm com relógio acima do intervalo de produção"
 	return ""
 
 
@@ -889,6 +951,7 @@ func _restore_constructions(campaign: Dictionary) -> void:
 	_restore_site(constructions[CampaignSnapshot.SECTION_BARRACKS] as Dictionary,
 			_construction.restore_barracks)
 	_restore_mine(constructions[CampaignSnapshot.SECTION_MINE] as Dictionary)
+	_restore_fungal_farm(constructions[CampaignSnapshot.SECTION_FUNGAL_FARM] as Dictionary)
 
 
 ## §63/§64/T20: a Mina tem rota própria porque tem um quarto número — o relógio de
@@ -900,6 +963,20 @@ func _restore_mine(site: Dictionary) -> void:
 		_construction.restore_mine(false, 0.0, Vector3.ZERO, 0.0)
 		return
 	_construction.restore_mine(true,
+			float(site[CampaignSnapshot.KEY_REMAINING_WORK]),
+			CampaignSnapshot.decode_position(site[CampaignSnapshot.KEY_POSITION]),
+			float(site[CampaignSnapshot.KEY_PRODUCTION_ELAPSED]))
+
+
+## §63/§64/T21: a Fazenda tem rota própria pela mesma razão da Mina — o relógio de produção.
+## A ausência dela desmonta a obra sem cobrar e sem emitir conquista; a presença dela devolve
+## trabalho e elapsed exatamente como foram gravados, e é `restore_fungal_farm()` que decide
+## se o processo de produção liga.
+func _restore_fungal_farm(site: Dictionary) -> void:
+	if not bool(site.get(CampaignSnapshot.KEY_EXISTS, false)):
+		_construction.restore_fungal_farm(false, 0.0, Vector3.ZERO, 0.0)
+		return
+	_construction.restore_fungal_farm(true,
 			float(site[CampaignSnapshot.KEY_REMAINING_WORK]),
 			CampaignSnapshot.decode_position(site[CampaignSnapshot.KEY_POSITION]),
 			float(site[CampaignSnapshot.KEY_PRODUCTION_ELAPSED]))

@@ -7,10 +7,13 @@ signal barracks_built(barracks: BarracksRuntime)
 signal barracks_completed(barracks: BarracksRuntime)
 signal mine_built(mine: MineRuntime)
 signal mine_completed(mine: MineRuntime)
+signal fungal_farm_built(fungal_farm: FungalFarmRuntime)
+signal fungal_farm_completed(fungal_farm: FungalFarmRuntime)
 
 const NEST_INSTANCE_ID := "nest_001"
 const BARRACKS_INSTANCE_ID := "barracks_001"
 const MINE_INSTANCE_ID := "mine_001"
+const FUNGAL_FARM_INSTANCE_ID := "fungal_farm_001"
 
 var _stockpile: ResourceStockpileState
 var _definition: NestDefinition
@@ -27,6 +30,10 @@ var _mine_definition: MineDefinition
 var _mine_scene: PackedScene
 var _mine_build_point: Node3D
 var _mine: MineRuntime
+var _fungal_farm_definition: FungalFarmDefinition
+var _fungal_farm_scene: PackedScene
+var _fungal_farm_build_point: Node3D
+var _fungal_farm: FungalFarmRuntime
 
 
 func setup(
@@ -64,6 +71,18 @@ func bind_mine(
 	_mine_build_point = mine_build_point
 
 
+## §26/T21: a Fazenda Fúngica entra pela mesma regra da Mina — vinculação própria depois do
+## `setup()` original. A assinatura de oito parâmetros continua exatamente como estava, e o
+## controller continua conhecendo cada obra por nome, sem registry e sem type switch.
+func bind_fungal_farm(
+		fungal_farm_definition: FungalFarmDefinition,
+		fungal_farm_scene: PackedScene,
+		fungal_farm_build_point: Node3D) -> void:
+	_fungal_farm_definition = fungal_farm_definition
+	_fungal_farm_scene = fungal_farm_scene
+	_fungal_farm_build_point = fungal_farm_build_point
+
+
 func nest() -> NestRuntime:
 	return _nest
 
@@ -76,6 +95,10 @@ func mine() -> MineRuntime:
 	return _mine
 
 
+func fungal_farm() -> FungalFarmRuntime:
+	return _fungal_farm
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("build_nest"):
 		build_nest()
@@ -83,6 +106,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		build_barracks()
 	elif event.is_action_pressed("build_mine"):
 		build_mine()
+	elif event.is_action_pressed("build_fungal_farm"):
+		build_fungal_farm()
 
 
 func build_nest() -> bool:
@@ -130,6 +155,37 @@ func build_mine() -> bool:
 	_mine.bind_stockpile(_stockpile)
 	_mine.state.construction_completed.connect(_on_mine_completed.bind(_mine))
 	mine_built.emit(_mine)
+	return true
+
+
+## §30/§31/§32/§33/T21: a Fazenda Fúngica é a primeira obra com **duas condições de
+## progressão** em vez de uma. A ordem das guardas é o contrato, e cada recusa acontece
+## antes de qualquer toque no estoque:
+##   1) já existe uma Fazenda → nada;
+##   2) Nível do Núcleo abaixo de Nv.2 → nada;
+##   3) não há Mina → nada (a Fazenda vem depois da economia mineral);
+##   4) a Mina existe mas ainda é canteiro → nada (concluir a Mina é o pré-requisito);
+##   5) saldo de Minério abaixo do custo → nada.
+## Só depois das cinco recusas o custo é cobrado, uma única vez.
+func build_fungal_farm() -> bool:
+	if _fungal_farm != null or _fungal_farm_definition == null:
+		return false
+	if _core_state == null or _core_state.level < _fungal_farm_definition.required_core_level:
+		return false
+	if _mine == null or not _mine.is_completed():
+		return false
+	if not _consume_build_cost(_fungal_farm_definition):
+		return false
+	_fungal_farm = _instantiate_site(_fungal_farm_scene, _fungal_farm_definition,
+			FungalFarmState.new(_fungal_farm_definition, FUNGAL_FARM_INSTANCE_ID),
+			_fungal_farm_build_point.global_position) as FungalFarmRuntime
+	# §22/T21: a Fazenda precisa dos dois mundos — estoque para a Biomassa, Núcleo para a
+	# Essência. Os dois são vinculados aqui, na rota da Fazenda, e em nenhum outro lugar.
+	_fungal_farm.bind_stockpile(_stockpile)
+	_fungal_farm.bind_core_state(_core_state)
+	_fungal_farm.state.construction_completed.connect(
+			_on_fungal_farm_completed.bind(_fungal_farm))
+	fungal_farm_built.emit(_fungal_farm)
 	return true
 
 
@@ -225,6 +281,44 @@ func restore_mine(
 	return true
 
 
+## §64/§65/T21: a mesma regra da Mina serve à Fazenda — montar, não construir. Não há
+## cobrança dos 4 minérios, não há `fungal_farm_completed` falso, e o relógio de produção
+## volta no número do arquivo. A diferença é que a Fazenda também reconecta os dois vínculos
+## que a rota de construção faria: sem estoque e sem Núcleo, a produção restaurada não teria
+## para onde ir nem de onde pagar. Reencontrar a Fazenda de um load anterior ajusta os
+## números, e é isso que mantém `fungal_farm()` único em cargas repetidas.
+func restore_fungal_farm(
+		exists: bool,
+		remaining_work: float,
+		site_position: Vector3,
+		production_elapsed: float) -> bool:
+	if not exists:
+		_remove_site(_fungal_farm)
+		_fungal_farm = null
+		return true
+	if _fungal_farm_definition == null:
+		return false
+	if is_instance_valid(_fungal_farm) and not _fungal_farm.is_queued_for_deletion():
+		if not _fungal_farm.state.restore_remaining_work(remaining_work):
+			return false
+		_fungal_farm.global_position = site_position
+		return _fungal_farm.restore_production(production_elapsed)
+	var state := FungalFarmState.new(_fungal_farm_definition, FUNGAL_FARM_INSTANCE_ID)
+	if not state.restore_remaining_work(remaining_work):
+		return false
+	_fungal_farm = _instantiate_site(
+			_fungal_farm_scene, _fungal_farm_definition, state,
+			site_position) as FungalFarmRuntime
+	_fungal_farm.bind_stockpile(_stockpile)
+	_fungal_farm.bind_core_state(_core_state)
+	_fungal_farm.state.construction_completed.connect(
+			_on_fungal_farm_completed.bind(_fungal_farm))
+	if not _fungal_farm.restore_production(production_elapsed):
+		return false
+	fungal_farm_built.emit(_fungal_farm)
+	return true
+
+
 ## §95/§100/T18: a rota de carga é de sincronização, não de "criar se não houver". Load
 ## repetido encontra o Runtime do load anterior e ajusta o trabalho restante em vez de
 ## recusar, e `exists = false` remove a obra que a partida construiu depois do save. A
@@ -276,3 +370,11 @@ func _on_barracks_completed(barracks: BarracksRuntime) -> void:
 ## O signal existe para HUD e para as suítes testemunharem a conquista, não para produzir.
 func _on_mine_completed(mine: MineRuntime) -> void:
 	mine_completed.emit(mine)
+
+
+## §30/T21: concluir a Fazenda não dá Biomassa instantânea e não concede bônus nenhum — o
+## que acontece é a obra parar de existir como canteiro e o relógio do FungalFarmRuntime
+## ligar, já com estoque e Núcleo vinculados. O signal existe para HUD e para as suítes
+## testemunharem a conquista, não para produzir.
+func _on_fungal_farm_completed(fungal_farm: FungalFarmRuntime) -> void:
+	fungal_farm_completed.emit(fungal_farm)

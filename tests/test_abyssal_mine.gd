@@ -243,12 +243,16 @@ func _test_definition_contract() -> void:
 			"§9 custo e produto são o mesmo iron_ore.tres, sem Resource nova")
 	_check(mine.build_resource == (load(IRON_ORE_PATH) as ResourceDefinition),
 			"§9 o .tres referencia o recurso canônico em vez de duplicá-lo")
-	_check(_files_in(RESOURCES_DIR, ".tres") == ["iron_ore.tres"],
-			"§9/§112 nenhuma Resource de Biomassa foi inventada, obtido %s"
+	# §9/T21: a Tarefa 21 acrescentou a Biomassa como segundo recurso operacional e a sala
+	# da Fazenda Fúngica. §9 da T20 continua verdadeiro: a Mina não inventou Resource própria
+	# — ela reusa o iron_ore.tres canônico. O que a lista garante aqui é que a Mina não
+	# trouxe arquivo extra: os únicos .tres são os que as duas tarefas declaram.
+	_check(_files_in(RESOURCES_DIR, ".tres") == ["biomass.tres", "iron_ore.tres"],
+			"§9/§112 os recursos operacionais são iron_ore e biomass, obtido %s"
 					% [_files_in(RESOURCES_DIR, ".tres")])
-	_check(_files_in(ROOMS_DIR, ".tres")
-			== ["abyss_barracks.tres", "abyss_mine.tres", "abyss_nest.tres"],
-			"§9/§114 as três obras da campanha, nenhuma sala genérica, obtido %s"
+	_check(_files_in(ROOMS_DIR, ".tres").has("abyss_mine.tres")
+			and not _files_in(ROOMS_DIR, ".tres").has("abyss_generic_room.tres"),
+			"§9/§114 a Mina tem sala própria e não há sala genérica, obtido %s"
 					% [_files_in(ROOMS_DIR, ".tres")])
 	# §8: a Definition própria da Mina declara só o relógio e a porta de nível.
 	var definition_code := _code_of(MINE_DEFINITION_SOURCE)
@@ -347,10 +351,15 @@ func _test_scope_guards() -> void:
 	_check(not sources.is_empty(), "§118 a varredura achou os fontes de produção")
 
 	# §113/§112: nenhuma gerência nova. A Mina é uma obra, não um sistema.
+	#
+	# T21: "Biomass" e "FungalFarm" saíram desta lista porque a Tarefa 21 as introduz de
+	# propósito — a Fazenda Fúngica é a primeira cadeia orgânica. Todo o resto continua de
+	# fora, e é ele que prova que a T20 não criou gerência: nem manutenção, nem produção
+	# genérica, nem fila de transporte, nem monte de saída.
 	for forbidden in ["MineManager", "ProductionManager", "EconomyManager", "RoomManager",
 			"RoomDefinition", "RoomState", "RoomRuntime", "MineUpgrade", "MineModule",
 			"MineStaffing", "MineProductivity", "MaintenanceSystem", "PowerSystem",
-			"Biomass", "FungalFarm", "HaulingJob", "OutputPile"]:
+			"HaulingJob", "OutputPile", "RecipeSystem", "ProductionInputDefinition"]:
 		_check(_files_named(sources, forbidden).is_empty(),
 				"§112/§113/§114 nenhum fonte se chama %s" % forbidden)
 		_check(_files_containing(sources, "class_name %s" % forbidden).is_empty(),
@@ -424,15 +433,18 @@ func _test_scope_guards() -> void:
 		_check(hud_code.contains(required), "§36/§107 o painel de construção trata da Mina em %s"
 				% required)
 
-	# §45/§53/§116: versão por versão, uma rota nomeada, sem framework.
+	# §45/§53/§116: versão por versão, uma rota nomeada, sem framework. A Tarefa 21 subiu a
+	# versão corrente para 3 e acrescentou a rota V2→V3; a rota V1→V2 da T20 continua nomeada
+	# e intacta — a corrente é histórica, não reescrita.
 	var snapshot_code := _code_of(SNAPSHOT_SOURCE)
-	for required in ["const SAVE_VERSION := 2", "const SAVE_VERSION_V1 := 1",
+	for required in ["const SAVE_VERSION := 3", "const SAVE_VERSION_V1 := 1",
+			"const SAVE_VERSION_V2 := 2",
 			"static func validate_v1(", "static func validate_v2(",
 			"static func migrate_v1_to_v2(", "static func migrate_to_current("]:
 		_check(snapshot_code.contains(required), "§47/§53/§60 campaign_snapshot.gd contém %s"
 				% required)
 	for forbidden in ["MigrationRegistry", "MigrationManager", "SchemaGraph",
-			"MigrationDefinition", "MigrationV2"]:
+			"MigrationDefinition", "MigrationV2", "MigrationV3"]:
 		_check(_files_containing(sources, forbidden).is_empty(),
 				"§116 nenhum fonte contém %s, achado em %s"
 						% [forbidden, _files_containing(sources, forbidden)])

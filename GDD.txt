@@ -483,6 +483,10 @@ Recurso orgânico.
 não entra retroativamente no MVP já concluído e não é obrigatória para fechar o
 Nv.1 → Nv.2.
 
+A Biomassa é o **segundo recurso operacional** do domínio, ao lado do Minério. Ela
+mora no mesmo estoque genérico que o Minério — não tem pilha própria, não tem
+depósito próprio, e não é carregada por Trabalhador.
+
 Obtido através de:
 
 * caça;
@@ -490,6 +494,12 @@ Obtido através de:
 * fazendas;
 * corpos;
 * criaturas.
+
+Na progressão do Nv.2, a primeira fonte implementada é a **Fazenda Fúngica** (§17),
+que converte a energia do Núcleo em matéria viva. Assim como a Mina ensinou a
+**autoprodução mineral**, a Fazenda ensina a **conversão de energia em matéria
+orgânica** — e é por isso que ela tem um custo recorrente de Essência, coisa que a
+Mina não tem.
 
 Usado para:
 
@@ -731,6 +741,16 @@ Reduz penalidades de descanso.
 ## Fazenda Fúngica
 
 Produz Biomassa.
+
+Infraestrutura **produtiva orgânica**: permanente, renovável, desbloqueada no Núcleo Nv.2
+depois da Mina, e a primeira cadeia que **consome energia**. Diferente da Mina, que extrai
+do subsolo sem gastar Essência, a Fazenda gasta **4 Essências por ciclo** para converter o
+ambiente fúngico em matéria viva. Sem energia, ela não produz — e é essa dependência que
+faz dela uma decisão econômica, não só mais um prédio de renda.
+
+A ordem de entrada é: Núcleo Nv.2 → Mina concluída → 4 de Minério de Ferro → Fazenda
+Fúngica. A Mina vem primeiro porque ensina a economia renovável mineral; a Fazenda vem
+depois porque ensina que produzir também custa energia.
 
 ## Poço de Essência
 
@@ -2735,6 +2755,11 @@ Candidatos explícitos de abertura do slice:
 * **mais Trabalhadores** — a população acima de 2 deixa de ser limite de MVP;
 * **economia renovável** — produção contínua substituindo extração finita de rochas.
 
+Dois desses candidatos já foram abertos: a **Mina** (autoprodução mineral) e a
+**Biomassa** pela **Fazenda Fúngica** (conversão de energia em matéria viva). Os outros
+dois — mais Trabalhadores e a economia renovável completa — seguem como próximos passos
+do slice.
+
 Depois desses quatro, o resto do slice:
 
 Núcleo Nv.2–3.
@@ -3098,3 +3123,22 @@ O desenho canônico e o código divergiam de propósito até aqui: o design mudo
 Tarefa 16 e o código foi alinhado na Tarefa 17. A trilha dessa decisão está em
 `docs/DESIGN_DECISIONS_POST_MVP.md` (D2, agora alinhada), e a fotografia do que o código
 fazia no momento da auditoria continua preservada em `docs/POST_MVP_AUDIT.md`.
+
+## O slice continuou: a cadeia orgânica
+
+Depois do Nv.2 mineral, a **Tarefa 20** abriu a primeira infraestrutura produtiva
+renovável — a **Mina Abissal** —, e a **Tarefa 21** abriu o segundo recurso operacional e
+a primeira infraestrutura **energética**: a **Fazenda Fúngica**, que consome 4 Essências
+por ciclo para produzir 1 Biomassa.
+
+A diferença de princípio é o que importa:
+
+* a **Mina ensinou autoprodução mineral** — a obra rende sem gastar nada;
+* a **Fazenda ensina conversão de energia em matéria viva** — a obra perde Essência
+  para existir, e para sem energia.
+
+A Biomassa mora no mesmo estoque genérico do Minério, não tem pilha e não tem depósito
+próprios. O estado da campanha ganhou uma **quarta obra** na seção `constructions` do
+arquivo (`fungal_farm`), o formato de save subiu para **V3**, e a rotina de migração
+continua explícita, versão por versão, sem framework. A definição canônica do formato V3
+está em `docs/SAVE_SCHEMA_V3.md`.

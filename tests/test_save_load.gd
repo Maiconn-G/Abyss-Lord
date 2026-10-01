@@ -197,6 +197,7 @@ func _run_all() -> void:
 	await _test_inputs_do_not_conflict()
 	await _test_hud_realigns_after_load()
 	await _test_v1_migration_and_resave()
+	await _test_v2_migration_and_resave()
 	await _test_v1_backup_migration()
 
 	await _free_scene()
@@ -216,13 +217,13 @@ func _test_schema_contract() -> void:
 	var document := CampaignSnapshot.build_document(_minimal_campaign(), {"probe": "suíte"})
 	_check(document[CampaignSnapshot.ROOT_FORMAT] == CampaignSnapshot.SAVE_FORMAT,
 			"§6 format == abyss_lord_campaign, obtido %s" % document[CampaignSnapshot.ROOT_FORMAT])
-	# §45/T20: a Mina acrescenta estado persistente, então o formato escrito passa a ser V2.
-	# O que a linha sempre exigiu foi "o writer grava a versão do contrato" — o número que
-	# ela compara acompanha o contrato, e comparar com 1 aqui seria congelar o passado.
-	_check(int(document[CampaignSnapshot.ROOT_VERSION]) == 2,
-			"§45 save_version == 2, obtido %s" % document[CampaignSnapshot.ROOT_VERSION])
-	_check(CampaignSnapshot.SAVE_VERSION == 2,
-			"§45 o contrato declara V2, obtido %d" % CampaignSnapshot.SAVE_VERSION)
+	# §45/T21: a Fazenda Fúngica acrescenta a quarta obra, então o formato escrito passa a ser
+	# V3. O que a linha sempre exigiu foi "o writer grava a versão do contrato" — o número que
+	# ela compara acompanha o contrato, e comparar com 1 ou 2 aqui seria congelar o passado.
+	_check(int(document[CampaignSnapshot.ROOT_VERSION]) == 3,
+			"§45 save_version == 3, obtido %s" % document[CampaignSnapshot.ROOT_VERSION])
+	_check(CampaignSnapshot.SAVE_VERSION == 3,
+			"§45 o contrato declara V3, obtido %d" % CampaignSnapshot.SAVE_VERSION)
 	_check(document.has(CampaignSnapshot.ROOT_METADATA)
 			and document.has(CampaignSnapshot.ROOT_CAMPAIGN),
 			"§6 envelope tem metadata e campaign")
@@ -260,11 +261,11 @@ func _test_structural_refusals() -> void:
 	_accept(CampaignSnapshot.build_document(campaign, {}),
 			"§68 o documento mínimo é a linha de partida das recusas")
 
-	# §104/T18 + §71/T20: estrutura boa, versão que o contrato não conhece. Com a Mina o
-	# contrato passou a ter duas versões lidas (1 e 2), então "desconhecida" deixou de ser o
-	# número 2 e passou a ser 3, 999 e 0 (§57/§58). A guarda continua sendo a mesma:
-	# recusa nominal, sem adivinhação, sem "talvez seja compatível".
-	for unknown in [3, 999, 0]:
+	# §104/T18 + §71/T20 + §71/T21: estrutura boa, versão que o contrato não conhece. Com a
+	# Fazenda o contrato passou a ter três versões lidas (1, 2 e 3), então "desconhecida"
+	# deixou de ser o número 3 e passou a ser 4, 999 e 0 (§57/§58). A guarda continua sendo a
+	# mesma: recusa nominal, sem adivinhação, sem "talvez seja compatível".
+	for unknown in [4, 999, 0]:
 		var future := CampaignSnapshot.build_document(campaign, {}) as Dictionary
 		future[CampaignSnapshot.ROOT_VERSION] = unknown
 		_refuse(future, "save_version",
@@ -289,6 +290,12 @@ func _test_structural_refusals() -> void:
 			CampaignSnapshot.SECTION_MINE)
 	_refuse_document(v2_without_mine, "constructions.mine",
 			"§48 V2 sem constructions.mine é recusado")
+	# §48/T21: V3 sem a chave da Fazenda é V3 incompleto, não V2 disfarçado.
+	var v3_without_farm := _campaign_copy()
+	(v3_without_farm[CampaignSnapshot.SECTION_CONSTRUCTIONS] as Dictionary).erase(
+			CampaignSnapshot.SECTION_FUNGAL_FARM)
+	_refuse_document(v3_without_farm, "constructions.fungal_farm",
+			"§48 V3 sem constructions.fungal_farm é recusado")
 
 	# §105: uma seção obrigatória ausente.
 	for section in [CampaignSnapshot.SECTION_CORE, CampaignSnapshot.SECTION_PROGRESSION,
@@ -370,6 +377,7 @@ func _test_source_guards() -> void:
 			"MultiSlot", "CloudSave", "SteamCloud", "Encryption", "Checksum", "Thumbnail",
 			"OfflineProgress", "NewGamePlus", "RollbackHistory", "LoadScreen", "SaveMenu",
 			"SaveDebugHud", "SaveLoadHud", "DependencyContainer", "MigrationV2",
+			"MigrationV3",
 			"EventBus", "SaveSystem", "LoadSystem"]:
 		_check(_files_containing(sources, forbidden).is_empty(),
 				"§120/§59/§128 nenhum fonte contém %s, achado em %s"
@@ -521,9 +529,9 @@ func _test_refusals_touch_nothing() -> void:
 			"§58/§114 a ausência é anunciada como falha de load, obtido %s" % [_failed_events])
 	_check(_snapshot_text() == guard, "§58 o mundo intacto diante de arquivo ausente")
 
-	# §104/T18 + §71/T20: versão que o contrato não conhece. O número que antes era "o
-	# futuro" virou o presente (V2 = Mina), então o arquivo recusado passa a ser o 999 — a
-	# recusa nominal continua a mesma, com o mundo intacto.
+	# §104/T18 + §71/T20/§71/T21: versão que o contrato não conhece. O número que antes era
+	# "o futuro" já virou presente duas vezes (V2 = Mina, V3 = Fazenda), então o arquivo
+	# recusado continua sendo o 999 — a recusa nominal não mudou, com o mundo intacto.
 	var future := CampaignSnapshot.build_document(campaign, {}) as Dictionary
 	future[CampaignSnapshot.ROOT_VERSION] = 999
 	_use_path(PRIMARY_PATH)
@@ -1377,8 +1385,7 @@ func _test_hud_realigns_after_load() -> void:
 func _v1_fixture_text() -> String:
 	return """{
   "format": "abyss_lord_campaign",
-  "save_version": 1,
-  "metadata": {
+  "save_version": 1,  "metadata": {
     "saved_at_unix": 1759172340,
     "engine_version": "4.6.1.stable.official.14d19694e"
   },
@@ -1476,10 +1483,155 @@ func _v1_fixture_text() -> String:
 }"""
 
 
-## §53/§54/§56/§68: o arquivo V1 carrega, a Mina chega inexistente, nada do gameplay antigo
-## muda, e o re-save publica V2 com a chave nova. Migrar não é aplicar depois de adivinhar:
-## a migração acontece antes de `_apply()`, e é por isso que o mundo nunca é tocado por um
-## documento que ainda não é V2.
+## §56/T21: um arquivo V2 real — o formato que a Tarefa 20 publicava —, com a Mina presente
+## e concluída. Carregá-lo é o outro salto da corrente: V2→V3 acrescenta a Fazenda Fúngica
+## como `exists=false`, sem tocar na Mina nem em nada mais.
+func _v2_fixture_text() -> String:
+	return """{
+  "format": "abyss_lord_campaign",
+  "save_version": 2,
+  "metadata": {
+    "saved_at_unix": 1759172340,
+    "engine_version": "4.6.1.stable.official.14d19694e"
+  },
+  "campaign": {
+    "core": {
+      "core_id": "main_core",
+      "level": 2,
+      "integrity": 78.0,
+      "essence": 27.5,
+      "population": 3,
+      "population_capacity_bonus": 4
+    },
+    "progression": {
+      "abyssal_crystal": {
+        "amount": 0
+      }
+    },
+    "economy": {
+      "stockpile": {
+        "iron_ore": 6
+      }
+    },
+    "units": {
+      "workers": [
+        {
+          "unit_id": "worker_001",
+          "unit_type_id": "abyss_worker",
+          "health": 50.0,
+          "level": 1,
+          "experience": 0.0,
+          "position": [-2.0, 0.0, 3.0],
+          "carried_resource": "iron_ore",
+          "carried_amount": 3
+        },
+        {
+          "unit_id": "worker_002",
+          "unit_type_id": "abyss_worker",
+          "health": 41.0,
+          "level": 1,
+          "experience": 2.0,
+          "position": [4.0, 0.0, 1.0],
+          "carried_resource": null,
+          "carried_amount": 0
+        }
+      ],
+      "worker_002_summoned": true,
+      "soldier": {
+        "recruited": true,
+        "alive": true,
+        "unit_id": "soldier_001",
+        "unit_type_id": "abyss_soldier",
+        "health": 60.0,
+        "level": 1,
+        "experience": 12.0,
+        "position": [1.0, 0.0, -5.0]
+      }
+    },
+    "constructions": {
+      "nest": {
+        "exists": true,
+        "nest_id": "nest_001",
+        "remaining_work": 0.0,
+        "position": [6.0, 0.0, -4.0]
+      },
+      "barracks": {
+        "exists": true,
+        "barracks_id": "barracks_001",
+        "remaining_work": 0.0,
+        "position": [-6.0, 0.0, -4.0]
+      },
+      "mine": {
+        "exists": true,
+        "mine_id": "mine_001",
+        "remaining_work": 0.0,
+        "position": [1.5, 0.0, -2.0],
+        "production_elapsed": 0.0
+      }
+    },
+    "world": {
+      "rocks": [
+        { "rock_id": "rock_001", "remaining_work": 4.0, "excavated": false },
+        { "rock_id": "rock_002", "remaining_work": 1.5, "excavated": false },
+        { "rock_id": "rock_003", "remaining_work": 0.0, "excavated": true },
+        { "rock_id": "iron_ore_001", "remaining_work": 2.0, "excavated": false },
+        { "rock_id": "iron_ore_002", "remaining_work": 0.0, "excavated": true }
+      ],
+      "piles": [
+        {
+          "pile_id": "iron_ore_002_drop",
+          "resource_id": "iron_ore",
+          "amount": 3,
+          "position": [8.0, 0.0, 2.0]
+        }
+      ]
+    },
+    "invasion": {
+      "state": "PREPARATION",
+      "preparation_time_remaining": 4.7,
+      "invaders": []
+    }
+  }
+}"""
+
+
+## §56/T21: a corrente de migração não tem atalho. Um V2 carrega pelo salto V2→V3, que só
+## acrescenta a Fazenda Fúngica; a Mina volta intacta e o re-save já sai V3.
+func _test_v2_migration_and_resave() -> void:
+	await _reset_campaign()
+	_use_path(PRIMARY_PATH)
+	_remove_file(BACKUP_PATH)
+	_write_text(PRIMARY_PATH, _v2_fixture_text())
+	_reset_counters()
+	_check(_save.load_campaign(), "§56/§72 o V2 é lido pela migração explícita")
+	_check(_load_events == [PRIMARY_PATH],
+			"§56 migrar não troca o caminho lido, obtido %s" % [_load_events])
+	_check(_failed_events.is_empty(),
+			"§56 migração bem-sucedida não é falha, obtido %s" % [_failed_events])
+	await _advance(0.05)
+	_check(_core_state.level == 2, "§56 o nível 2 do V2 voltou, obtido %d" % _core_state.level)
+	_check(_construction.mine() != null and _construction.mine().is_completed(),
+			"§56 a Mina concluída do V2 voltou concluída")
+	_check(_construction.fungal_farm() == null,
+			"§56 o salto V2→V3 não inventou a Fazenda Fúngica")
+	_check(_save.save_campaign(), "§56 a campanha migrada é reescrita")
+	var written: Variant = CampaignSnapshot.parse_document(_read_text(PRIMARY_PATH))
+	_check(int((written as Dictionary)[CampaignSnapshot.ROOT_VERSION]) == 3,
+			"§56 o re-save de um V2 publica V3, obtido %s"
+					% (written as Dictionary)[CampaignSnapshot.ROOT_VERSION])
+	var constructions: Dictionary = (written as Dictionary)[
+			CampaignSnapshot.ROOT_CAMPAIGN][CampaignSnapshot.SECTION_CONSTRUCTIONS]
+	_check(bool((constructions[CampaignSnapshot.SECTION_MINE] as Dictionary)[
+			CampaignSnapshot.KEY_EXISTS]),
+			"§56 a Mina continua exists=true no documento reescrito")
+	_check(not bool((constructions[CampaignSnapshot.SECTION_FUNGAL_FARM] as Dictionary)[
+			CampaignSnapshot.KEY_EXISTS]),
+			"§56 constructions.fungal_farm nasce com exists=false")
+	await _reset_campaign()
+## inexistentes, nada do gameplay antigo muda, e o re-save publica V3 (a corrente
+## V1→V2→V3 inteira). Migrar não é aplicar depois de adivinhar: a migração acontece
+## antes de `_apply()`, e é por isso que o mundo nunca é tocado por um documento que
+## ainda não é V3.
 func _test_v1_migration_and_resave() -> void:
 	await _reset_campaign()
 	_use_path(PRIMARY_PATH)
@@ -1529,17 +1681,22 @@ func _test_v1_migration_and_resave() -> void:
 			"§54 a contagem voltou perto dos 4.7 s gravados, obtido %f"
 					% _invasion.preparation_time_remaining())
 	_check(_save.save_campaign(), "§68 a campanha migrada é reescrita")
-	# §68: o arquivo que sai daqui já é V2, e diz explicitamente que não há Mina.
+	# §68/T21: o arquivo que sai daqui já é V3 — a corrente V1→V2→V3 inteira —, e diz
+	# explicitamente que não há Mina nem Fazenda Fúngica.
 	var written: Variant = CampaignSnapshot.parse_document(_read_text(PRIMARY_PATH))
-	_check(int((written as Dictionary)[CampaignSnapshot.ROOT_VERSION]) == 2,
-			"§68/§56 o re-save publica V2, obtido %s"
+	_check(int((written as Dictionary)[CampaignSnapshot.ROOT_VERSION]) == 3,
+			"§68/§56 o re-save publica V3, obtido %s"
 					% (written as Dictionary)[CampaignSnapshot.ROOT_VERSION])
 	var constructions: Dictionary = (written as Dictionary)[
 			CampaignSnapshot.ROOT_CAMPAIGN][CampaignSnapshot.SECTION_CONSTRUCTIONS]
 	var mine: Dictionary = constructions[CampaignSnapshot.SECTION_MINE]
 	_check(not bool(mine[CampaignSnapshot.KEY_EXISTS]),
 			"§68 constructions.mine existe e diz exists=false, obtido %s" % [mine])
-	# §54 de novo, agora pelo caminho V2: o re-save não alterou a campanha.
+	var fungal_farm: Dictionary = constructions[CampaignSnapshot.SECTION_FUNGAL_FARM]
+	_check(not bool(fungal_farm[CampaignSnapshot.KEY_EXISTS]),
+			"§68/T21 constructions.fungal_farm existe e diz exists=false, obtido %s"
+					% [fungal_farm])
+	# §54 de novo, agora pelo caminho V3: o re-save não alterou a campanha.
 	await _advance(0.05)
 	_check(_close(_core_state.integrity, 78.0),
 			"§68 salvar o migrado não mexeu em nada, obtida %f" % _core_state.integrity)
@@ -1828,6 +1985,8 @@ func _minimal_campaign() -> Dictionary:
 			CampaignSnapshot.SECTION_BARRACKS: {CampaignSnapshot.KEY_EXISTS: false},
 			# §48/T20: em V2 a chave existe sempre; "não há Mina" é `{exists: false}`.
 			CampaignSnapshot.SECTION_MINE: {CampaignSnapshot.KEY_EXISTS: false},
+			# §48/T21: em V3 a chave da Fazenda também existe sempre.
+			CampaignSnapshot.SECTION_FUNGAL_FARM: {CampaignSnapshot.KEY_EXISTS: false},
 		},
 		CampaignSnapshot.SECTION_WORLD: {
 			CampaignSnapshot.KEY_ROCKS: [{
