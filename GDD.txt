@@ -2172,6 +2172,23 @@ no limite, atenção dos reinos da superfície.
 Prisioneiros humanos (§57) são especialmente valiosos: libertá-los, trocá-los ou
 recrutá-los muda a Notoriedade e a relação com a superfície.
 
+### A primeira Incursão (implementada na Tarefa 23)
+
+Valores de balanceamento inicial:
+
+* **Notoriedade:** evolução para o Nv.2 +20; saqueador morto +5; saqueador que escapa +10.
+* **Gatilho:** Notoriedade ≥ 20 abre uma preparação de 120 s; ao fim, 2 Saqueadores de
+  Guilda entram pela borda sul do domínio.
+* **Saqueador de Guilda:** 40 de vida, velocidade 3, 5 de dano. Ignora o Núcleo, vai ao
+  Depósito e rouba 1 recurso por segundo, até 3, com a Biomassa antes do Minério. Recua
+  com o bolso cheio, com o Depósito vazio ou com 35% da vida ou menos. Revida quando um
+  Soldado o ataca.
+* **Desfecho:** morto, o saque volta ao estoque; fugido, o saque está perdido. A incursão
+  termina quando os dois saem de cena — não há derrota nem Cristal.
+
+As próximas incursões, a escala por faixa de Notoriedade e a redução de Notoriedade ficam
+para tarefas futuras.
+
 ---
 
 # 59. RECONHECIMENTO DE INVASÕES
@@ -3370,6 +3387,20 @@ próprio (`WorkerExpansionController`); os dois não se conhecem e não viraram 
 genérico de população. O formato de save subiu para **V4** com a flag
 `worker_003_summoned`, e a corrente de migração ganhou o degrau V3 → V4. A definição
 canônica do formato V4 está em `docs/SAVE_SCHEMA_V4.md`.
+
+## A superfície chegou: a primeira Incursão
+
+A **Tarefa 23** abriu a segunda origem de invasão (§58.1). O Núcleo que volta ao Nv.2 soma
+Notoriedade, a superfície o nota e manda uma guilda de dois saqueadores que mira o Depósito,
+não o Núcleo. O primeiro dos "3 tipos de inimigo" do Vertical Slice que vem da superfície
+(§91) existe agora: o Saqueador de Guilda, um EnemyRuntime que o Soldado enfrenta pelo mesmo
+caminho da Fera.
+
+A primeira invasão (Feras, vitória, Cristal) não foi tocada; a incursão tem dono próprio
+(`SurfaceIncursionController`), que também é dono da Notoriedade. O formato de save subiu
+para **V5** com a seção `surface`, e a migração V4 → V5 reconhece o Núcleo Nv.2 já gravado
+com Notoriedade 20 — a guilda chega também para campanhas antigas. Formato canônico em
+`docs/SAVE_SCHEMA_V5.md`.
 
 ## O lore foi alinhado
 

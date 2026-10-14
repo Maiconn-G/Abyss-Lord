@@ -375,9 +375,14 @@ func _test_enemy_runtime_scene() -> void:
 				"§93/§63 a Fera não tem a API %s (ela não trabalha nem recebe ordem do jogador)"
 						% absent)
 	probe.free()
-	_check(_count_files("res://units/enemies", "*.gd") == 1
-			and _count_files("res://units/enemies", "*.tscn") == 1,
-			"§22 existe um único Runtime de inimigo no projeto")
+	# T23: o Saqueador de Guilda é o segundo Runtime de inimigo, e ele não é um tipo
+	# paralelo — é uma extensão do EnemyRuntime (extends), para que o Soldado o enfrente
+	# sem branch de tipo. A guarda passa a ser: só existem esses dois, e o segundo herda.
+	_check(_count_files("res://units/enemies", "*.gd") == 2
+			and _count_files("res://units/enemies", "*.tscn") == 2,
+			"§22/T23 existem o Runtime da Fera e o do Saqueador, e mais nenhum")
+	_check(_source("res://units/enemies/raider_runtime.gd").contains("extends EnemyRuntime"),
+			"§22/T23 o Saqueador estende o EnemyRuntime em vez de duplicá-lo")
 
 
 func _test_scope_guards() -> void:
@@ -465,8 +470,10 @@ func _test_scope_guards() -> void:
 			"§100 nenhuma sétima camada física foi criada")
 	_check(not _source("res://project.godot").contains("[autoload]"),
 			"§97/§103 nenhum autoload/EventBus global foi adicionado")
-	_check(_count_files("res://data/units/enemies", "*.tres") == 1,
-			"§22/§54 existe uma única Definition de inimigo")
+	# T23: guild_raider.tres é a segunda Definition de inimigo, e a classe dela herda de
+	# EnemyDefinition.
+	_check(_count_files("res://data/units/enemies", "*.tres") == 2,
+			"§22/§54/T23 existem as Definitions da Fera e do Saqueador, e mais nenhuma")
 
 
 # ------------------------------------------------------------------ Cena real #1

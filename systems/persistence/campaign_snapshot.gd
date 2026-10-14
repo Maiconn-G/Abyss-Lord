@@ -20,12 +20,15 @@ const SAVE_FORMAT := "abyss_lord_campaign"
 ## a flag histórica `worker_003_summoned` e o registro `worker_003` —, então o formato escrito
 ## passa a ser o V4. V1, V2 e V3 continuam sendo lidos pela mesma corrente explícita, um
 ## degrau por versão, e nunca escritos. V0 e V5/999 são recusados.
-const SAVE_VERSION := 4
+## T23: a superfície (Notoriedade e a primeira Incursão) acrescenta a seção `surface`, e o
+## formato escrito passa a ser o V5. V0 e V6/999 são recusados.
+const SAVE_VERSION := 5
 const SAVE_VERSION_V1 := 1
 const SAVE_VERSION_V2 := 2
 const SAVE_VERSION_V3 := 3
+const SAVE_VERSION_V4 := 4
 const SUPPORTED_VERSIONS: Array[int] = [
-		SAVE_VERSION_V1, SAVE_VERSION_V2, SAVE_VERSION_V3, SAVE_VERSION]
+		SAVE_VERSION_V1, SAVE_VERSION_V2, SAVE_VERSION_V3, SAVE_VERSION_V4, SAVE_VERSION]
 
 const ROOT_FORMAT := "format"
 const ROOT_VERSION := "save_version"
@@ -40,6 +43,8 @@ const SECTION_UNITS := "units"
 const SECTION_CONSTRUCTIONS := "constructions"
 const SECTION_WORLD := "world"
 const SECTION_INVASION := "invasion"
+## T23: a oitava seção, só do V5 em diante. As sete do V1 continuam obrigatórias em todas.
+const SECTION_SURFACE := "surface"
 
 ## §30/§34: cada obra tem chave e id próprios, e o arquivo os nomeia por inteiro.
 ## §48/T20: `mine` entra como terceira chave de `constructions`, no mesmo formato.
@@ -51,6 +56,9 @@ const SECTION_FUNGAL_FARM := "fungal_farm"
 
 const INVASION_STATE_NAMES: Array[String] = [
 	"NOT_STARTED", "PREPARATION", "ACTIVE", "VICTORY", "DEFEAT"]
+## T23: o ciclo da Incursão da Superfície e as fases do saqueador, por nome.
+const INCURSION_STATE_NAMES: Array[String] = ["NOT_STARTED", "PREPARATION", "ACTIVE", "ENDED"]
+const RAIDER_PHASE_NAMES: Array[String] = ["APPROACH", "LOOT", "RETREAT"]
 
 ## §14: as identidades semânticas da campanha. Nada aqui é instance_id de Node.
 const CORE_ID := "main_core"
@@ -105,6 +113,18 @@ const KEY_PREPARATION_REMAINING := "preparation_time_remaining"
 const KEY_INVADERS := "invaders"
 const KEY_INVADER_ID := "invader_id"
 const KEY_ENEMY_TYPE_ID := "enemy_type_id"
+## T23: os campos da superfície.
+const KEY_NOTORIETY := "notoriety"
+const KEY_INCURSION := "incursion"
+const KEY_RAIDERS := "raiders"
+const KEY_RAIDER_ID := "raider_id"
+const KEY_PHASE := "phase"
+const KEY_LOOT := "loot"
+const KEY_REPELLED := "repelled"
+const KEY_ESCAPED := "escaped"
+## T23: o limiar de Notoriedade que a migração V4→V5 reconhece num Núcleo Nv.2 — o mesmo
+## fato que, jogado, soma esse valor (SurfaceIncursionController.NOTORIETY_CORE_LEVEL_TWO).
+const MIGRATED_LEVEL_TWO_NOTORIETY := 20
 
 
 ## §6: o envelope. `metadata` é informativo (§72) e nunca é requisito de gameplay.
@@ -160,7 +180,9 @@ static func validate_document(document: Variant) -> String:
 		return validate_v2(campaign)
 	if version == SAVE_VERSION_V3:
 		return validate_v3(campaign)
-	return validate_v4(campaign)
+	if version == SAVE_VERSION_V4:
+		return validate_v4(campaign)
+	return validate_v5(campaign)
 
 
 ## §73: o V1 é o formato congelado em docs/SAVE_SCHEMA_V1.md — duas obras e nenhum relógio
@@ -212,6 +234,15 @@ static func validate_v4(campaign: Dictionary) -> String:
 	return _validate_third_worker(campaign)
 
 
+## T23: V5 é o V4 inteiro mais a seção `surface`. Nenhum campo de V1–V4 muda de nome, de
+## tipo ou de significado.
+static func validate_v5(campaign: Dictionary) -> String:
+	var reason := validate_v4(campaign)
+	if not reason.is_empty():
+		return reason
+	return _validate_surface(campaign)
+
+
 ## §53/§116: a rota de migração é uma sequência de funções nomeadas, não um registry. Cada
 ## versão sobe exatamente um degrau, na ordem: V1→V2 e depois V2→V3. Não há atalho V1→V3 —
 ## uma campanha V1 passa pelos dois degraus, e cada degrau acrescenta só o que é seu.
@@ -223,6 +254,8 @@ static func migrate_to_current(document: Dictionary) -> Dictionary:
 		migrated = migrate_v2_to_v3(migrated)
 	if int(migrated[ROOT_VERSION]) == SAVE_VERSION_V3:
 		migrated = migrate_v3_to_v4(migrated)
+	if int(migrated[ROOT_VERSION]) == SAVE_VERSION_V4:
+		migrated = migrate_v4_to_v5(migrated)
 	return migrated
 
 
@@ -253,9 +286,30 @@ static func migrate_v2_to_v3(document: Dictionary) -> Dictionary:
 ## há unidade a converter — só a flag histórica a acrescentar, em false.
 static func migrate_v3_to_v4(document: Dictionary) -> Dictionary:
 	var migrated := document.duplicate(true) as Dictionary
-	migrated[ROOT_VERSION] = SAVE_VERSION
+	migrated[ROOT_VERSION] = SAVE_VERSION_V4
 	((migrated[ROOT_CAMPAIGN] as Dictionary)[SECTION_UNITS] as Dictionary)[
 			KEY_THIRD_SUMMONED] = false
+	return migrated
+
+
+## T23: o fato novo de um V4 migrado é que a incursão ainda não aconteceu. A Notoriedade
+## não é inventada: um Núcleo já no Nv.2 é exatamente o fato que, jogado, soma 20 — e é o
+## nível gravado no próprio arquivo que decide. Nv.1 migra com zero.
+static func migrate_v4_to_v5(document: Dictionary) -> Dictionary:
+	var migrated := document.duplicate(true) as Dictionary
+	migrated[ROOT_VERSION] = SAVE_VERSION
+	var campaign := migrated[ROOT_CAMPAIGN] as Dictionary
+	var level := int((campaign[SECTION_CORE] as Dictionary)[KEY_LEVEL])
+	campaign[SECTION_SURFACE] = {
+		KEY_NOTORIETY: MIGRATED_LEVEL_TWO_NOTORIETY if level >= 2 else 0,
+		KEY_INCURSION: {
+			KEY_STATE: "NOT_STARTED",
+			KEY_PREPARATION_REMAINING: 0.0,
+			KEY_RAIDERS: [],
+			KEY_REPELLED: 0,
+			KEY_ESCAPED: 0,
+		},
+	}
 	return migrated
 
 
@@ -402,6 +456,62 @@ static func _validate_third_worker(campaign: Dictionary) -> String:
 		if (worker as Dictionary)[KEY_UNIT_ID] == THIRD_WORKER_ID \
 				and not units[KEY_THIRD_SUMMONED]:
 			return "worker_003 registrado sem worker_003_summoned"
+	return ""
+
+
+## T23: a forma da seção `surface`. Faixas que dependem da Definition (vida, capacidade de
+## saque) e de quantos saqueadores a incursão tem moram no SaveGameController.
+static func _validate_surface(campaign: Dictionary) -> String:
+	var surface: Variant = campaign.get(SECTION_SURFACE)
+	if not (surface is Dictionary):
+		return "seção obrigatória ausente ou inválida: surface"
+	var section := surface as Dictionary
+	if not _is_int(section, KEY_NOTORIETY) or section[KEY_NOTORIETY] < 0 \
+			or section[KEY_NOTORIETY] > 100:
+		return "surface.notoriety precisa ser um inteiro entre 0 e 100"
+	if not (section.get(KEY_INCURSION) is Dictionary):
+		return "surface.incursion está ausente"
+	var incursion := section[KEY_INCURSION] as Dictionary
+	if not INCURSION_STATE_NAMES.has(incursion.get(KEY_STATE)):
+		return "estado de incursão desconhecido: %s" % [incursion.get(KEY_STATE)]
+	if not _is_number(incursion, KEY_PREPARATION_REMAINING) \
+			or incursion[KEY_PREPARATION_REMAINING] < 0.0:
+		return "surface.incursion.preparation_time_remaining inválido"
+	if not _is_int(incursion, KEY_REPELLED) or not _is_int(incursion, KEY_ESCAPED) \
+			or incursion[KEY_REPELLED] < 0 or incursion[KEY_ESCAPED] < 0:
+		return "surface.incursion precisa de repelled e escaped inteiros não negativos"
+	if not _is_array(incursion, KEY_RAIDERS):
+		return "surface.incursion.raiders está ausente"
+	var state := String(incursion[KEY_STATE])
+	var raiders := incursion[KEY_RAIDERS] as Array
+	if state != "PREPARATION" and incursion[KEY_PREPARATION_REMAINING] > 0.0:
+		return "tempo de preparação da incursão guardado fora de PREPARATION"
+	if state != "ACTIVE" and not raiders.is_empty():
+		return "%s não pode ter saqueador em campo" % state
+	if state == "ACTIVE" and raiders.is_empty():
+		return "incursão ACTIVE sem saqueador é uma campanha impossível"
+	for raider in raiders:
+		var reason := _validate_raider(raider)
+		if not reason.is_empty():
+			return reason
+	return ""
+
+
+static func _validate_raider(raider: Variant) -> String:
+	if not (raider is Dictionary):
+		return "raiders tem entrada que não é um registro"
+	var entry := raider as Dictionary
+	if not _is_string(entry, KEY_RAIDER_ID) or not _is_number(entry, KEY_HEALTH) \
+			or not _is_position(entry) or not RAIDER_PHASE_NAMES.has(entry.get(KEY_PHASE)) \
+			or not (entry.get(KEY_LOOT) is Dictionary):
+		return "saqueador com campo ausente ou de tipo errado"
+	if entry[KEY_HEALTH] <= 0.0:
+		return "%s sem vida não é um saqueador em campo" % entry[KEY_RAIDER_ID]
+	var loot := entry[KEY_LOOT] as Dictionary
+	for resource_id in loot:
+		if not (resource_id is String) or not _is_int(loot, String(resource_id)) \
+				or loot[resource_id] <= 0:
+			return "%s tem saque inválido" % entry[KEY_RAIDER_ID]
 	return ""
 
 

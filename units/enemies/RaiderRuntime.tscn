@@ -1,0 +1,51 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://units/enemies/raider_runtime.gd" id="1_runtime"]
+
+[sub_resource type="StandardMaterial3D" id="RaiderClothMaterial"]
+albedo_color = Color(0.55, 0.42, 0.24, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="RaiderSteelMaterial"]
+albedo_color = Color(0.72, 0.74, 0.78, 1)
+metallic = 0.6
+roughness = 0.4
+
+[sub_resource type="CapsuleMesh" id="RaiderBodyMesh"]
+material = SubResource("RaiderClothMaterial")
+radius = 0.35
+height = 1.4
+
+[sub_resource type="BoxMesh" id="RaiderPackMesh"]
+material = SubResource("RaiderClothMaterial")
+size = Vector3(0.5, 0.5, 0.3)
+
+[sub_resource type="SphereMesh" id="RaiderHelmMesh"]
+material = SubResource("RaiderSteelMaterial")
+radius = 0.26
+height = 0.36
+
+[sub_resource type="CylinderShape3D" id="RaiderShape"]
+radius = 0.45
+height = 1.4
+
+[node name="RaiderRuntime" type="CharacterBody3D" groups=["combat_target"]]
+collision_layer = 32
+collision_mask = 0
+script = ExtResource("1_runtime")
+
+[node name="Visual" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+mesh = SubResource("RaiderBodyMesh")
+
+[node name="Pack" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0.35)
+mesh = SubResource("RaiderPackMesh")
+
+[node name="Helm" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.62, 0)
+mesh = SubResource("RaiderHelmMesh")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+shape = SubResource("RaiderShape")

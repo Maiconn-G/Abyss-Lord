@@ -222,10 +222,11 @@ func _test_schema_contract() -> void:
 	# ela compara acompanha o contrato, e comparar com 1 ou 2 aqui seria congelar o passado.
 	# T22: o terceiro Trabalhador acrescenta a flag `worker_003_summoned`, e o formato escrito
 	# passa a ser V4 — a linha acompanha o contrato, como acompanhou na T20 e na T21.
-	_check(int(document[CampaignSnapshot.ROOT_VERSION]) == 4,
-			"§45 save_version == 4, obtido %s" % document[CampaignSnapshot.ROOT_VERSION])
-	_check(CampaignSnapshot.SAVE_VERSION == 4,
-			"§45 o contrato declara V4, obtido %d" % CampaignSnapshot.SAVE_VERSION)
+	# T23: a seção `surface` (Notoriedade e Incursão) leva o formato escrito ao V5.
+	_check(int(document[CampaignSnapshot.ROOT_VERSION]) == 5,
+			"§45 save_version == 5, obtido %s" % document[CampaignSnapshot.ROOT_VERSION])
+	_check(CampaignSnapshot.SAVE_VERSION == 5,
+			"§45 o contrato declara V5, obtido %d" % CampaignSnapshot.SAVE_VERSION)
 	_check(document.has(CampaignSnapshot.ROOT_METADATA)
 			and document.has(CampaignSnapshot.ROOT_CAMPAIGN),
 			"§6 envelope tem metadata e campaign")
@@ -268,7 +269,8 @@ func _test_structural_refusals() -> void:
 	# deixou de ser o número 3 e passou a ser 4, 999 e 0 (§57/§58). A guarda continua sendo a
 	# mesma: recusa nominal, sem adivinhação, sem "talvez seja compatível".
 	# T22: com o V4 lido, "desconhecida" passa a ser 5, 999 e 0.
-	for unknown in [5, 999, 0]:
+	# T23: com o V5 lido, "desconhecida" passa a ser 6, 999 e 0.
+	for unknown in [6, 999, 0]:
 		var future := CampaignSnapshot.build_document(campaign, {}) as Dictionary
 		future[CampaignSnapshot.ROOT_VERSION] = unknown
 		_refuse(future, "save_version",
@@ -400,8 +402,8 @@ func _test_source_guards() -> void:
 	_check(_collect_gd_files(PERSISTENCE_DIR).size() == 2,
 			"§11 a persistência são dois arquivos: controller e contrato, obtido %d"
 					% _collect_gd_files(PERSISTENCE_DIR).size())
-	_check(_collect_gd_files("res://systems").size() == 9,
-			"§13/T18/T22 systems/ tem oito controllers e o contrato de schema, obtido %d"
+	_check(_collect_gd_files("res://systems").size() == 10,
+			"§13/T18/T22/T23 systems/ tem nove controllers e o contrato de schema, obtido %d"
 					% _collect_gd_files("res://systems").size())
 
 	# §129: persistência é instantânea no frame do input, nunca por frame.
@@ -1621,8 +1623,8 @@ func _test_v2_migration_and_resave() -> void:
 	_check(_save.save_campaign(), "§56 a campanha migrada é reescrita")
 	var written: Variant = CampaignSnapshot.parse_document(_read_text(PRIMARY_PATH))
 	# T22: o re-save publica a versão corrente, que agora é V4 (a corrente segue até o fim).
-	_check(int((written as Dictionary)[CampaignSnapshot.ROOT_VERSION]) == 4,
-			"§56 o re-save de um V2 publica V4, obtido %s"
+	_check(int((written as Dictionary)[CampaignSnapshot.ROOT_VERSION]) == 5,
+			"§56 o re-save de um V2 publica V5, obtido %s"
 					% (written as Dictionary)[CampaignSnapshot.ROOT_VERSION])
 	var constructions: Dictionary = (written as Dictionary)[
 			CampaignSnapshot.ROOT_CAMPAIGN][CampaignSnapshot.SECTION_CONSTRUCTIONS]
@@ -1690,8 +1692,8 @@ func _test_v1_migration_and_resave() -> void:
 	# explicitamente que não há Mina nem Fazenda Fúngica.
 	var written: Variant = CampaignSnapshot.parse_document(_read_text(PRIMARY_PATH))
 	# T22: a corrente agora vai até o V4.
-	_check(int((written as Dictionary)[CampaignSnapshot.ROOT_VERSION]) == 4,
-			"§68/§56 o re-save publica V4, obtido %s"
+	_check(int((written as Dictionary)[CampaignSnapshot.ROOT_VERSION]) == 5,
+			"§68/§56 o re-save publica V5, obtido %s"
 					% (written as Dictionary)[CampaignSnapshot.ROOT_VERSION])
 	var constructions: Dictionary = (written as Dictionary)[
 			CampaignSnapshot.ROOT_CAMPAIGN][CampaignSnapshot.SECTION_CONSTRUCTIONS]
@@ -2008,6 +2010,17 @@ func _minimal_campaign() -> Dictionary:
 			CampaignSnapshot.KEY_STATE: "NOT_STARTED",
 			CampaignSnapshot.KEY_PREPARATION_REMAINING: 0.0,
 			CampaignSnapshot.KEY_INVADERS: [],
+		},
+		# T23: em V5 a superfície existe sempre; "nada aconteceu" é Notoriedade 0.
+		CampaignSnapshot.SECTION_SURFACE: {
+			CampaignSnapshot.KEY_NOTORIETY: 0,
+			CampaignSnapshot.KEY_INCURSION: {
+				CampaignSnapshot.KEY_STATE: "NOT_STARTED",
+				CampaignSnapshot.KEY_PREPARATION_REMAINING: 0.0,
+				CampaignSnapshot.KEY_RAIDERS: [],
+				CampaignSnapshot.KEY_REPELLED: 0,
+				CampaignSnapshot.KEY_ESCAPED: 0,
+			},
 		},
 	}
 

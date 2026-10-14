@@ -13,6 +13,9 @@ const FUNGAL_FARM_SCENE := preload(
 const WORKER_SCENE := preload("res://units/workers/WorkerRuntime.tscn")
 const SOLDIER_SCENE := preload("res://units/soldiers/SoldierRuntime.tscn")
 const ENEMY_SCENE := preload("res://units/enemies/EnemyRuntime.tscn")
+## T23: o corpo do Saqueador de Guilda. A cena entra pela composition root como as outras —
+## o controller da incursão a recebe por parâmetro.
+const RAIDER_SCENE := preload("res://units/enemies/RaiderRuntime.tscn")
 const ROCK_SCENE := preload("res://world/dungeon/rock/RockRuntime.tscn")
 ## §10/§11/T18: a persistência é um controller como os outros — criado e injetado aqui,
 ## na raiz de composição. Ele não é Autoload, não se procura na árvore e não descobre
@@ -45,6 +48,8 @@ const SAVE_SCRIPT := preload("res://systems/persistence/save_game_controller.gd"
 ## T22: a receita da expansão populacional (nível, Biomassa, Essência). O corpo do servo é a
 ## mesma `worker_definition` acima — esta Resource só descreve a porta e o preço.
 @export var worker_expansion_definition: WorkerExpansionDefinition
+## T23: o Saqueador de Guilda — corpo de combate de EnemyDefinition mais o saque.
+@export var raider_definition: RaiderDefinition
 
 @onready var _dungeon: Node3D = $World/DungeonRoot
 @onready var _core: CoreRuntime = $World/DungeonRoot/MainCore
@@ -58,6 +63,8 @@ const SAVE_SCRIPT := preload("res://systems/persistence/save_game_controller.gd"
 @onready var _soldier_spawn_point: Marker3D = $World/DungeonRoot/SoldierSpawnPoint
 @onready var _invasion_point_a: Marker3D = $World/DungeonRoot/InvasionSpawnPointA
 @onready var _invasion_point_b: Marker3D = $World/DungeonRoot/InvasionSpawnPointB
+@onready var _surface_entrance_a: Marker3D = $World/DungeonRoot/SurfaceEntrancePointA
+@onready var _surface_entrance_b: Marker3D = $World/DungeonRoot/SurfaceEntrancePointB
 @onready var _hud: CoreDebugHud = $UI/CoreDebugPanel
 @onready var _resource_hud: ResourceDebugHud = $UI/ResourceDebugPanel
 @onready var _construction_hud: ConstructionDebugHud = $UI/ConstructionDebugPanel
@@ -75,12 +82,16 @@ const SAVE_SCRIPT := preload("res://systems/persistence/save_game_controller.gd"
 @onready var _recruitment: SoldierRecruitmentController = $Systems/SoldierRecruitmentController
 @onready var _invasion: InvasionController = $Systems/InvasionController
 @onready var _evolution: CoreEvolutionController = $Systems/CoreEvolutionController
+@onready var _incursion: SurfaceIncursionController = $Systems/SurfaceIncursionController
 
 ## §14/T17: o registro de conquista do domínio. Uma instância só, ao lado do CoreState do
 ## Núcleo principal, entregue por referência a quem concede e a quem cobra. Não é child
 ## Node porque é RefCounted, e não vira dois estados separados um por consumidor.
 var _abyssal_crystal_state: AbyssalCrystalState
 var _save: SaveGameController
+## T23: a Notoriedade da campanha. Uma instância, nascida aqui ao lado do CoreState, e
+## entregue ao controller da incursão — que é quem soma cada fato.
+var _notoriety: NotorietyState
 
 
 func _ready() -> void:
@@ -174,6 +185,21 @@ func _ready() -> void:
 	# não procura Ninho nenhum na árvore e não existe sistema de eventos.
 	_construction.nest_completed.connect(_on_nest_completed)
 
+	# T23: a segunda origem de invasão. O saqueador rouba do estoque genérico, mira o
+	# Depósito e foge pelas entradas da superfície; o gatilho é a Notoriedade, que sobe com
+	# a evolução do Núcleo — por isso o CoreState também entra.
+	_notoriety = NotorietyState.new()
+	_incursion.setup(
+			raider_definition,
+			RAIDER_SCENE,
+			_dungeon,
+			stockpile_state,
+			_deposit,
+			[_surface_entrance_a, _surface_entrance_b],
+			_notoriety,
+			core_state)
+	_invasion_hud.bind_incursion(_incursion)
+
 	_setup_save(stockpile_state, core_state)
 	_bind_rocks()
 
@@ -242,6 +268,8 @@ func _setup_save(stockpile_state: ResourceStockpileState, core_state: CoreState)
 			RESOURCE_PILE_SCENE)
 	# T22: a expansão entra na fotografia por vinculação própria.
 	_save.bind_worker_expansion(_expansion)
+	# T23: a superfície entra na fotografia por vinculação própria.
+	_save.bind_surface_incursion(_incursion)
 	# §77/§80/T18: a carga não emite os sinais de conquista — ela devolve números. É aqui
 	# que os painéis são realinhados com a campanha que o arquivo descreve.
 	_save.load_succeeded.connect(_on_load_succeeded)
@@ -275,5 +303,6 @@ func _on_load_succeeded(_path: String) -> void:
 	_military_hud.refresh()
 	_combat_hud.refresh_units(_recruitment.soldier(), _invasion.invaders())
 	_invasion_hud.refresh(_invasion)
+	_invasion_hud.refresh_incursion()
 	_invasion_warning_hud.refresh(_invasion)
 	_evolution_hud.refresh()
