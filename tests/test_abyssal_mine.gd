@@ -364,10 +364,15 @@ func _test_scope_guards() -> void:
 				"§112/§113/§114 nenhum fonte se chama %s" % forbidden)
 		_check(_files_containing(sources, "class_name %s" % forbidden).is_empty(),
 				"§112/§114 nenhuma classe %s foi declarada" % forbidden)
-	# §112: nada de terceiro Worker, terceiro nível ou segunda invasão.
-	_check(_files_containing(sources, "worker_003").is_empty(),
-			"§112 não existe Worker003 no projeto, achado em %s"
-					% [_files_containing(sources, "worker_003")])
+	# §112: nada de terceiro nível ou segunda invasão. T22: o terceiro Worker deixou de ser
+	# proibido porque a Tarefa 22 o introduz de propósito — mas só nos dois donos dele, o
+	# controller da expansão e o contrato do Save. A Mina continua sem conhecê-lo.
+	var third_worker_owners := _files_containing(sources, "worker_003")
+	third_worker_owners.sort()
+	_check(third_worker_owners == ["res://systems/persistence/campaign_snapshot.gd",
+			"res://systems/population/worker_expansion_controller.gd"],
+			"§112/T22 worker_003 só existe na expansão e no contrato, achado em %s"
+					% [third_worker_owners])
 	_check(_files_containing(sources, "level = 3").is_empty(),
 			"§112 nenhuma Definition de Núcleo Nv.3")
 
@@ -437,7 +442,7 @@ func _test_scope_guards() -> void:
 	# versão corrente para 3 e acrescentou a rota V2→V3; a rota V1→V2 da T20 continua nomeada
 	# e intacta — a corrente é histórica, não reescrita.
 	var snapshot_code := _code_of(SNAPSHOT_SOURCE)
-	for required in ["const SAVE_VERSION := 3", "const SAVE_VERSION_V1 := 1",
+	for required in ["const SAVE_VERSION := 4", "const SAVE_VERSION_V1 := 1",
 			"const SAVE_VERSION_V2 := 2",
 			"static func validate_v1(", "static func validate_v2(",
 			"static func migrate_v1_to_v2(", "static func migrate_to_current("]:

@@ -1,4 +1,4 @@
-[gd_scene load_steps=39 format=3]
+[gd_scene load_steps=41 format=3]
 
 [ext_resource type="Script" path="res://game/game_main.gd" id="1_game"]
 [ext_resource type="Script" path="res://camera/camera_controller.gd" id="2_camera"]
@@ -35,6 +35,8 @@
 [ext_resource type="Resource" path="res://data/rooms/abyss_mine.tres" id="33_mine_def"]
 [ext_resource type="Resource" path="res://data/resources/biomass.tres" id="34_biomass"]
 [ext_resource type="Resource" path="res://data/rooms/abyss_fungal_farm.tres" id="35_fungal_farm_def"]
+[ext_resource type="Resource" path="res://data/units/workers/abyss_worker_expansion.tres" id="36_expansion_def"]
+[ext_resource type="Script" path="res://systems/population/worker_expansion_controller.gd" id="37_expansion"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMaterial"]
 albedo_color = Color(0.22, 0.26, 0.3, 1.0)
@@ -67,6 +69,7 @@ abyssal_crystal_definition = ExtResource("32_crystal_def")
 mine_definition = ExtResource("33_mine_def")
 biomass_definition = ExtResource("34_biomass")
 fungal_farm_definition = ExtResource("35_fungal_farm_def")
+worker_expansion_definition = ExtResource("36_expansion_def")
 
 [node name="World" type="Node3D" parent="."]
 
@@ -169,6 +172,9 @@ script = ExtResource("16_construction")
 
 [node name="WorkerInvocationController" type="Node" parent="Systems"]
 script = ExtResource("18_invocation")
+
+[node name="WorkerExpansionController" type="Node" parent="Systems"]
+script = ExtResource("37_expansion")
 
 [node name="SoldierRecruitmentController" type="Node" parent="Systems"]
 script = ExtResource("22_recruitment")

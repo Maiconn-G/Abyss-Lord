@@ -268,7 +268,7 @@ func _test_scope_guards() -> void:
 	for forbidden in ["CrystalManager", "ProgressionResourceManager", "RewardManager",
 			"InvementManager", "InventoryManager", "ProgressionManager", "RewardDefinition",
 			"CostDefinition", "CostEntry", "ResourceCostArray", "TransactionManager",
-			"LootTable", "SaveSystem", "LoadSystem", "Biomassa", "Worker003",
+			"LootTable", "SaveSystem", "LoadSystem", "Biomassa",
 			"CoreLevel3", "SecondInvasion", "CrystalPile", "CrystalMining", "CrystalShop",
 			"EventBus"]:
 		var offenders := _files_containing(sources, forbidden)
@@ -283,7 +283,9 @@ func _test_scope_guards() -> void:
 	# suíte é de T17 — ela não pode continuar proibindo uma obra que o projeto agora tem. A
 	# inversão é afirmativa: a Mina existe por Definition e State próprios, em arquivos
 	# próprios. O resto do juramento de T17 continua de pé ali em cima — Biomassa, Worker003,
-	# CoreLevel3 e SecondInvasion seguem proibidos, agora pela §112 de T20 também.
+	# CoreLevel3 e SecondInvasion seguem proibidos, agora pela §112 de T20 também. T22: o
+	# Worker003 saiu da lista porque a Tarefa 22 o introduz de propósito (a expansão por
+	# Biomassa); "Biomassa" continua proibida como literal de código.
 	var mine_definitions := _files_containing(sources, "class_name MineDefinition")
 	_check(mine_definitions == ["res://core/definitions/mine_definition.gd"],
 			"§119/T20 a Mina tem uma Definition própria e única, obtido %s" % [mine_definitions])
@@ -295,8 +297,10 @@ func _test_scope_guards() -> void:
 	# §98/T18: a pasta passou a ter sete controllers e um contrato de schema porque a
 	# persistência da campanha é um sistema real da campanha (SaveGameController, §10/§11)
 	# e CampaignSnapshot é o contrato do arquivo (§6), não um Manager genérico.
-	_check(_collect_gd_files(SYSTEMS_DIR).size() == 8,
-			"§13/T18 systems/ tem sete controllers e o contrato de schema, obtido %d"
+	# T22: o oitavo controller é o WorkerExpansionController — o dono do terceiro Trabalhador,
+	# que a Tarefa 22 introduz de propósito. Continua sendo um controller com um papel só.
+	_check(_collect_gd_files(SYSTEMS_DIR).size() == 9,
+			"§13/T18/T22 systems/ tem oito controllers e o contrato de schema, obtido %d"
 					% _collect_gd_files(SYSTEMS_DIR).size())
 	# §101: State RefCounted, sem polling.
 	var state_code := _code_of(CRYSTAL_STATE_SOURCE)

@@ -472,17 +472,21 @@ func _test_scope_guards() -> void:
 	for forbidden in ["FungalFarmManager", "BiomassManager", "OrganicManager",
 			"ProductionManager", "EconomyManager", "RoomManager", "RoomDefinition", "RoomState",
 			"RoomRuntime", "FarmUpgrade", "FarmModule", "FarmStaffing", "FarmProductivity",
-			"MaintenanceSystem", "UpkeepManager", "PowerSystem", "Worker003",
+			"MaintenanceSystem", "UpkeepManager", "PowerSystem",
 			"BiomassPile", "ResourcePileDelta", "ProductionInputDefinition", "RecipeSystem",
 			"ProducerDefinition", "ProductionRuntime", "ProductionState", "FeedingSystem"]:
 		_check(_files_named(sources, forbidden).is_empty(),
 				"§112/§113 nenhum fonte se chama %s" % forbidden)
 		_check(_files_containing(sources, "class_name %s" % forbidden).is_empty(),
 				"§112/§113 nenhuma classe %s foi declarada" % forbidden)
-	# §112: nada de terceiro Worker, terceiro nível ou segunda invasão.
-	_check(_files_containing(sources, "worker_003").is_empty(),
-			"§112 não existe Worker003 no projeto, achado em %s"
-					% [_files_containing(sources, "worker_003")])
+	# §112: nada de terceiro nível ou segunda invasão. T22: o terceiro Worker é a expansão
+	# por Biomassa e saiu da proibição — mas só nos dois donos dele; a Fazenda não o conhece.
+	var third_worker_owners := _files_containing(sources, "worker_003")
+	third_worker_owners.sort()
+	_check(third_worker_owners == ["res://systems/persistence/campaign_snapshot.gd",
+			"res://systems/population/worker_expansion_controller.gd"],
+			"§112/T22 worker_003 só existe na expansão e no contrato, achado em %s"
+					% [third_worker_owners])
 	_check(_files_containing(sources, "level = 3").is_empty(),
 			"§112 nenhuma Definition de Núcleo Nv.3")
 
@@ -558,7 +562,7 @@ func _test_scope_guards() -> void:
 
 	# §50/§51/§60: versão por versão, uma rota nomeada, sem framework.
 	var snapshot_code := _code_of(SNAPSHOT_SOURCE)
-	for required in ["const SAVE_VERSION := 3", "const SAVE_VERSION_V1 := 1",
+	for required in ["const SAVE_VERSION := 4", "const SAVE_VERSION_V1 := 1",
 			"const SAVE_VERSION_V2 := 2", "static func validate_v1(",
 			"static func validate_v2(", "static func validate_v3(",
 			"static func migrate_v1_to_v2(", "static func migrate_v2_to_v3(",

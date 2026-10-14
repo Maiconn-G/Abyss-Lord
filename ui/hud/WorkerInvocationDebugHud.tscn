@@ -3,10 +3,10 @@
 [ext_resource type="Script" path="res://ui/hud/worker_invocation_debug_hud.gd" id="1_hud"]
 
 [node name="WorkerInvocationDebugPanel" type="PanelContainer"]
-offset_left = 16.0
-offset_top = 286.0
-offset_right = 320.0
-offset_bottom = 344.0
+offset_left = 360.0
+offset_top = 274.0
+offset_right = 760.0
+offset_bottom = 380.0
 mouse_filter = 2
 script = ExtResource("1_hud")
 
@@ -25,3 +25,15 @@ unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
 text = "Invocação: -"
+
+[node name="ExpansionHintLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+text = "[U] Invocar Trabalhador"
+
+[node name="ExpansionStatusLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+text = "Terceiro trabalhador: -"
