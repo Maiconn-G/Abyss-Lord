@@ -42,6 +42,9 @@ const SAVE_SCRIPT := preload("res://systems/persistence/save_game_controller.gd"
 ## §23/T21: o recurso orgânico. É uma ResourceDefinition como o Minério e mora no MESMO
 ## estoque genérico — não há pilha, depósito nem State próprios para a Biomassa.
 @export var biomass_definition: ResourceDefinition
+## T22: a receita da expansão populacional (nível, Biomassa, Essência). O corpo do servo é a
+## mesma `worker_definition` acima — esta Resource só descreve a porta e o preço.
+@export var worker_expansion_definition: WorkerExpansionDefinition
 
 @onready var _dungeon: Node3D = $World/DungeonRoot
 @onready var _core: CoreRuntime = $World/DungeonRoot/MainCore
@@ -68,6 +71,7 @@ const SAVE_SCRIPT := preload("res://systems/persistence/save_game_controller.gd"
 @onready var _selection: SelectionController = $Systems/SelectionController
 @onready var _construction: ConstructionController = $Systems/ConstructionController
 @onready var _invocation: WorkerInvocationController = $Systems/WorkerInvocationController
+@onready var _expansion: WorkerExpansionController = $Systems/WorkerExpansionController
 @onready var _recruitment: SoldierRecruitmentController = $Systems/SoldierRecruitmentController
 @onready var _invasion: InvasionController = $Systems/InvasionController
 @onready var _evolution: CoreEvolutionController = $Systems/CoreEvolutionController
@@ -118,6 +122,17 @@ func _ready() -> void:
 
 	_invocation.setup(core_state, worker_definition, WORKER_SCENE, _dungeon, _spawn_point)
 	_invocation.bind_delivery_deposit(_deposit)
+	# T22: o terceiro Worker nasce no mesmo ponto do segundo e entrega no mesmo Depósito. A
+	# Biomassa que ele custa é a do estoque genérico, por isso o controller recebe o estoque.
+	_expansion.setup(
+			core_state,
+			stockpile_state,
+			worker_definition,
+			worker_expansion_definition,
+			WORKER_SCENE,
+			_dungeon,
+			_spawn_point)
+	_expansion.bind_delivery_deposit(_deposit)
 
 	_recruitment.setup(
 			core_state,
@@ -165,6 +180,7 @@ func _ready() -> void:
 	core_state.try_add_population(1)
 	_hud.bind_core(core_state)
 	_invocation_hud.bind(_invocation, core_state, worker_definition)
+	_invocation_hud.bind_expansion(_expansion, stockpile_state)
 	_selection.setup($World/CameraRig/Camera3D, _dungeon, _selection_box)
 
 
@@ -224,6 +240,8 @@ func _setup_save(stockpile_state: ResourceStockpileState, core_state: CoreState)
 			_resource_materials(),
 			ROCK_SCENE,
 			RESOURCE_PILE_SCENE)
+	# T22: a expansão entra na fotografia por vinculação própria.
+	_save.bind_worker_expansion(_expansion)
 	# §77/§80/T18: a carga não emite os sinais de conquista — ela devolve números. É aqui
 	# que os painéis são realinhados com a campanha que o arquivo descreve.
 	_save.load_succeeded.connect(_on_load_succeeded)

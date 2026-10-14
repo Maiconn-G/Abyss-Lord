@@ -547,8 +547,10 @@ func _test_scope_guards() -> void:
 	# campanha é um sistema real, não um Manager. São sete controllers (SaveGameController,
 	# §10/§11) mais CampaignSnapshot, o contrato do arquivo (§6), que não controla nada:
 	# apenas conhece a forma do JSON e valida estrutura. Antes 6, agora 8.
-	_check(_collect_gd_files("res://systems").size() == 8,
-			"§98/T18 systems/ tem exatamente sete controllers e um contrato de schema, "
+	# T22: o WorkerExpansionController, dono do terceiro Trabalhador, é o oitavo controller.
+	# Mesmo critério de sempre: uma tarefa nova, um controller com papel único. Antes 8, agora 9.
+	_check(_collect_gd_files("res://systems").size() == 9,
+			"§98/T18/T22 systems/ tem exatamente oito controllers e um contrato de schema, "
 					+ "obtido %d" % _collect_gd_files("res://systems").size())
 	var main := _source(GAME_MAIN_SOURCE_PATH)
 	for forbidden in ["Enemy001", "_spawn_initial_enemy", "EnemySpawnPoint", "queue_free(_core",

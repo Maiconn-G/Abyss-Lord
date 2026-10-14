@@ -958,6 +958,20 @@ Liderança.
 
 Personagens excepcionais.
 
+## Expansão por Biomassa
+
+Depois do Nv.2, a população de Trabalhadores deixa de ser o limite do MVP (D1). A primeira
+expansão é o **terceiro Trabalhador**, e é ela que liga a cadeia orgânica à população:
+
+* a Fazenda Fúngica converte Essência em Biomassa (§17);
+* a Biomassa dá **corpo** ao servo, e a Essência o **anima**;
+* receita: Núcleo Nv.2 + **3 Biomassa + 10 Essência** → 1 Trabalhador Abissal (tecla U);
+* acontece uma única vez, consome 1 de população e não exige o segundo Trabalhador.
+
+O servo invocado é o mesmo Trabalhador Abissal dos outros dois — mesmo corpo, mesma
+velocidade, mesma carga. O que muda é só a receita, que vive em
+`data/units/workers/abyss_worker_expansion.tres`. Valores são balanceamento inicial.
+
 ---
 
 # 20. UNIDADES PERSISTENTES
@@ -2955,10 +2969,10 @@ Candidatos explícitos de abertura do slice:
 * **mais Trabalhadores** — a população acima de 2 deixa de ser limite de MVP;
 * **economia renovável** — produção contínua substituindo extração finita de rochas.
 
-Dois desses candidatos já foram abertos: a **Mina** (autoprodução mineral) e a
-**Biomassa** pela **Fazenda Fúngica** (conversão de energia em matéria viva). Os outros
-dois — mais Trabalhadores e a economia renovável completa — seguem como próximos passos
-do slice.
+Três desses candidatos já foram abertos: a **Mina** (autoprodução mineral), a
+**Biomassa** pela **Fazenda Fúngica** (conversão de energia em matéria viva) e **mais
+Trabalhadores**, com o terceiro Trabalhador invocado por Biomassa (§19). A economia
+renovável completa segue como próximo passo do slice.
 
 Depois desses quatro, o resto do slice:
 
@@ -3344,6 +3358,18 @@ próprios. O estado da campanha ganhou uma **quarta obra** na seção `construct
 arquivo (`fungal_farm`), o formato de save subiu para **V3**, e a rotina de migração
 continua explícita, versão por versão, sem framework. A definição canônica do formato V3
 está em `docs/SAVE_SCHEMA_V3.md`.
+
+## A população cresceu: a expansão por Biomassa
+
+A **Tarefa 22** fechou a cadeia orgânica no lugar onde ela importa: a população. A
+Biomassa que a Fazenda produz passa a ser o corpo do **terceiro Trabalhador** (§19) — Nv.2,
+3 Biomassa e 10 Essência, uma única vez, pela tecla U.
+
+O segundo Trabalhador continua sendo a regra histórica do MVP (D1) e o terceiro tem dono
+próprio (`WorkerExpansionController`); os dois não se conhecem e não viraram um sistema
+genérico de população. O formato de save subiu para **V4** com a flag
+`worker_003_summoned`, e a corrente de migração ganhou o degrau V3 → V4. A definição
+canônica do formato V4 está em `docs/SAVE_SCHEMA_V4.md`.
 
 ## O lore foi alinhado
 

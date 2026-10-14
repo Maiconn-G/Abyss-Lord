@@ -16,10 +16,16 @@ const SAVE_FORMAT := "abyss_lord_campaign"
 ## V3. §56: V1 e V2 continuam sendo lidos — através da cadeia de migração explícita abaixo —
 ## e nunca escritos. §58: suporte é lista nominal, não "qualquer número inteiro": V0 e V4/999
 ## são recusados.
-const SAVE_VERSION := 3
+## T22: o terceiro Trabalhador (expansão por Biomassa) acrescenta estado persistente novo —
+## a flag histórica `worker_003_summoned` e o registro `worker_003` —, então o formato escrito
+## passa a ser o V4. V1, V2 e V3 continuam sendo lidos pela mesma corrente explícita, um
+## degrau por versão, e nunca escritos. V0 e V5/999 são recusados.
+const SAVE_VERSION := 4
 const SAVE_VERSION_V1 := 1
 const SAVE_VERSION_V2 := 2
-const SUPPORTED_VERSIONS: Array[int] = [SAVE_VERSION_V1, SAVE_VERSION_V2, SAVE_VERSION]
+const SAVE_VERSION_V3 := 3
+const SUPPORTED_VERSIONS: Array[int] = [
+		SAVE_VERSION_V1, SAVE_VERSION_V2, SAVE_VERSION_V3, SAVE_VERSION]
 
 const ROOT_FORMAT := "format"
 const ROOT_VERSION := "save_version"
@@ -50,6 +56,8 @@ const INVASION_STATE_NAMES: Array[String] = [
 const CORE_ID := "main_core"
 const FIRST_WORKER_ID := "worker_001"
 const SECOND_WORKER_ID := "worker_002"
+## T22: a identidade semântica do terceiro Trabalhador. Só o V4 a aceita.
+const THIRD_WORKER_ID := "worker_003"
 const SOLDIER_ID := "soldier_001"
 const NEST_ID := "nest_001"
 const BARRACKS_ID := "barracks_001"
@@ -69,6 +77,8 @@ const KEY_AMOUNT := "amount"
 const KEY_STOCKPILE := "stockpile"
 const KEY_WORKERS := "workers"
 const KEY_SECOND_SUMMONED := "worker_002_summoned"
+## T22: a flag histórica da expansão — mesmo papel da do segundo Worker.
+const KEY_THIRD_SUMMONED := "worker_003_summoned"
 const KEY_SOLDIER := "soldier"
 const KEY_RECRUITED := "recruited"
 const KEY_ALIVE := "alive"
@@ -148,7 +158,9 @@ static func validate_document(document: Variant) -> String:
 		return validate_v1(campaign)
 	if version == SAVE_VERSION_V2:
 		return validate_v2(campaign)
-	return validate_v3(campaign)
+	if version == SAVE_VERSION_V3:
+		return validate_v3(campaign)
+	return validate_v4(campaign)
 
 
 ## §73: o V1 é o formato congelado em docs/SAVE_SCHEMA_V1.md — duas obras e nenhum relógio
@@ -183,6 +195,23 @@ static func validate_v3(campaign: Dictionary) -> String:
 	return _validate_fungal_farm(campaign)
 
 
+## T22: V4 é o V3 inteiro mais `units.worker_003_summoned` e a permissão de um registro
+## `worker_003` em `units.workers`. Nenhum campo de V1, V2 ou V3 muda de nome, de tipo ou de
+## significado. Um registro do terceiro Worker sem a flag histórica é contradição — a unidade
+## não pode existir sem ter sido invocada — e é recusado aqui, antes de qualquer domínio.
+static func validate_v4(campaign: Dictionary) -> String:
+	var reason := _validate_sections(campaign, true)
+	if not reason.is_empty():
+		return reason
+	reason = _validate_mine(campaign)
+	if not reason.is_empty():
+		return reason
+	reason = _validate_fungal_farm(campaign)
+	if not reason.is_empty():
+		return reason
+	return _validate_third_worker(campaign)
+
+
 ## §53/§116: a rota de migração é uma sequência de funções nomeadas, não um registry. Cada
 ## versão sobe exatamente um degrau, na ordem: V1→V2 e depois V2→V3. Não há atalho V1→V3 —
 ## uma campanha V1 passa pelos dois degraus, e cada degrau acrescenta só o que é seu.
@@ -192,6 +221,8 @@ static func migrate_to_current(document: Dictionary) -> Dictionary:
 		migrated = migrate_v1_to_v2(migrated)
 	if int(migrated[ROOT_VERSION]) == SAVE_VERSION_V2:
 		migrated = migrate_v2_to_v3(migrated)
+	if int(migrated[ROOT_VERSION]) == SAVE_VERSION_V3:
+		migrated = migrate_v3_to_v4(migrated)
 	return migrated
 
 
@@ -211,9 +242,20 @@ static func migrate_v1_to_v2(document: Dictionary) -> Dictionary:
 ## uma campanha V1 ganha `mine` e `fungal_farm` nos dois degraus, na ordem certa.
 static func migrate_v2_to_v3(document: Dictionary) -> Dictionary:
 	var migrated := document.duplicate(true) as Dictionary
-	migrated[ROOT_VERSION] = SAVE_VERSION
+	migrated[ROOT_VERSION] = SAVE_VERSION_V3
 	((migrated[ROOT_CAMPAIGN] as Dictionary)[SECTION_CONSTRUCTIONS] as Dictionary)[
 			SECTION_FUNGAL_FARM] = {KEY_EXISTS: false}
+	return migrated
+
+
+## T22: o único fato novo de um V3 migrado é que aquela campanha nunca invocou o terceiro
+## Trabalhador. O V3 não tinha como registrar worker_003 (o validador V3 o recusa), então não
+## há unidade a converter — só a flag histórica a acrescentar, em false.
+static func migrate_v3_to_v4(document: Dictionary) -> Dictionary:
+	var migrated := document.duplicate(true) as Dictionary
+	migrated[ROOT_VERSION] = SAVE_VERSION
+	((migrated[ROOT_CAMPAIGN] as Dictionary)[SECTION_UNITS] as Dictionary)[
+			KEY_THIRD_SUMMONED] = false
 	return migrated
 
 
@@ -233,7 +275,9 @@ static func _validate_envelope(document: Variant) -> String:
 	return ""
 
 
-static func _validate_sections(campaign: Dictionary) -> String:
+## T22: `accepts_third_worker` só é true para o V4. V1, V2 e V3 são formatos congelados e
+## continuam recusando o registro worker_003 — o passado não ganha unidade nova.
+static func _validate_sections(campaign: Dictionary, accepts_third_worker := false) -> String:
 	for section in [SECTION_CORE, SECTION_PROGRESSION, SECTION_ECONOMY, SECTION_UNITS,
 			SECTION_CONSTRUCTIONS, SECTION_WORLD, SECTION_INVASION]:
 		if not (campaign.get(section) is Dictionary):
@@ -247,7 +291,7 @@ static func _validate_sections(campaign: Dictionary) -> String:
 	reason = _validate_economy(campaign)
 	if not reason.is_empty():
 		return reason
-	reason = _validate_units(campaign)
+	reason = _validate_units(campaign, accepts_third_worker)
 	if not reason.is_empty():
 		return reason
 	reason = _validate_constructions(campaign)
@@ -259,7 +303,7 @@ static func _validate_sections(campaign: Dictionary) -> String:
 	return _validate_invasion(campaign)
 
 
-## §8/§58/T20: as versões nominalmente suportadas. V0, V3 e V999 são recusados sem
+## §8/§58/T20/T22: as versões nominalmente suportadas. V0, V5 e V999 são recusados sem
 ## adivinhação, e um documento recusado não chega à etapa de aplicação (§67).
 static func is_supported_version(value: Variant) -> bool:
 	return _is_integral(value) and SUPPORTED_VERSIONS.has(int(value))
@@ -306,14 +350,14 @@ static func _validate_economy(campaign: Dictionary) -> String:
 ## §23/§25/§26/§27/§28: os registros de unidade. O Worker da cena é a identidade que a
 ## campanha sempre tem — §84 não recria Núcleo nem Worker001, portanto um arquivo sem ele
 ## é campanha corrompida, não partida nova.
-static func _validate_units(campaign: Dictionary) -> String:
+static func _validate_units(campaign: Dictionary, accepts_third_worker := false) -> String:
 	var units := campaign[SECTION_UNITS] as Dictionary
 	if not _is_array(units, KEY_WORKERS) or not _is_bool(units, KEY_SECOND_SUMMONED) \
 			or not (units.get(KEY_SOLDIER) is Dictionary):
 		return "units precisa de workers, worker_002_summoned e soldier"
 	var has_scene_worker := false
 	for worker in units[KEY_WORKERS] as Array:
-		var reason := _validate_worker(worker)
+		var reason := _validate_worker(worker, accepts_third_worker)
 		if not reason.is_empty():
 			return reason
 		if (worker as Dictionary)[KEY_UNIT_ID] == FIRST_WORKER_ID:
@@ -323,11 +367,14 @@ static func _validate_units(campaign: Dictionary) -> String:
 	return _validate_soldier(units[KEY_SOLDIER] as Dictionary)
 
 
-static func _validate_worker(worker: Variant) -> String:
+static func _validate_worker(worker: Variant, accepts_third_worker := false) -> String:
 	if not (worker is Dictionary):
 		return "workers tem entrada que não é um registro"
 	var entry := worker as Dictionary
-	if entry.get(KEY_UNIT_ID) != FIRST_WORKER_ID and entry.get(KEY_UNIT_ID) != SECOND_WORKER_ID:
+	var known_ids: Array = [FIRST_WORKER_ID, SECOND_WORKER_ID]
+	if accepts_third_worker:
+		known_ids.append(THIRD_WORKER_ID)
+	if not known_ids.has(entry.get(KEY_UNIT_ID)):
 		return "unit_id de Worker desconhecido: %s" % [entry.get(KEY_UNIT_ID)]
 	if not _is_string(entry, KEY_UNIT_TYPE_ID) or not _is_number(entry, KEY_HEALTH) \
 			or not _is_int(entry, KEY_LEVEL) or not _is_number(entry, KEY_EXPERIENCE) \
@@ -343,6 +390,18 @@ static func _validate_worker(worker: Variant) -> String:
 		return "%s carrega sem recurso" % entry.get(KEY_UNIT_ID)
 	if entry[KEY_CARRIED_AMOUNT] == 0 and cargo != null:
 		return "%s tem recurso sem carga" % entry.get(KEY_UNIT_ID)
+	return ""
+
+
+## T22: a flag é obrigatória no V4, e o registro do terceiro Worker exige a história dele.
+static func _validate_third_worker(campaign: Dictionary) -> String:
+	var units := campaign[SECTION_UNITS] as Dictionary
+	if not _is_bool(units, KEY_THIRD_SUMMONED):
+		return "units precisa de worker_003_summoned"
+	for worker in units[KEY_WORKERS] as Array:
+		if (worker as Dictionary)[KEY_UNIT_ID] == THIRD_WORKER_ID \
+				and not units[KEY_THIRD_SUMMONED]:
+			return "worker_003 registrado sem worker_003_summoned"
 	return ""
 
 

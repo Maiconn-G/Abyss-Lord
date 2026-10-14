@@ -36,6 +36,9 @@ var _dungeon: Node3D
 var _selection: SelectionController
 var _construction: ConstructionController
 var _invocation: WorkerInvocationController
+## T22: o dono do terceiro Worker chega por vinculação própria, como a Mina e a Fazenda
+## chegaram ao ConstructionController — `setup()` não muda de assinatura.
+var _expansion: WorkerExpansionController
 var _recruitment: SoldierRecruitmentController
 var _invasion: InvasionController
 var _evolution: CoreEvolutionController
@@ -132,6 +135,13 @@ func bind_restore_materials(
 		if resource_definition != null:
 			_definitions_by_resource_id[String(resource_definition.resource_id)] \
 					= resource_definition
+
+
+## T22: a expansão populacional entra na fotografia por vinculação própria. O que o arquivo
+## guarda é a flag histórica e o registro da unidade; a receita (nível, Biomassa, Essência)
+## é lida da WorkerExpansionDefinition que o controller recebeu, nunca do JSON.
+func bind_worker_expansion(expansion: WorkerExpansionController) -> void:
+	_expansion = expansion
 
 
 ## §107: o caminho é configurável justamente para o teste não escrever no save do jogador.
@@ -240,6 +250,8 @@ func _units_record() -> Dictionary:
 	return {
 		CampaignSnapshot.KEY_WORKERS: workers,
 		CampaignSnapshot.KEY_SECOND_SUMMONED: _invocation.worker_ever_summoned(),
+		CampaignSnapshot.KEY_THIRD_SUMMONED:
+				_expansion != null and _expansion.worker_ever_expanded(),
 		CampaignSnapshot.KEY_SOLDIER: _soldier_record(),
 	}
 
@@ -474,6 +486,9 @@ func validate_campaign(campaign: Dictionary) -> String:
 	reason = _validate_unit_types(campaign)
 	if not reason.is_empty():
 		return reason
+	reason = _validate_expansion_history(campaign)
+	if not reason.is_empty():
+		return reason
 	reason = _validate_construction_bounds(campaign)
 	if not reason.is_empty():
 		return reason
@@ -533,6 +548,24 @@ func _validate_unit_types(campaign: Dictionary) -> String:
 		return "unit_type_id do Soldado desconhecido: %s" % soldier[CampaignSnapshot.KEY_UNIT_TYPE_ID]
 	if soldier[CampaignSnapshot.KEY_HEALTH] > _soldier_definition.max_health:
 		return "soldier com vida acima do máximo"
+	return ""
+
+
+## T22: a expansão só existe a partir do nível que a receita exige, e o Núcleo não regride.
+## Um arquivo com o terceiro Worker invocado abaixo desse nível descreve uma campanha
+## impossível. A faixa é domínio (vem da Definition injetada), por isso mora aqui e não no
+## contrato estrutural. Sem controller de expansão vinculado, a campanha não sabe montar o
+## terceiro Worker — e recusa o arquivo que o tem, em vez de ignorá-lo em silêncio.
+func _validate_expansion_history(campaign: Dictionary) -> String:
+	var units: Dictionary = campaign[CampaignSnapshot.SECTION_UNITS]
+	if not bool(units.get(CampaignSnapshot.KEY_THIRD_SUMMONED, false)):
+		return ""
+	if _expansion == null or _expansion.expansion_definition() == null:
+		return "a campanha não sabe restaurar %s" % CampaignSnapshot.THIRD_WORKER_ID
+	var level := int(campaign[CampaignSnapshot.SECTION_CORE][CampaignSnapshot.KEY_LEVEL])
+	if level < _expansion.expansion_definition().required_core_level:
+		return "%s invocado antes do Nv.%d do Núcleo" % [CampaignSnapshot.THIRD_WORKER_ID,
+				_expansion.expansion_definition().required_core_level]
 	return ""
 
 
@@ -997,6 +1030,7 @@ func _restore_units(campaign: Dictionary) -> void:
 	for record in records:
 		_restore_scene_worker(record as Dictionary)
 	_restore_second_worker(units[CampaignSnapshot.KEY_SECOND_SUMMONED], records)
+	_restore_third_worker(units.get(CampaignSnapshot.KEY_THIRD_SUMMONED, false), records)
 	var soldier: Dictionary = units[CampaignSnapshot.KEY_SOLDIER]
 	_recruitment.restore_soldier(
 			soldier[CampaignSnapshot.KEY_RECRUITED],
@@ -1013,7 +1047,7 @@ func _restore_units(campaign: Dictionary) -> void:
 ## recriar. O segundo Worker tem dono próprio e passa pela rota de invocação.
 func _restore_scene_worker(record: Dictionary) -> void:
 	var unit_id := String(record[CampaignSnapshot.KEY_UNIT_ID])
-	if unit_id == CampaignSnapshot.SECOND_WORKER_ID:
+	if unit_id == CampaignSnapshot.SECOND_WORKER_ID or unit_id == CampaignSnapshot.THIRD_WORKER_ID:
 		return
 	var runtime := _find_worker(unit_id)
 	if runtime == null:
@@ -1043,6 +1077,29 @@ func _restore_second_worker(ever_summoned: Variant, records: Array) -> void:
 		_invocation.remove_summoned_worker()
 		return
 	_invocation.restore_summoned_worker(
+			float(found[CampaignSnapshot.KEY_HEALTH]),
+			int(found[CampaignSnapshot.KEY_LEVEL]),
+			float(found[CampaignSnapshot.KEY_EXPERIENCE]),
+			_cargo_of(found),
+			int(found[CampaignSnapshot.KEY_CARRIED_AMOUNT]),
+			CampaignSnapshot.decode_position(found[CampaignSnapshot.KEY_POSITION]))
+
+
+## T22: mesma rota do segundo Worker, com dono próprio. A flag volta como o arquivo a
+## escreveu, e o Runtime só existe se houver registro dele.
+func _restore_third_worker(ever_summoned: Variant, records: Array) -> void:
+	if _expansion == null:
+		return
+	_expansion.restore_expansion_history(bool(ever_summoned))
+	var found: Dictionary = {}
+	for entry in records:
+		if String(entry[CampaignSnapshot.KEY_UNIT_ID]) == CampaignSnapshot.THIRD_WORKER_ID:
+			found = entry as Dictionary
+			break
+	if found.is_empty():
+		_expansion.remove_expanded_worker()
+		return
+	_expansion.restore_expanded_worker(
 			float(found[CampaignSnapshot.KEY_HEALTH]),
 			int(found[CampaignSnapshot.KEY_LEVEL]),
 			float(found[CampaignSnapshot.KEY_EXPERIENCE]),

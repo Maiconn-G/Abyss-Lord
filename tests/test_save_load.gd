@@ -220,10 +220,12 @@ func _test_schema_contract() -> void:
 	# §45/T21: a Fazenda Fúngica acrescenta a quarta obra, então o formato escrito passa a ser
 	# V3. O que a linha sempre exigiu foi "o writer grava a versão do contrato" — o número que
 	# ela compara acompanha o contrato, e comparar com 1 ou 2 aqui seria congelar o passado.
-	_check(int(document[CampaignSnapshot.ROOT_VERSION]) == 3,
-			"§45 save_version == 3, obtido %s" % document[CampaignSnapshot.ROOT_VERSION])
-	_check(CampaignSnapshot.SAVE_VERSION == 3,
-			"§45 o contrato declara V3, obtido %d" % CampaignSnapshot.SAVE_VERSION)
+	# T22: o terceiro Trabalhador acrescenta a flag `worker_003_summoned`, e o formato escrito
+	# passa a ser V4 — a linha acompanha o contrato, como acompanhou na T20 e na T21.
+	_check(int(document[CampaignSnapshot.ROOT_VERSION]) == 4,
+			"§45 save_version == 4, obtido %s" % document[CampaignSnapshot.ROOT_VERSION])
+	_check(CampaignSnapshot.SAVE_VERSION == 4,
+			"§45 o contrato declara V4, obtido %d" % CampaignSnapshot.SAVE_VERSION)
 	_check(document.has(CampaignSnapshot.ROOT_METADATA)
 			and document.has(CampaignSnapshot.ROOT_CAMPAIGN),
 			"§6 envelope tem metadata e campaign")
@@ -265,7 +267,8 @@ func _test_structural_refusals() -> void:
 	# Fazenda o contrato passou a ter três versões lidas (1, 2 e 3), então "desconhecida"
 	# deixou de ser o número 3 e passou a ser 4, 999 e 0 (§57/§58). A guarda continua sendo a
 	# mesma: recusa nominal, sem adivinhação, sem "talvez seja compatível".
-	for unknown in [4, 999, 0]:
+	# T22: com o V4 lido, "desconhecida" passa a ser 5, 999 e 0.
+	for unknown in [5, 999, 0]:
 		var future := CampaignSnapshot.build_document(campaign, {}) as Dictionary
 		future[CampaignSnapshot.ROOT_VERSION] = unknown
 		_refuse(future, "save_version",
@@ -392,12 +395,13 @@ func _test_source_guards() -> void:
 	_check(not ResourceLoader.exists("res://ui/hud/SaveDebugHud.tscn"),
 			"§59 não existe painel de save")
 
-	# §98/T18: systems/ tem sete controllers e o contrato do arquivo.
+	# §98/T18: systems/ tem sete controllers e o contrato do arquivo. T22: oito, com o
+	# WorkerExpansionController.
 	_check(_collect_gd_files(PERSISTENCE_DIR).size() == 2,
 			"§11 a persistência são dois arquivos: controller e contrato, obtido %d"
 					% _collect_gd_files(PERSISTENCE_DIR).size())
-	_check(_collect_gd_files("res://systems").size() == 8,
-			"§13/T18 systems/ tem sete controllers e o contrato de schema, obtido %d"
+	_check(_collect_gd_files("res://systems").size() == 9,
+			"§13/T18/T22 systems/ tem oito controllers e o contrato de schema, obtido %d"
 					% _collect_gd_files("res://systems").size())
 
 	# §129: persistência é instantânea no frame do input, nunca por frame.
@@ -1616,8 +1620,9 @@ func _test_v2_migration_and_resave() -> void:
 			"§56 o salto V2→V3 não inventou a Fazenda Fúngica")
 	_check(_save.save_campaign(), "§56 a campanha migrada é reescrita")
 	var written: Variant = CampaignSnapshot.parse_document(_read_text(PRIMARY_PATH))
-	_check(int((written as Dictionary)[CampaignSnapshot.ROOT_VERSION]) == 3,
-			"§56 o re-save de um V2 publica V3, obtido %s"
+	# T22: o re-save publica a versão corrente, que agora é V4 (a corrente segue até o fim).
+	_check(int((written as Dictionary)[CampaignSnapshot.ROOT_VERSION]) == 4,
+			"§56 o re-save de um V2 publica V4, obtido %s"
 					% (written as Dictionary)[CampaignSnapshot.ROOT_VERSION])
 	var constructions: Dictionary = (written as Dictionary)[
 			CampaignSnapshot.ROOT_CAMPAIGN][CampaignSnapshot.SECTION_CONSTRUCTIONS]
@@ -1684,8 +1689,9 @@ func _test_v1_migration_and_resave() -> void:
 	# §68/T21: o arquivo que sai daqui já é V3 — a corrente V1→V2→V3 inteira —, e diz
 	# explicitamente que não há Mina nem Fazenda Fúngica.
 	var written: Variant = CampaignSnapshot.parse_document(_read_text(PRIMARY_PATH))
-	_check(int((written as Dictionary)[CampaignSnapshot.ROOT_VERSION]) == 3,
-			"§68/§56 o re-save publica V3, obtido %s"
+	# T22: a corrente agora vai até o V4.
+	_check(int((written as Dictionary)[CampaignSnapshot.ROOT_VERSION]) == 4,
+			"§68/§56 o re-save publica V4, obtido %s"
 					% (written as Dictionary)[CampaignSnapshot.ROOT_VERSION])
 	var constructions: Dictionary = (written as Dictionary)[
 			CampaignSnapshot.ROOT_CAMPAIGN][CampaignSnapshot.SECTION_CONSTRUCTIONS]
@@ -1975,6 +1981,8 @@ func _minimal_campaign() -> Dictionary:
 		CampaignSnapshot.SECTION_UNITS: {
 			CampaignSnapshot.KEY_WORKERS: [_minimal_worker()],
 			CampaignSnapshot.KEY_SECOND_SUMMONED: false,
+			# T22: em V4 a flag do terceiro Trabalhador existe sempre.
+			CampaignSnapshot.KEY_THIRD_SUMMONED: false,
 			CampaignSnapshot.KEY_SOLDIER: {
 				CampaignSnapshot.KEY_RECRUITED: false,
 				CampaignSnapshot.KEY_ALIVE: false,
