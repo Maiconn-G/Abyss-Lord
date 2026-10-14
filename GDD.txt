@@ -11,6 +11,7 @@
 **Modo principal:** Single-player
 **Modelo comercial sugerido:** jogo premium, sem gacha e sem microtransações
 **Estado:** Pré-produção
+**Inspiração narrativa:** o manhwa *Dungeon Odyssey* (Glump / Minwoo Son) — ver §1.1
 
 ---
 
@@ -52,6 +53,25 @@ A fantasia central é:
 
 > Começar controlando uma sala miserável e terminar governando um ecossistema subterrâneo inteiro.
 
+## 1.1 Inspiração e limites
+
+Abyss Lord é **inspirado** em *Dungeon Odyssey*. O que vem de lá é a premissa e o tom:
+
+* o protagonista é **dono** de uma masmorra, não alguém que a invade;
+* ele é um **humano** com afinidade abissal que se tornou dono por acidente, não por
+  escolha — o poder chega como fardo;
+* o mundo vive **depois de uma guerra entre a superfície e o subterrâneo**;
+* a masmorra herdada **já tem moradores**, e governá-los é tão importante quanto lutar:
+  legitimidade, disputas entre povos e autoridade posta à prova.
+
+O que **não** vem de lá: nomes de personagens, termos próprios da obra, eventos da trama,
+arte ou diálogos. Personagens, povos, lugares e terminologia de Abyss Lord são criação
+deste projeto. Se uma ideia nova só funcionar copiando um elemento específico da obra,
+ela precisa ser reinventada antes de entrar no jogo.
+
+A inspiração muda a **narrativa e o contexto** das mecânicas. Ela não reabre as decisões
+D1–D7 nem altera o MVP e o conteúdo do Nv.2 já implementados (ver §104).
+
 ---
 
 # 2. FANTASIA DO JOGADOR
@@ -59,7 +79,9 @@ A fantasia central é:
 O jogador deve sentir que é simultaneamente:
 
 * o dono da masmorra;
-* o governante de uma sociedade monstruosa;
+* um humano dividido entre dois mundos, que herdou um reino que nunca pediu;
+* o governante de uma sociedade monstruosa — que precisa conquistar o respeito de quem
+  já vivia ali antes dele;
 * o comandante de um exército;
 * uma criatura poderosa capaz de lutar pessoalmente;
 * um estrategista que decide onde expandir;
@@ -601,6 +623,22 @@ Existe separadamente para grupos militares.
 ## Lealdade
 
 Existe individualmente para personagens importantes.
+
+## Legitimidade
+
+Lealdade **coletiva** de cada Povo Nativo (§51.1) ao Regente.
+
+É o quanto aquele povo aceita a autoridade de um humano sobre o domínio que era dele
+antes. Escala 0–100, por povo, com cinco faixas:
+
+0–20 — hostil
+21–40 — desconfiado
+41–60 — tolerante
+61–80 — leal
+81–100 — devoto
+
+Legitimidade não é moeda: não se gasta, não se compra diretamente e não mora no estoque.
+Ela muda por **decisões e atos** do Regente (ver §51.1).
 
 ---
 
@@ -1221,6 +1259,16 @@ Equipamentos individuais são reservados para:
 O jogador possui um corpo físico chamado provisoriamente de:
 
 **Regente Abissal.**
+
+O Regente é um **humano** — um Marcado pelo Abismo (§63.2) — cujo corpo foi atado ao
+Núcleo no momento da herança. É por esse vínculo que ele luta acima de um humano comum,
+e é por ele que o Núcleo consegue recuperá-lo quando cai em combate (§9).
+
+Ser humano tem peso dos dois lados:
+
+* os Povos Nativos desconfiam de um senhor vindo da superfície;
+* o passado de guia de incursões dá a ele leitura das táticas das guildas humanas
+  (bônus de reconhecimento contra Incursões da Superfície, §58.1).
 
 Pode:
 
@@ -1848,6 +1896,72 @@ Fraqueza:
 
 A facção inicial do jogador pode posteriormente ser escolhida, mas o MVP utilizará somente uma.
 
+## 51.1 Povos Nativos do Domínio
+
+As facções acima vivem **fora** da masmorra. Os Povos Nativos vivem **dentro** dela.
+
+O Núcleo herdado não estava vazio: era a capital de um antigo domínio, e parte de sua
+gente sobreviveu à queda — adormecida, isolada ou entrincheirada nos setores selados.
+Conforme o Regente escava, esses povos são encontrados. Eles não são invocados, não
+são assimilados e não são inimigos por padrão: são **súditos que ainda não aceitaram o
+novo senhor**.
+
+Povos iniciais (nomes provisórios):
+
+**Guarda Decapitada**
+
+Cavaleiros sem cabeça (dullahans) que juraram proteger o antigo Regente. Valorizam
+juramento, hierarquia e coragem. Testam o Regente pelo mérito em combate.
+
+Oferecem quando leais: tropas de elite defensivas, guarda do Núcleo.
+
+**Elfos Cinzentos**
+
+Guardiões do conhecimento e das raízes do domínio. Valorizam memória, tradição e
+equilíbrio. Testam o Regente pelo respeito ao que já existia.
+
+Oferecem quando leais: especialistas, Conhecimento, salas arcanas.
+
+**O Dragão Adormecido**
+
+Uma única criatura ancestral nas profundezas do domínio, mais força da natureza do que
+povo. Não negocia como os outros: precisa ser **despertado e convencido**. Marco de
+campanha, não conteúdo do início.
+
+### Como a Legitimidade muda
+
+Sobe quando o Regente:
+
+* resolve disputas entre povos com justiça percebida;
+* protege o território de um povo durante invasões;
+* cumpre pedidos e promessas;
+* respeita costumes, salas e territórios sagrados.
+
+Desce quando o Regente:
+
+* favorece um povo de forma flagrante sobre outro;
+* quebra promessas;
+* sacrifica membros de um povo em batalha ou em obras;
+* escava ou constrói sobre território que um povo considera seu.
+
+### Disputas
+
+Os povos têm interesses que se chocam — território, recursos, honra, memória do antigo
+Regente. Uma disputa é uma decisão sem resposta certa (§70): atender um povo quase
+sempre custa Legitimidade com outro.
+
+### Efeitos por faixa
+
+* **hostil** → sabotagem, recusa de trabalho, possível revolta interna (invasão vinda de
+  dentro do próprio domínio);
+* **desconfiado** → convivência sem cooperação;
+* **tolerante** → comércio e pedidos;
+* **leal** → recrutamento de unidades e especialistas daquele povo;
+* **devoto** → salas, mutações e heróis exclusivos daquele povo.
+
+Governar os Povos Nativos é o eixo político do jogo antes da diplomacia externa: o
+Regente aprende a ser rei dentro de casa antes de negociar com outros domínios.
+
 ---
 
 # 52. CRIATURAS SELVAGENS
@@ -2012,6 +2126,38 @@ O jogador precisa decidir:
 * atacar preventivamente;
 * evacuar postos.
 
+## 58.1 Incursões da Superfície
+
+Invasões têm **duas origens**:
+
+* **do subterrâneo** — criaturas selvagens, facções e domínios rivais (a invasão do MVP,
+  com Feras Cavernosas atraídas pelo Núcleo que volta a pulsar, é desse tipo);
+* **da superfície** — guildas humanas de incursão.
+
+Desde o fim da Guerra da Fronteira (§63.1), a superfície explora o subterrâneo como
+fonte de riqueza. Guildas contratam guias, entram nas masmorras, saqueiam Cristais e
+recursos raros e voltam. Um Núcleo que desperta é, para elas, uma mina de ouro.
+
+Incursões da superfície diferem das invasões subterrâneas:
+
+* **objetivo** → saquear (Cristais, Essência, recursos raros) e, às vezes, destruir o
+  Núcleo por contrato; nem sempre querem lutar até o fim;
+* **tática** → grupos pequenos e equipados, com guia, batedor, combatentes e suporte;
+* **retirada** → recuam quando o custo fica alto, levando o que conseguiram;
+* **reconhecimento** → o passado de guia do Regente melhora a informação sobre elas
+  (§59).
+
+### Notoriedade
+
+Faceta da Ameaça (§13) voltada para a superfície.
+
+Sobe com Cristais acumulados, guildas derrotadas e sobreviventes que voltam contando o
+que viram. Notoriedade alta traz guildas maiores, recompensas pela cabeça do Regente e,
+no limite, atenção dos reinos da superfície.
+
+Prisioneiros humanos (§57) são especialmente valiosos: libertá-los, trocá-los ou
+recrutá-los muda a Notoriedade e a relação com a superfície.
+
 ---
 
 # 59. RECONHECIMENTO DE INVASÕES
@@ -2091,22 +2237,67 @@ Bônus.
 
 # 63. NARRATIVA PRINCIPAL
 
-O Regente desperta dentro de um Núcleo praticamente morto.
+## 63.1 O mundo depois da Guerra da Fronteira
 
-Ele não sabe:
+Houve uma guerra entre a superfície e o subterrâneo. Ela terminou há uma geração, sem
+vencedor claro, e a fronteira entre os dois mundos foi fechada por tratados frágeis.
+
+Na paz que veio depois, a superfície passou a ver o subterrâneo como um lugar a ser
+explorado: guildas de incursão entram nas masmorras, tiram o que podem e voltam. Os
+domínios do fundo, por sua vez, guardam memória da guerra e desconfiam de qualquer
+humano.
+
+## 63.2 Os Marcados pelo Abismo
+
+Depois da guerra, alguns humanos começaram a nascer com **afinidade abissal**: sentem os
+Núcleos, ouvem o subterrâneo, são atraídos por ele. A superfície os chama de **Marcados**.
+
+São úteis e temidos. As guildas os contratam como guias, porque um Marcado encontra
+caminhos que ninguém mais encontra. Ao mesmo tempo, são vigiados, porque ninguém sabe ao
+certo de que lado eles estão.
+
+## 63.3 O Regente
+
+O protagonista é um Marcado que passou a vida **reprimindo** essa afinidade. Trabalhava
+como guia de incursões para sustentar a família na superfície e queria apenas uma vida
+comum.
+
+Uma incursão dá errado. O grupo encontra um Núcleo praticamente morto, as coisas saem do
+controle, e o guia acaba sozinho diante dele. O Núcleo, à beira da extinção, se ata ao
+único ser capaz de ouvi-lo.
+
+Ele não escolheu ser Regente. Para sobreviver, precisa usar exatamente o que passou a
+vida negando.
+
+Os conflitos centrais do personagem:
+
+* **identidade** — humano ou senhor do abismo; quanto mais o domínio cresce, mais
+  difícil é voltar a ser só o guia;
+* **dois mundos** — a família e o passado estão na superfície; o domínio e seus súditos
+  estão embaixo; as guildas para quem ele trabalhava agora o veem como alvo;
+* **legitimidade** — os Povos Nativos (§51.1) não aceitam automaticamente um humano no
+  trono do antigo Regente.
+
+## 63.4 O segredo do Núcleo
+
+O Regente não sabe:
 
 * quem construiu aquele domínio;
 * por que foi abandonado;
 * por que consegue assimilar criaturas;
-* por que outros Núcleos parecem reconhecer sua presença.
+* por que outros Núcleos parecem reconhecer sua presença;
+* por que o Núcleo escolheu justamente ele.
 
-Ao longo da campanha, descobre-se que o Núcleo pertence a uma linhagem antiga capaz de incorporar características de outros domínios.
+Ao longo da campanha, descobre-se que o Núcleo pertence a uma linhagem antiga capaz de
+incorporar características de outros domínios.
 
-Essa capacidade foi considerada perigosa.
+Essa capacidade foi considerada perigosa — por domínios do fundo **e** por poderes da
+superfície.
 
-O antigo domínio foi destruído deliberadamente.
+O antigo domínio foi destruído deliberadamente, e essa destruição está ligada ao fim da
+Guerra da Fronteira.
 
-O jogador é o primeiro novo Regente em eras.
+O jogador é o primeiro novo Regente em eras — e o primeiro humano.
 
 ---
 
@@ -2118,7 +2309,7 @@ sobreviver.
 
 Eventos principais:
 
-* despertar;
+* a incursão que dá errado e a herança do Núcleo;
 * conhecer primeiros servos;
 * restaurar Núcleo;
 * obter comida;
@@ -2136,6 +2327,8 @@ estabelecer poder regional.
 
 Introduz:
 
+* primeiro Povo Nativo e Legitimidade;
+* primeira Incursão da Superfície;
 * facções;
 * diplomacia;
 * comandantes;
@@ -2159,7 +2352,9 @@ Introduz:
 * vassalos;
 * grandes exércitos;
 * economia avançada;
-* política subterrânea.
+* política subterrânea;
+* disputas entre Povos Nativos;
+* Notoriedade alta e guildas organizadas da superfície.
 
 ---
 
@@ -2179,7 +2374,8 @@ Agora precisa:
 
 Conflito contra os grandes poderes subterrâneos.
 
-O jogador finalmente descobre a origem do Núcleo.
+O jogador finalmente descobre a origem do Núcleo e o papel que sua destruição teve no fim
+da Guerra da Fronteira.
 
 ---
 
@@ -2206,6 +2402,10 @@ Fundir os Núcleos.
 **Romper**
 
 Destruir o sistema.
+
+Qualquer que seja a conclusão, ela também decide a relação entre os dois mundos: reabrir
+a guerra, selar a fronteira de vez ou fazer do domínio uma ponte entre superfície e
+subterrâneo.
 
 ---
 
@@ -2776,7 +2976,9 @@ Recursos completos.
 
 1 Assimilação.
 
-3 tipos de inimigo.
+3 tipos de inimigo — pelo menos um deles uma guilda da superfície (§58.1).
+
+1 Povo Nativo encontrado, com Legitimidade (§51.1).
 
 Mapa regional.
 
@@ -2909,11 +3111,11 @@ vai para backlog.
 
 Minuto 0:
 
-Regente desperta.
+a incursão dá errado; o guia fica sozinho diante do Núcleo moribundo.
 
 Minuto 2:
 
-descobre Núcleo.
+o Núcleo se ata a ele; nasce o Regente.
 
 Minuto 5:
 
@@ -3142,3 +3344,17 @@ próprios. O estado da campanha ganhou uma **quarta obra** na seção `construct
 arquivo (`fungal_farm`), o formato de save subiu para **V3**, e a rotina de migração
 continua explícita, versão por versão, sem framework. A definição canônica do formato V3
 está em `docs/SAVE_SCHEMA_V3.md`.
+
+## O lore foi alinhado
+
+Depois da Tarefa 21, a narrativa foi alinhada à inspiração em *Dungeon Odyssey* (§1.1):
+o Regente passou a ser um humano Marcado que herda o Núcleo (§63), o mundo ganhou a
+superfície e as Incursões das guildas (§58.1), e a masmorra herdada ganhou Povos Nativos
+governados por Legitimidade (§12, §51.1).
+
+Nada do que já está implementado muda. O MVP, a Mina, a Fazenda Fúngica e o Save Schema
+V3 continuam valendo como estão; a invasão do MVP continua sendo de Feras Cavernosas,
+agora explicadas como criaturas atraídas pelo Núcleo que volta a pulsar. Povos Nativos e
+Incursões da Superfície entram no Vertical Slice (§91), depois dos Trabalhadores
+adicionais. As decisões que registram esse alinhamento são D8–D10, em
+`docs/DESIGN_DECISIONS_LORE.md`.
