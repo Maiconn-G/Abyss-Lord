@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="DisputeDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/definitions/dispute_definition.gd" id="1_dispute"]
+
+[resource]
+script = ExtResource("1_dispute")
+dispute_id = &"hall_against_roots"
+display_name = "O Salão contra as Raízes"
+summary = "A Guarda quer cavar fortificações na galeria onde os Elfos guardam as raízes do antigo domínio."
+first_people_id = &"decapitated_guard"
+first_side_text = "Fortificar o Salão"
+second_people_id = &"grey_elves"
+second_side_text = "Proteger as Raízes"
+legitimacy_swing = 15

@@ -122,7 +122,7 @@ func _test_contract() -> void:
 	_check(not ascension_code.contains("get_node(") and not ascension_code.contains("get_tree()"),
 			"a Ascensão recebe tudo por injeção")
 	var snapshot := _code_of(SNAPSHOT_SOURCE)
-	for required in ["const SAVE_VERSION := 8", "const SAVE_VERSION_V7 := 7",
+	for required in ["const SAVE_VERSION_V8 := 8", "const SAVE_VERSION_V7 := 7",
 			"static func validate_v8(", "static func migrate_v7_to_v8("]:
 		_check(snapshot.contains(required), "campaign_snapshot.gd contém %s" % required)
 	_check(FileAccess.file_exists(V8_DOC), "docs/SAVE_SCHEMA_V8.md existe")
@@ -312,7 +312,7 @@ func _test_contradictory_files_are_refused() -> void:
 	for entry in cases:
 		_check(not _save.validate_campaign(entry[1]).is_empty(),
 				"%s é recusado: %s" % [entry[0], _save.validate_campaign(entry[1])])
-	_check(CampaignSnapshot.validate_document(_document(9, good)).contains("save_version não suportado"),
+	_check(CampaignSnapshot.validate_document(_document(CampaignSnapshot.SAVE_VERSION + 1, good)).contains("save_version não suportado"),
 			"save_version = 9 é recusado")
 	var before := _snapshot_text()
 	for entry in cases:

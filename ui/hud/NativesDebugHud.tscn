@@ -3,10 +3,10 @@
 [ext_resource type="Script" path="res://ui/hud/natives_debug_hud.gd" id="1_hud"]
 
 [node name="NativesDebugPanel" type="PanelContainer"]
-offset_left = 360.0
-offset_top = 476.0
-offset_right = 820.0
-offset_bottom = 586.0
+offset_left = 780.0
+offset_top = 16.0
+offset_right = 1140.0
+offset_bottom = 290.0
 mouse_filter = 2
 script = ExtResource("1_hud")
 
@@ -35,5 +35,45 @@ text = ""
 [node name="OathLabel" type="Label" parent="VBox"]
 unique_name_in_owner = true
 layout_mode = 2
+mouse_filter = 2
+text = ""
+
+[node name="SecondPeopleLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+text = ""
+
+[node name="SecondLegitimacyLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+text = ""
+
+[node name="SecondRequestLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+text = ""
+
+[node name="SecondOathLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+text = ""
+
+[node name="DisputeLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(340, 0)
+autowrap_mode = 3
+mouse_filter = 2
+text = ""
+
+[node name="DisputeChoiceLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(340, 0)
+autowrap_mode = 3
 mouse_filter = 2
 text = ""

@@ -20,6 +20,8 @@ const RAIDER_SCENE := preload("res://units/enemies/RaiderRuntime.tscn")
 ## cenas — o controller do povo as recebe por parâmetro.
 const ANCIENT_SEAL_SCENE := preload("res://world/dungeon/natives/AncientSealRuntime.tscn")
 const GUARDIAN_SCENE := preload("res://units/natives/DecapitatedGuardianRuntime.tscn")
+## T27: o selo das Raízes, dos Elfos Cinzentos.
+const ROOT_SEAL_SCENE := preload("res://world/dungeon/natives/RootSealRuntime.tscn")
 const ROCK_SCENE := preload("res://world/dungeon/rock/RockRuntime.tscn")
 ## §10/§11/T18: a persistência é um controller como os outros — criado e injetado aqui,
 ## na raiz de composição. Ele não é Autoload, não se procura na árvore e não descobre
@@ -58,6 +60,9 @@ const SAVE_SCRIPT := preload("res://systems/persistence/save_game_controller.gd"
 @export var raider_definition: RaiderDefinition
 ## T24: o primeiro Povo Nativo — selo, Legitimidade inicial, pedidos, atos e Guardião.
 @export var native_people_definition: NativePeopleDefinition
+## T27: o segundo Povo Nativo e a primeira disputa entre os dois.
+@export var grey_elves_definition: NativePeopleDefinition
+@export var dispute_definition: DisputeDefinition
 
 @onready var _dungeon: Node3D = $World/DungeonRoot
 @onready var _core: CoreRuntime = $World/DungeonRoot/MainCore
@@ -75,6 +80,7 @@ const SAVE_SCRIPT := preload("res://systems/persistence/save_game_controller.gd"
 @onready var _surface_entrance_b: Marker3D = $World/DungeonRoot/SurfaceEntrancePointB
 @onready var _ancient_seal_point: Marker3D = $World/DungeonRoot/AncientSealPoint
 @onready var _guardian_point: Marker3D = $World/DungeonRoot/GuardianPoint
+@onready var _root_seal_point: Marker3D = $World/DungeonRoot/RootSealPoint
 @onready var _natives_hud: NativesDebugHud = $UI/NativesDebugPanel
 @onready var _hud: CoreDebugHud = $UI/CoreDebugPanel
 @onready var _resource_hud: ResourceDebugHud = $UI/ResourceDebugPanel
@@ -96,6 +102,8 @@ const SAVE_SCRIPT := preload("res://systems/persistence/save_game_controller.gd"
 @onready var _ascension: CoreAscensionController = $Systems/CoreAscensionController
 @onready var _incursion: SurfaceIncursionController = $Systems/SurfaceIncursionController
 @onready var _natives: NativePeopleController = $Systems/NativePeopleController
+@onready var _grey_elves: NativePeopleController = $Systems/GreyElvesController
+@onready var _dispute: DisputeController = $Systems/DisputeController
 
 ## §14/T17: o registro de conquista do domínio. Uma instância só, ao lado do CoreState do
 ## Núcleo principal, entregue por referência a quem concede e a quem cobra. Não é child
@@ -234,6 +242,22 @@ func _ready() -> void:
 	_natives.bind_incursion(_incursion)
 	_natives_hud.bind(_natives, core_state, stockpile_state)
 
+	# T27: os Elfos Cinzentos usam o mesmo controller de povo, com a própria Definition: o selo
+	# das Raízes desperta no Nv.3 e o juramento abre capacidade populacional, não um Guardião.
+	_grey_elves.setup(
+			core_state,
+			stockpile_state,
+			grey_elves_definition,
+			ROOT_SEAL_SCENE,
+			null,
+			_dungeon,
+			_root_seal_point,
+			_root_seal_point)
+	_grey_elves.bind_incursion(_incursion)
+	_natives_hud.bind_second_people(_grey_elves)
+	_dispute.setup(dispute_definition, _natives, _grey_elves)
+	_natives_hud.bind_dispute(_dispute)
+
 	_setup_save(stockpile_state, core_state)
 	_bind_rocks()
 
@@ -306,6 +330,9 @@ func _setup_save(stockpile_state: ResourceStockpileState, core_state: CoreState)
 	_save.bind_surface_incursion(_incursion)
 	# T24: o povo entra na fotografia por vinculação própria.
 	_save.bind_native_people(_natives)
+	# T27: o segundo povo e a disputa entram na fotografia da mesma forma.
+	_save.bind_native_people(_grey_elves)
+	_save.bind_dispute(_dispute)
 	# §77/§80/T18: a carga não emite os sinais de conquista — ela devolve números. É aqui
 	# que os painéis são realinhados com a campanha que o arquivo descreve.
 	_save.load_succeeded.connect(_on_load_succeeded)

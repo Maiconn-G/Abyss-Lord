@@ -29,7 +29,9 @@ const SAVE_FORMAT := "abyss_lord_campaign"
 ## T26: o Cristal da primeira guilda inteiramente repelida é um marco histórico, e a flag que o
 ## registra entra em `surface`. O formato escrito passa a ser o V8; V0 e V9/999 são recusados.
 ## O Núcleo Nv.3 não precisa de campo novo: `core.level` já o diz.
-const SAVE_VERSION := 8
+## T27: o segundo Povo Nativo (Elfos Cinzentos) e a primeira disputa entram em `natives`, e o
+## formato escrito passa a ser o V9. V0 e V10/999 são recusados.
+const SAVE_VERSION := 9
 const SAVE_VERSION_V1 := 1
 const SAVE_VERSION_V2 := 2
 const SAVE_VERSION_V3 := 3
@@ -37,8 +39,10 @@ const SAVE_VERSION_V4 := 4
 const SAVE_VERSION_V5 := 5
 const SAVE_VERSION_V6 := 6
 const SAVE_VERSION_V7 := 7
+const SAVE_VERSION_V8 := 8
 const SUPPORTED_VERSIONS: Array[int] = [SAVE_VERSION_V1, SAVE_VERSION_V2, SAVE_VERSION_V3,
-		SAVE_VERSION_V4, SAVE_VERSION_V5, SAVE_VERSION_V6, SAVE_VERSION_V7, SAVE_VERSION]
+		SAVE_VERSION_V4, SAVE_VERSION_V5, SAVE_VERSION_V6, SAVE_VERSION_V7, SAVE_VERSION_V8,
+		SAVE_VERSION]
 
 const ROOT_FORMAT := "format"
 const ROOT_VERSION := "save_version"
@@ -58,6 +62,11 @@ const SECTION_SURFACE := "surface"
 ## T24: a nona seção, só do V6 em diante, e o registro do único povo da tarefa.
 const SECTION_NATIVES := "natives"
 const NATIVE_PEOPLE_ID := "decapitated_guard"
+## T27: o segundo povo e a disputa entre os dois.
+const ELVES_PEOPLE_ID := "grey_elves"
+const KEY_DISPUTE := "dispute"
+const KEY_RESOLUTION := "resolution"
+const DISPUTE_RESOLUTION_NAMES: Array[String] = ["UNRESOLVED", "FIRST", "SECOND"]
 
 ## §30/§34: cada obra tem chave e id próprios, e o arquivo os nomeia por inteiro.
 ## §48/T20: `mine` entra como terceira chave de `constructions`, no mesmo formato.
@@ -215,7 +224,9 @@ static func validate_document(document: Variant) -> String:
 		return validate_v6(campaign)
 	if version == SAVE_VERSION_V7:
 		return validate_v7(campaign)
-	return validate_v8(campaign)
+	if version == SAVE_VERSION_V8:
+		return validate_v8(campaign)
+	return validate_v9(campaign)
 
 
 ## §73: o V1 é o formato congelado em docs/SAVE_SCHEMA_V1.md — duas obras e nenhum relógio
@@ -307,6 +318,24 @@ static func validate_v8(campaign: Dictionary) -> String:
 	return ""
 
 
+## T27: V9 é o V8 inteiro mais o registro dos Elfos Cinzentos (mesma forma do da Guarda) e a
+## decisão da disputa entre os dois.
+static func validate_v9(campaign: Dictionary) -> String:
+	var reason := validate_v8(campaign)
+	if not reason.is_empty():
+		return reason
+	var natives := campaign[SECTION_NATIVES] as Dictionary
+	reason = _validate_people_entry(natives, ELVES_PEOPLE_ID)
+	if not reason.is_empty():
+		return reason
+	if not (natives.get(KEY_DISPUTE) is Dictionary):
+		return "natives.dispute está ausente"
+	if not DISPUTE_RESOLUTION_NAMES.has((natives[KEY_DISPUTE] as Dictionary).get(KEY_RESOLUTION)):
+		return "decisão de disputa desconhecida: %s" % [
+				(natives[KEY_DISPUTE] as Dictionary).get(KEY_RESOLUTION)]
+	return ""
+
+
 ## §53/§116: a rota de migração é uma sequência de funções nomeadas, não um registry. Cada
 ## versão sobe exatamente um degrau, na ordem: V1→V2 e depois V2→V3. Não há atalho V1→V3 —
 ## uma campanha V1 passa pelos dois degraus, e cada degrau acrescenta só o que é seu.
@@ -326,6 +355,8 @@ static func migrate_to_current(document: Dictionary) -> Dictionary:
 		migrated = migrate_v6_to_v7(migrated)
 	if int(migrated[ROOT_VERSION]) == SAVE_VERSION_V7:
 		migrated = migrate_v7_to_v8(migrated)
+	if int(migrated[ROOT_VERSION]) == SAVE_VERSION_V8:
+		migrated = migrate_v8_to_v9(migrated)
 	return migrated
 
 
@@ -422,9 +453,27 @@ static func migrate_v6_to_v7(document: Dictionary) -> Dictionary:
 ## concede.
 static func migrate_v7_to_v8(document: Dictionary) -> Dictionary:
 	var migrated := document.duplicate(true) as Dictionary
-	migrated[ROOT_VERSION] = SAVE_VERSION
+	migrated[ROOT_VERSION] = SAVE_VERSION_V8
 	((migrated[ROOT_CAMPAIGN] as Dictionary)[SECTION_SURFACE] as Dictionary)[
 			KEY_CLEAN_REPEL_MILESTONE] = false
+	return migrated
+
+
+## T27: o V8 não conhecia os Elfos nem a disputa. Os Elfos migram intocados (selo sem trabalho,
+## povo não encontrado) e a disputa, sem decisão. Uma campanha V8 já no Nv.3 carrega com o selo
+## das Raízes desperto e intacto, pela regra viva do controller.
+static func migrate_v8_to_v9(document: Dictionary) -> Dictionary:
+	var migrated := document.duplicate(true) as Dictionary
+	migrated[ROOT_VERSION] = SAVE_VERSION
+	var natives := (migrated[ROOT_CAMPAIGN] as Dictionary)[SECTION_NATIVES] as Dictionary
+	natives[ELVES_PEOPLE_ID] = {
+		KEY_SEAL_WORK_DONE: 0.0,
+		KEY_LEGITIMACY: 0,
+		KEY_REQUESTS_FULFILLED: 0,
+		KEY_OATH_SWORN: false,
+		KEY_GUARDIAN: {KEY_ALIVE: false},
+	}
+	natives[KEY_DISPUTE] = {KEY_RESOLUTION: "UNRESOLVED"}
 	return migrated
 
 
@@ -636,9 +685,14 @@ static func _validate_natives(campaign: Dictionary) -> String:
 	var natives: Variant = campaign.get(SECTION_NATIVES)
 	if not (natives is Dictionary):
 		return "seção obrigatória ausente ou inválida: natives"
-	var people: Variant = (natives as Dictionary).get(NATIVE_PEOPLE_ID)
+	return _validate_people_entry(natives as Dictionary, NATIVE_PEOPLE_ID)
+
+
+## T27: a forma do registro de um povo — a mesma para a Guarda e para os Elfos.
+static func _validate_people_entry(natives: Dictionary, people_id: String) -> String:
+	var people: Variant = natives.get(people_id)
 	if not (people is Dictionary):
-		return "natives.%s está ausente" % NATIVE_PEOPLE_ID
+		return "natives.%s está ausente" % people_id
 	var entry := people as Dictionary
 	if not _is_number(entry, KEY_SEAL_WORK_DONE) or entry[KEY_SEAL_WORK_DONE] < 0.0:
 		return "natives.seal_work_done precisa ser um número não negativo"

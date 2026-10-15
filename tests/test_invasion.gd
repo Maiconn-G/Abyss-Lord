@@ -552,8 +552,8 @@ func _test_scope_guards() -> void:
 	# Mesmo critério de sempre: uma tarefa nova, um controller com papel único. Antes 8, agora 9.
 	# T23: o SurfaceIncursionController é o nono. Antes 9, agora 10.
 	# T24: o NativePeopleController é o décimo. Antes 10, agora 11.
-	_check(_collect_gd_files("res://systems").size() == 12,
-			"§98/T18/T22/T23/T24 systems/ tem exatamente onze controllers e um contrato de schema, "
+	_check(_collect_gd_files("res://systems").size() == 13,
+			"§98/T18/T22/T23/T24 systems/ tem exatamente doze controllers e um contrato de schema, "
 					+ "obtido %d" % _collect_gd_files("res://systems").size())
 	var main := _source(GAME_MAIN_SOURCE_PATH)
 	for forbidden in ["Enemy001", "_spawn_initial_enemy", "EnemySpawnPoint", "queue_free(_core",

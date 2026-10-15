@@ -12,10 +12,13 @@ extends Node
 ## * dos pedidos, em ordem, e do juramento que o povo presta ao chegar em "leal";
 ## * do Guardião Decapitado que o juramento entrega.
 ##
-## O que ele NÃO é: sistema genérico de facções, de diplomacia ou de reputação. É um povo,
-## com regras escritas para ele. O segundo povo é o dia de discutir o que é comum.
+## O que ele NÃO é: sistema genérico de facções, de diplomacia ou de reputação.
+##
+## T27: chegou o segundo povo (Elfos Cinzentos), e o que é comum ficou à vista: selo, Legitimidade,
+## pedidos e juramento. Este mesmo controller serve aos dois — uma instância por povo, cada uma
+## com a sua Definition. O que muda entre eles é dado: a tecla do pedido, o que o juramento
+## entrega (Guardião ou capacidade populacional) e os textos.
 
-const SEAL_ID := "ancient_seal_001"
 const GUARDIAN_ID := "guardian_001"
 
 enum RequestGate { NOT_DISCOVERED, ALL_FULFILLED, INSUFFICIENT, READY }
@@ -122,11 +125,11 @@ func _awaken_seal() -> void:
 	if _seal != null and is_instance_valid(_seal):
 		return
 	_seal = _seal_scene.instantiate() as AncientSealRuntime
-	_seal.name = "AncientSeal001"
+	_seal.name = _definition.seal_instance_id.to_pascal_case()
 	_dungeon_root.add_child(_seal)
 	_seal.global_position = _seal_point.global_position
 	_seal.setup(_definition.seal_definition,
-			ConstructionState.new(_definition.seal_definition, SEAL_ID))
+			ConstructionState.new(_definition.seal_definition, _definition.seal_instance_id))
 	_seal.state.construction_completed.connect(_on_seal_broken)
 	if not _restoring:
 		seal_awakened.emit(_seal)
@@ -163,7 +166,7 @@ func request_gate() -> RequestGate:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("fulfill_native_request"):
+	if event.is_action_pressed(_definition.request_action):
 		fulfill_request()
 
 
@@ -205,7 +208,13 @@ func _on_legitimacy_changed(current: int, _maximum: int) -> void:
 
 func _swear_oath() -> void:
 	_oath_sworn = true
-	var guardian := _spawn_guardian(_guardian_point.global_position)
+	var guardian: SoldierRuntime = null
+	if _definition.guardian_definition != null and _guardian_scene != null:
+		guardian = _spawn_guardian(_guardian_point.global_position)
+	if _definition.oath_population_bonus > 0:
+		# T27: o bônus entra no CoreState uma vez, no juramento. Ele mora em
+		# `population_capacity_bonus`, que o Save já grava — a carga não o soma de novo.
+		_core_state.add_population_capacity_bonus(_definition.oath_population_bonus)
 	oath_sworn.emit(guardian)
 
 
@@ -252,6 +261,8 @@ func restore_natives(
 	if legitimacy_value < 0 or legitimacy_value > LegitimacyState.MAXIMUM:
 		return false
 	var guardian_alive := bool(guardian_record.get("alive", false))
+	if guardian_alive and (_definition.guardian_definition == null or _guardian_scene == null):
+		return false
 	if guardian_alive:
 		var health := float(guardian_record.get("health", -1.0))
 		if health <= 0.0 or health > _definition.guardian_definition.max_health:
