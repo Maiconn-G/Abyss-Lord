@@ -41,6 +41,8 @@ var _invocation: WorkerInvocationController
 var _expansion: WorkerExpansionController
 ## T23: o dono da superfície (Notoriedade e Incursão) chega por vinculação própria.
 var _incursion: SurfaceIncursionController
+## T24: o dono do primeiro Povo Nativo chega por vinculação própria.
+var _natives: NativePeopleController
 var _recruitment: SoldierRecruitmentController
 var _invasion: InvasionController
 var _evolution: CoreEvolutionController
@@ -152,6 +154,12 @@ func bind_surface_incursion(incursion: SurfaceIncursionController) -> void:
 	_incursion = incursion
 
 
+## T24: o povo entra na fotografia por vinculação própria. Sem ele vinculado, a campanha
+## grava o povo intocado (selo sem trabalho, Guarda não encontrada).
+func bind_native_people(natives: NativePeopleController) -> void:
+	_natives = natives
+
+
 ## §107: o caminho é configurável justamente para o teste não escrever no save do jogador.
 func configure_save_path(path: String) -> void:
 	_primary_path = path
@@ -226,6 +234,42 @@ func snapshot_campaign() -> Dictionary:
 		CampaignSnapshot.SECTION_WORLD: _world_record(),
 		CampaignSnapshot.SECTION_INVASION: _invasion_record(),
 		CampaignSnapshot.SECTION_SURFACE: _surface_record(),
+		CampaignSnapshot.SECTION_NATIVES: _natives_record(),
+	}
+
+
+## T24: o povo é o trabalho já feito no selo, a Legitimidade, quantos pedidos foram cumpridos,
+## o juramento e o Guardião. A receita (pedidos, pesos, limiar) é da Definition.
+func _natives_record() -> Dictionary:
+	var guardian_record: Dictionary = {CampaignSnapshot.KEY_ALIVE: false}
+	var work_done := 0.0
+	var legitimacy := 0
+	var fulfilled := 0
+	var oath := false
+	if _natives != null:
+		work_done = _natives.seal_work_done()
+		legitimacy = _natives.legitimacy().value
+		fulfilled = _natives.requests_fulfilled()
+		oath = _natives.has_sworn_oath()
+		var guardian := _natives.guardian()
+		if guardian != null and is_instance_valid(guardian) \
+				and not guardian.is_queued_for_deletion() and not guardian.state.is_dead():
+			guardian_record = {
+				CampaignSnapshot.KEY_ALIVE: true,
+				CampaignSnapshot.KEY_HEALTH: guardian.state.health,
+				CampaignSnapshot.KEY_LEVEL: guardian.state.level,
+				CampaignSnapshot.KEY_EXPERIENCE: guardian.state.experience,
+				CampaignSnapshot.KEY_POSITION:
+						CampaignSnapshot.encode_position(guardian.global_position),
+			}
+	return {
+		CampaignSnapshot.NATIVE_PEOPLE_ID: {
+			CampaignSnapshot.KEY_SEAL_WORK_DONE: work_done,
+			CampaignSnapshot.KEY_LEGITIMACY: legitimacy,
+			CampaignSnapshot.KEY_REQUESTS_FULFILLED: fulfilled,
+			CampaignSnapshot.KEY_OATH_SWORN: oath,
+			CampaignSnapshot.KEY_GUARDIAN: guardian_record,
+		},
 	}
 
 
@@ -553,6 +597,9 @@ func validate_campaign(campaign: Dictionary) -> String:
 	reason = _validate_surface_records(campaign)
 	if not reason.is_empty():
 		return reason
+	reason = _validate_native_records(campaign)
+	if not reason.is_empty():
+		return reason
 	return _validate_population_consistency(campaign)
 
 
@@ -785,6 +832,42 @@ func _validate_surface_records(campaign: Dictionary) -> String:
 	return ""
 
 
+## T24: as invariantes do povo contra a Definition dele e o nível do Núcleo. O selo só existe a
+## partir do Nv.2; a Guarda só tem Legitimidade, pedidos e juramento depois de encontrada; o
+## juramento é prestado no instante em que a Legitimidade cruza o limiar.
+func _validate_native_records(campaign: Dictionary) -> String:
+	var entry: Dictionary = campaign[CampaignSnapshot.SECTION_NATIVES][
+			CampaignSnapshot.NATIVE_PEOPLE_ID]
+	var work_done := float(entry[CampaignSnapshot.KEY_SEAL_WORK_DONE])
+	var legitimacy := int(entry[CampaignSnapshot.KEY_LEGITIMACY])
+	var fulfilled := int(entry[CampaignSnapshot.KEY_REQUESTS_FULFILLED])
+	var oath := bool(entry[CampaignSnapshot.KEY_OATH_SWORN])
+	var guardian: Dictionary = entry[CampaignSnapshot.KEY_GUARDIAN]
+	var untouched := work_done <= 0.0 and legitimacy == 0 and fulfilled == 0 and not oath \
+			and not bool(guardian[CampaignSnapshot.KEY_ALIVE])
+	if _natives == null or _natives.definition() == null:
+		return "" if untouched else "a campanha não sabe restaurar o povo nativo"
+	var people := _natives.definition()
+	var seal_work := people.seal_definition.work_required
+	var level := int(campaign[CampaignSnapshot.SECTION_CORE][CampaignSnapshot.KEY_LEVEL])
+	if work_done > seal_work:
+		return "selo com trabalho acima do exigido"
+	if level < people.required_core_level and work_done > 0.0:
+		return "selo trabalhado antes do Nv.%d do Núcleo" % people.required_core_level
+	var discovered := work_done >= seal_work
+	if not discovered and (legitimacy != 0 or fulfilled != 0 or oath):
+		return "povo com Legitimidade, pedidos ou juramento antes de ser encontrado"
+	if fulfilled > people.requests.size():
+		return "mais pedidos cumpridos do que o povo fez"
+	if discovered and legitimacy >= people.oath_threshold and not oath:
+		return "Legitimidade no limiar do juramento sem juramento prestado"
+	if bool(guardian[CampaignSnapshot.KEY_ALIVE]) \
+			and float(guardian[CampaignSnapshot.KEY_HEALTH]) \
+					> people.guardian_definition.max_health:
+		return "Guardião com vida acima do máximo"
+	return ""
+
+
 ## §29: Population é o número do Núcleo, e as unidades próprias vivas são a conta dele.
 ## As duas metades têm de fechar — se não fecham, o arquivo é inconsistente e a resposta
 ## é recusar, nunca "corrigir" um número quieto.
@@ -987,6 +1070,31 @@ func _apply(campaign: Dictionary) -> void:
 	_evolution.restore_progression(
 			campaign[CampaignSnapshot.SECTION_INVASION][KEY_INVASION_STATE] == "VICTORY")
 	_restore_surface(campaign)
+	_restore_natives(campaign)
+
+
+## T24: o povo volta como dado — selo pelo nível do Núcleo, Legitimidade, pedidos, juramento e
+## Guardião — sem reemitir descoberta nem juramento e sem cobrar pedido de novo.
+func _restore_natives(campaign: Dictionary) -> void:
+	if _natives == null:
+		return
+	var entry: Dictionary = campaign[CampaignSnapshot.SECTION_NATIVES][
+			CampaignSnapshot.NATIVE_PEOPLE_ID]
+	var guardian: Dictionary = entry[CampaignSnapshot.KEY_GUARDIAN]
+	var guardian_record := {"alive": bool(guardian[CampaignSnapshot.KEY_ALIVE])}
+	if guardian_record["alive"]:
+		guardian_record["health"] = float(guardian[CampaignSnapshot.KEY_HEALTH])
+		guardian_record["level"] = int(guardian[CampaignSnapshot.KEY_LEVEL])
+		guardian_record["experience"] = float(guardian[CampaignSnapshot.KEY_EXPERIENCE])
+		guardian_record["position"] = CampaignSnapshot.decode_position(
+				guardian[CampaignSnapshot.KEY_POSITION])
+	_natives.restore_natives(
+			int(campaign[CampaignSnapshot.SECTION_CORE][CampaignSnapshot.KEY_LEVEL]),
+			float(entry[CampaignSnapshot.KEY_SEAL_WORK_DONE]),
+			int(entry[CampaignSnapshot.KEY_LEGITIMACY]),
+			int(entry[CampaignSnapshot.KEY_REQUESTS_FULFILLED]),
+			bool(entry[CampaignSnapshot.KEY_OATH_SWORN]),
+			guardian_record)
 
 
 ## T23: a superfície volta como dado — Notoriedade, ciclo e saqueadores — sem reemitir

@@ -300,8 +300,9 @@ func _test_scope_guards() -> void:
 	# T22: o oitavo controller é o WorkerExpansionController — o dono do terceiro Trabalhador,
 	# que a Tarefa 22 introduz de propósito. Continua sendo um controller com um papel só.
 	# T23: o nono é o SurfaceIncursionController, dono da Incursão e da Notoriedade.
-	_check(_collect_gd_files(SYSTEMS_DIR).size() == 10,
-			"§13/T18/T22/T23 systems/ tem nove controllers e o contrato de schema, obtido %d"
+	# T24: o décimo é o NativePeopleController, dono da Guarda Decapitada.
+	_check(_collect_gd_files(SYSTEMS_DIR).size() == 11,
+			"§13/T18/T22/T23/T24 systems/ tem dez controllers e o contrato de schema, obtido %d"
 					% _collect_gd_files(SYSTEMS_DIR).size())
 	# §101: State RefCounted, sem polling.
 	var state_code := _code_of(CRYSTAL_STATE_SOURCE)

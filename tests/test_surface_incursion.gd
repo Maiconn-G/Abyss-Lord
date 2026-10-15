@@ -227,7 +227,8 @@ func _test_scope_guards() -> void:
 				and _files_containing(sources, "class_name %s" % forbidden).is_empty(),
 				"nenhum %s foi criado" % forbidden)
 	var snapshot_code := _code_of(SNAPSHOT_SOURCE)
-	for required in ["const SAVE_VERSION := 5", "const SAVE_VERSION_V4 := 4",
+	# T24: a versão corrente subiu para 6; o V5 desta tarefa continua nomeado.
+	for required in ["const SAVE_VERSION_V5 := 5", "const SAVE_VERSION_V4 := 4",
 			"static func validate_v5(", "static func migrate_v4_to_v5(",
 			"static func migrate_v3_to_v4("]:
 		_check(snapshot_code.contains(required), "campaign_snapshot.gd contém %s" % required)
@@ -451,7 +452,8 @@ func _test_save_preparation() -> void:
 	var remaining := _incursion.preparation_time_remaining()
 	_check(_save.save_campaign(), "save na preparação")
 	var document := _document_from_file(PREP_PATH)
-	_check(int(document[CampaignSnapshot.ROOT_VERSION]) == 5, "o arquivo é V5")
+	_check(int(document[CampaignSnapshot.ROOT_VERSION]) == CampaignSnapshot.SAVE_VERSION,
+			"o arquivo é a versão corrente")
 	var surface: Dictionary = document[CampaignSnapshot.ROOT_CAMPAIGN][
 			CampaignSnapshot.SECTION_SURFACE]
 	_check(int(surface[CampaignSnapshot.KEY_NOTORIETY]) == LEVEL_TWO_NOTORIETY,
@@ -567,7 +569,8 @@ func _test_v1_chain_reaches_v5() -> void:
 			CampaignSnapshot.KEY_THIRD_SUMMONED)
 	_check(CampaignSnapshot.validate_v1(campaign).is_empty(), "é um V1 válido")
 	var migrated := CampaignSnapshot.migrate_to_current(_document(1, campaign))
-	_check(int(migrated[CampaignSnapshot.ROOT_VERSION]) == 5, "a corrente chega ao V5")
+	_check(int(migrated[CampaignSnapshot.ROOT_VERSION]) == CampaignSnapshot.SAVE_VERSION,
+			"a corrente chega à versão corrente")
 	_check(CampaignSnapshot.validate_document(migrated).is_empty(),
 			"o V1 migrado é um V5 válido: %s" % CampaignSnapshot.validate_document(migrated))
 	_check(_write_text(V1_PATH, CampaignSnapshot.to_text(_document(1, campaign))), "V1 escrito")
@@ -616,9 +619,9 @@ func _test_contradictory_files_are_refused() -> void:
 	for entry in bad_cases:
 		_check(not _save.validate_campaign(entry[1]).is_empty(),
 				"%s é recusado: %s" % [entry[0], _save.validate_campaign(entry[1])])
-	var future := _document(6, good)
+	var future := _document(CampaignSnapshot.SAVE_VERSION + 1, good)
 	_check(CampaignSnapshot.validate_document(future).contains("save_version não suportado"),
-			"save_version = 6 é recusado sem adivinhação")
+			"save_version do futuro é recusado sem adivinhação")
 	var world_before := _snapshot_text()
 	var raiders_before := _alive_raiders().size()
 	for entry in bad_cases:

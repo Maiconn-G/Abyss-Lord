@@ -22,13 +22,16 @@ const SAVE_FORMAT := "abyss_lord_campaign"
 ## degrau por versão, e nunca escritos. V0 e V5/999 são recusados.
 ## T23: a superfície (Notoriedade e a primeira Incursão) acrescenta a seção `surface`, e o
 ## formato escrito passa a ser o V5. V0 e V6/999 são recusados.
-const SAVE_VERSION := 5
+## T24: o primeiro Povo Nativo (selo, Legitimidade, pedidos, juramento e Guardião) acrescenta
+## a seção `natives`, e o formato escrito passa a ser o V6. V0 e V7/999 são recusados.
+const SAVE_VERSION := 6
 const SAVE_VERSION_V1 := 1
 const SAVE_VERSION_V2 := 2
 const SAVE_VERSION_V3 := 3
 const SAVE_VERSION_V4 := 4
-const SUPPORTED_VERSIONS: Array[int] = [
-		SAVE_VERSION_V1, SAVE_VERSION_V2, SAVE_VERSION_V3, SAVE_VERSION_V4, SAVE_VERSION]
+const SAVE_VERSION_V5 := 5
+const SUPPORTED_VERSIONS: Array[int] = [SAVE_VERSION_V1, SAVE_VERSION_V2, SAVE_VERSION_V3,
+		SAVE_VERSION_V4, SAVE_VERSION_V5, SAVE_VERSION]
 
 const ROOT_FORMAT := "format"
 const ROOT_VERSION := "save_version"
@@ -45,6 +48,9 @@ const SECTION_WORLD := "world"
 const SECTION_INVASION := "invasion"
 ## T23: a oitava seção, só do V5 em diante. As sete do V1 continuam obrigatórias em todas.
 const SECTION_SURFACE := "surface"
+## T24: a nona seção, só do V6 em diante, e o registro do único povo da tarefa.
+const SECTION_NATIVES := "natives"
+const NATIVE_PEOPLE_ID := "decapitated_guard"
 
 ## §30/§34: cada obra tem chave e id próprios, e o arquivo os nomeia por inteiro.
 ## §48/T20: `mine` entra como terceira chave de `constructions`, no mesmo formato.
@@ -125,6 +131,12 @@ const KEY_ESCAPED := "escaped"
 ## T23: o limiar de Notoriedade que a migração V4→V5 reconhece num Núcleo Nv.2 — o mesmo
 ## fato que, jogado, soma esse valor (SurfaceIncursionController.NOTORIETY_CORE_LEVEL_TWO).
 const MIGRATED_LEVEL_TWO_NOTORIETY := 20
+## T24: os campos do povo.
+const KEY_SEAL_WORK_DONE := "seal_work_done"
+const KEY_LEGITIMACY := "legitimacy"
+const KEY_REQUESTS_FULFILLED := "requests_fulfilled"
+const KEY_OATH_SWORN := "oath_sworn"
+const KEY_GUARDIAN := "guardian"
 
 
 ## §6: o envelope. `metadata` é informativo (§72) e nunca é requisito de gameplay.
@@ -182,7 +194,9 @@ static func validate_document(document: Variant) -> String:
 		return validate_v3(campaign)
 	if version == SAVE_VERSION_V4:
 		return validate_v4(campaign)
-	return validate_v5(campaign)
+	if version == SAVE_VERSION_V5:
+		return validate_v5(campaign)
+	return validate_v6(campaign)
 
 
 ## §73: o V1 é o formato congelado em docs/SAVE_SCHEMA_V1.md — duas obras e nenhum relógio
@@ -243,6 +257,14 @@ static func validate_v5(campaign: Dictionary) -> String:
 	return _validate_surface(campaign)
 
 
+## T24: V6 é o V5 inteiro mais a seção `natives`.
+static func validate_v6(campaign: Dictionary) -> String:
+	var reason := validate_v5(campaign)
+	if not reason.is_empty():
+		return reason
+	return _validate_natives(campaign)
+
+
 ## §53/§116: a rota de migração é uma sequência de funções nomeadas, não um registry. Cada
 ## versão sobe exatamente um degrau, na ordem: V1→V2 e depois V2→V3. Não há atalho V1→V3 —
 ## uma campanha V1 passa pelos dois degraus, e cada degrau acrescenta só o que é seu.
@@ -256,6 +278,8 @@ static func migrate_to_current(document: Dictionary) -> Dictionary:
 		migrated = migrate_v3_to_v4(migrated)
 	if int(migrated[ROOT_VERSION]) == SAVE_VERSION_V4:
 		migrated = migrate_v4_to_v5(migrated)
+	if int(migrated[ROOT_VERSION]) == SAVE_VERSION_V5:
+		migrated = migrate_v5_to_v6(migrated)
 	return migrated
 
 
@@ -297,7 +321,7 @@ static func migrate_v3_to_v4(document: Dictionary) -> Dictionary:
 ## nível gravado no próprio arquivo que decide. Nv.1 migra com zero.
 static func migrate_v4_to_v5(document: Dictionary) -> Dictionary:
 	var migrated := document.duplicate(true) as Dictionary
-	migrated[ROOT_VERSION] = SAVE_VERSION
+	migrated[ROOT_VERSION] = SAVE_VERSION_V5
 	var campaign := migrated[ROOT_CAMPAIGN] as Dictionary
 	var level := int((campaign[SECTION_CORE] as Dictionary)[KEY_LEVEL])
 	campaign[SECTION_SURFACE] = {
@@ -308,6 +332,24 @@ static func migrate_v4_to_v5(document: Dictionary) -> Dictionary:
 			KEY_RAIDERS: [],
 			KEY_REPELLED: 0,
 			KEY_ESCAPED: 0,
+		},
+	}
+	return migrated
+
+
+## T24: o fato novo de um V5 migrado é que o selo nunca foi tocado e a Guarda nunca foi
+## encontrada. Nada é inventado: se o Núcleo gravado já está no Nv.2, o selo desperta na
+## carga pela regra viva do controller, intacto.
+static func migrate_v5_to_v6(document: Dictionary) -> Dictionary:
+	var migrated := document.duplicate(true) as Dictionary
+	migrated[ROOT_VERSION] = SAVE_VERSION
+	(migrated[ROOT_CAMPAIGN] as Dictionary)[SECTION_NATIVES] = {
+		NATIVE_PEOPLE_ID: {
+			KEY_SEAL_WORK_DONE: 0.0,
+			KEY_LEGITIMACY: 0,
+			KEY_REQUESTS_FULFILLED: 0,
+			KEY_OATH_SWORN: false,
+			KEY_GUARDIAN: {KEY_ALIVE: false},
 		},
 	}
 	return migrated
@@ -512,6 +554,41 @@ static func _validate_raider(raider: Variant) -> String:
 		if not (resource_id is String) or not _is_int(loot, String(resource_id)) \
 				or loot[resource_id] <= 0:
 			return "%s tem saque inválido" % entry[KEY_RAIDER_ID]
+	return ""
+
+
+## T24: a forma da seção `natives`. Faixas que dependem da Definition do povo (trabalho do
+## selo, número de pedidos, limiar do juramento, vida do Guardião) moram no controller.
+static func _validate_natives(campaign: Dictionary) -> String:
+	var natives: Variant = campaign.get(SECTION_NATIVES)
+	if not (natives is Dictionary):
+		return "seção obrigatória ausente ou inválida: natives"
+	var people: Variant = (natives as Dictionary).get(NATIVE_PEOPLE_ID)
+	if not (people is Dictionary):
+		return "natives.%s está ausente" % NATIVE_PEOPLE_ID
+	var entry := people as Dictionary
+	if not _is_number(entry, KEY_SEAL_WORK_DONE) or entry[KEY_SEAL_WORK_DONE] < 0.0:
+		return "natives.seal_work_done precisa ser um número não negativo"
+	if not _is_int(entry, KEY_LEGITIMACY) or entry[KEY_LEGITIMACY] < 0 \
+			or entry[KEY_LEGITIMACY] > 100:
+		return "natives.legitimacy precisa ser um inteiro entre 0 e 100"
+	if not _is_int(entry, KEY_REQUESTS_FULFILLED) or entry[KEY_REQUESTS_FULFILLED] < 0:
+		return "natives.requests_fulfilled precisa ser um inteiro não negativo"
+	if not _is_bool(entry, KEY_OATH_SWORN):
+		return "natives.oath_sworn precisa ser bool"
+	if not (entry.get(KEY_GUARDIAN) is Dictionary):
+		return "natives.guardian está ausente"
+	var guardian := entry[KEY_GUARDIAN] as Dictionary
+	if not _is_bool(guardian, KEY_ALIVE):
+		return "natives.guardian.alive precisa ser bool"
+	if guardian[KEY_ALIVE]:
+		if not _is_number(guardian, KEY_HEALTH) or guardian[KEY_HEALTH] <= 0.0 \
+				or not _is_int(guardian, KEY_LEVEL) or guardian[KEY_LEVEL] < 1 \
+				or not _is_number(guardian, KEY_EXPERIENCE) or guardian[KEY_EXPERIENCE] < 0.0 \
+				or not _is_position(guardian):
+			return "natives.guardian vivo com campo ausente ou fora da faixa"
+		if not entry[KEY_OATH_SWORN]:
+			return "Guardião em campo sem juramento prestado"
 	return ""
 
 

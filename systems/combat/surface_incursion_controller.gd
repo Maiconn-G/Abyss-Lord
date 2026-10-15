@@ -37,6 +37,10 @@ signal preparation_time_changed(remaining: float, duration: float)
 signal incursion_started(raiders: Array)
 signal active_raiders_changed(current: int)
 signal incursion_ended(repelled: int, escaped: int)
+## T24: o desfecho de cada saqueador, para quem observa a superfície de fora (a Guarda
+## Decapitada mede o mérito do Regente por eles). Emitidos também por saqueadores restaurados.
+signal raider_repelled(raider: RaiderRuntime)
+signal raider_fled(raider: RaiderRuntime)
 
 var _definition: RaiderDefinition
 var _scene: PackedScene
@@ -220,6 +224,7 @@ func _on_raider_slain(enemy: EnemyRuntime) -> void:
 	_raiders.erase(raider)
 	_repelled += 1
 	_notoriety.add(NOTORIETY_RAIDER_SLAIN)
+	raider_repelled.emit(raider)
 	_after_raider_left()
 
 
@@ -231,6 +236,7 @@ func _on_raider_escaped(raider: RaiderRuntime) -> void:
 	_raiders.erase(raider)
 	_escaped += 1
 	_notoriety.add(NOTORIETY_RAIDER_ESCAPED)
+	raider_fled.emit(raider)
 	_after_raider_left()
 
 

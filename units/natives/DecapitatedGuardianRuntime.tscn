@@ -1,0 +1,70 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://units/soldiers/soldier_runtime.gd" id="1_runtime"]
+
+[sub_resource type="StandardMaterial3D" id="ArmorMaterial"]
+albedo_color = Color(0.2, 0.22, 0.26, 1)
+metallic = 0.7
+roughness = 0.35
+
+[sub_resource type="StandardMaterial3D" id="SoulMaterial"]
+albedo_color = Color(0.35, 0.85, 0.9, 1)
+emission_enabled = true
+emission = Color(0.2, 0.7, 0.8, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="CapsuleMesh" id="ArmorMesh"]
+material = SubResource("ArmorMaterial")
+radius = 0.46
+height = 1.8
+
+[sub_resource type="SphereMesh" id="HelmMesh"]
+material = SubResource("ArmorMaterial")
+radius = 0.24
+height = 0.4
+
+[sub_resource type="SphereMesh" id="SoulMesh"]
+material = SubResource("SoulMaterial")
+radius = 0.12
+height = 0.24
+
+[sub_resource type="CapsuleShape3D" id="GuardianShape"]
+radius = 0.46
+height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="SelectionMaterial"]
+shading_mode = 0
+albedo_color = Color(0.35, 1, 0.4, 1)
+
+[sub_resource type="CylinderMesh" id="SelectionMesh"]
+material = SubResource("SelectionMaterial")
+top_radius = 0.66
+bottom_radius = 0.66
+height = 0.04
+
+[node name="DecapitatedGuardianRuntime" type="CharacterBody3D" groups=["rts_selectable"]]
+collision_layer = 2
+collision_mask = 21
+script = ExtResource("1_runtime")
+
+[node name="Visual" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+mesh = SubResource("ArmorMesh")
+
+[node name="Soul" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.98, 0)
+mesh = SubResource("SoulMesh")
+
+[node name="CarriedHelm" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.55, 0.05, 0.1)
+mesh = SubResource("HelmMesh")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("GuardianShape")
+
+[node name="SelectionIndicator" type="MeshInstance3D" parent="."]
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+cast_shadow = 0
+mesh = SubResource("SelectionMesh")
