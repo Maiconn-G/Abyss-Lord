@@ -33,6 +33,11 @@ const NOTORIETY_THRESHOLD := 20
 const NOTORIETY_CORE_LEVEL_TWO := 20
 const NOTORIETY_RAIDER_SLAIN := 5
 const NOTORIETY_RAIDER_ESCAPED := 10
+## T26: subir ao Nv.3 também é notado pela superfície.
+const NOTORIETY_CORE_LEVEL_THREE := 20
+## T26: a primeira guilda inteira que não volta para casa é um marco da campanha (GDD §11:
+## Cristais vêm de marcos). Uma vez só, como o Cristal da primeira invasão.
+const CLEAN_REPEL_CRYSTAL_REWARD := 1
 const RAIDER_ID_PREFIX := "raider_"
 
 ## Os 120 s de aviso são o valor de produção; o harness encurta esta mesma variável.
@@ -51,6 +56,8 @@ signal raider_repelled(raider: RaiderRuntime)
 signal raider_fled(raider: RaiderRuntime)
 ## T25: o relógio da calmaria, um emit por segundo de tela.
 signal cooldown_time_changed(remaining: float, duration: float)
+## T26: a primeira incursão terminada sem nenhuma fuga entregou o Cristal.
+signal clean_repel_crystal_granted
 
 var _definition: RaiderDefinition
 var _scene: PackedScene
@@ -74,6 +81,10 @@ var _restoring := false
 var _incursion_number := 0
 var _guild_size := 0
 var _cooldown_remaining := 0.0
+## T26: o Cristal da primeira guilda inteiramente repelida já foi entregue? É estado
+## histórico e vai para o Save; quem concede é este controller, no desfecho da incursão.
+var _clean_repel_rewarded := false
+var _abyssal_crystal: AbyssalCrystalState
 
 
 func _ready() -> void:
@@ -104,6 +115,16 @@ func setup(
 			_resources_by_id[resource.resource_id] = resource
 	notoriety.notoriety_changed.connect(_on_notoriety_changed)
 	core_state.evolved.connect(_on_core_evolved)
+
+
+## T26: o registro de conquista do domínio entra por vinculação própria, como no
+## InvasionController — sem ele, a incursão simplesmente não concede Cristal.
+func bind_abyssal_crystal_state(crystal: AbyssalCrystalState) -> void:
+	_abyssal_crystal = crystal
+
+
+func clean_repel_rewarded() -> bool:
+	return _clean_repel_rewarded
 
 
 func incursion_state() -> IncursionState:
@@ -168,6 +189,8 @@ static func guild_size_for(notoriety_value: int) -> int:
 func _on_core_evolved(old_level: int, new_level: int) -> void:
 	if old_level < 2 and new_level >= 2:
 		_notoriety.add(NOTORIETY_CORE_LEVEL_TWO)
+	if old_level < 3 and new_level >= 3:
+		_notoriety.add(NOTORIETY_CORE_LEVEL_THREE)
 
 
 func _on_notoriety_changed(_current: int, _maximum: int) -> void:
@@ -307,6 +330,10 @@ func _after_raider_left() -> void:
 		_cooldown_remaining = cooldown_duration
 		_displayed_second = _displayed_second_of(_cooldown_remaining)
 		set_process(true)
+		if _escaped == 0 and not _clean_repel_rewarded and _abyssal_crystal != null:
+			_clean_repel_rewarded = true
+			_abyssal_crystal.add(CLEAN_REPEL_CRYSTAL_REWARD)
+			clean_repel_crystal_granted.emit()
 		incursion_ended.emit(_repelled, _escaped)
 		cooldown_time_changed.emit(_cooldown_remaining, cooldown_duration)
 
@@ -327,7 +354,8 @@ func restore_surface(
 		escaped: int,
 		number := 0,
 		size := 0,
-		cooldown := 0.0) -> bool:
+		cooldown := 0.0,
+		rewarded := false) -> bool:
 	if value_state < IncursionState.NOT_STARTED or value_state > IncursionState.ENDED:
 		return false
 	if remaining < 0.0 or repelled < 0 or escaped < 0:
@@ -349,6 +377,7 @@ func restore_surface(
 	_repelled = repelled
 	_escaped = escaped
 	_incursion_number = number
+	_clean_repel_rewarded = rewarded
 	_cooldown_remaining = cooldown if value_state == IncursionState.ENDED else 0.0
 	_preparation_time_remaining = remaining if value_state == IncursionState.PREPARATION else 0.0
 	_displayed_second = _displayed_second_of(

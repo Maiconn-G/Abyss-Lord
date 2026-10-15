@@ -35,6 +35,8 @@ const SAVE_SCRIPT := preload("res://systems/persistence/save_game_controller.gd"
 ## §3/T14: a Definition de destino da única evolução existente. Ela é um dado injetado
 ## na cena, exatamente como as outras — o controller nunca carrega caminho de arquivo.
 @export var core_level_2_definition: CoreDefinition
+## T26: o destino da Ascensão (Nv.2 → Nv.3). O preço — Cristal, Essência e Biomassa — mora nela.
+@export var core_level_3_definition: CoreDefinition
 ## §15/T17: a chave de progressão do domínio. É um export como qualquer Definition, e o
 ## State que a representa nasce aqui, na raiz de composição, porque o Cristal pertence ao
 ## Núcleo — não ao estoque operacional do Depósito (§3).
@@ -91,6 +93,7 @@ const SAVE_SCRIPT := preload("res://systems/persistence/save_game_controller.gd"
 @onready var _recruitment: SoldierRecruitmentController = $Systems/SoldierRecruitmentController
 @onready var _invasion: InvasionController = $Systems/InvasionController
 @onready var _evolution: CoreEvolutionController = $Systems/CoreEvolutionController
+@onready var _ascension: CoreAscensionController = $Systems/CoreAscensionController
 @onready var _incursion: SurfaceIncursionController = $Systems/SurfaceIncursionController
 @onready var _natives: NativePeopleController = $Systems/NativePeopleController
 
@@ -189,6 +192,11 @@ func _ready() -> void:
 	# §15/§49/T17: o painel lê o mesmo State, por isso o terceiro parâmetro — sem cópia e
 	# sem polling. A assinatura continua compatível com quem chama bind() com dois.
 	_evolution_hud.bind(_evolution, core_state, _abyssal_crystal_state)
+	# T26: a Ascensão lê o mesmo Cristal e o mesmo estoque; o painel de evolução ganha as
+	# linhas dela em vez de um painel novo.
+	_ascension.setup(_core, core_state, core_level_3_definition, _abyssal_crystal_state,
+			stockpile_state, biomass_definition)
+	_evolution_hud.bind_ascension(_ascension, stockpile_state)
 
 	# §6/§33/T13: o Ninho concluído é o que anuncia a ameaça. A conexão é uma linha,
 	# feita aqui, sobre um signal que o ConstructionController já emitia — a invasão
@@ -209,6 +217,8 @@ func _ready() -> void:
 			_notoriety,
 			core_state)
 	_invasion_hud.bind_incursion(_incursion)
+	# T26: a primeira guilda inteira repelida entrega o Cristal da Ascensão.
+	_incursion.bind_abyssal_crystal_state(_abyssal_crystal_state)
 
 	# T24: a Guarda Decapitada. O selo desperta pelo nível do Núcleo, os pedidos cobram do
 	# estoque genérico, e a Guarda mede o mérito do Regente pelos saqueadores da superfície.
@@ -286,7 +296,7 @@ func _setup_save(stockpile_state: ResourceStockpileState, core_state: CoreState)
 			barracks_definition,
 			mine_definition,
 			fungal_farm_definition,
-			[core_definition, core_level_2_definition],
+			[core_definition, core_level_2_definition, core_level_3_definition],
 			_resource_materials(),
 			ROCK_SCENE,
 			RESOURCE_PILE_SCENE)

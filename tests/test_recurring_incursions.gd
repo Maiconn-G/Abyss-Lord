@@ -102,7 +102,7 @@ func _test_guild_size_table() -> void:
 
 func _test_contract() -> void:
 	var code := _code_of(SNAPSHOT_SOURCE)
-	for required in ["const SAVE_VERSION := 7", "const SAVE_VERSION_V6 := 6",
+	for required in ["const SAVE_VERSION_V7 := 7", "const SAVE_VERSION_V6 := 6",
 			"static func validate_v7(", "static func migrate_v6_to_v7(",
 			"static func migrate_v5_to_v6("]:
 		_check(code.contains(required), "campaign_snapshot.gd contém %s" % required)
@@ -297,7 +297,7 @@ func _test_contradictory_files_are_refused() -> void:
 	for entry in cases:
 		_check(not _save.validate_campaign(entry[1]).is_empty(),
 				"%s é recusado: %s" % [entry[0], _save.validate_campaign(entry[1])])
-	_check(CampaignSnapshot.validate_document(_document(8, good)).contains("save_version não suportado"),
+	_check(CampaignSnapshot.validate_document(_document(CampaignSnapshot.SAVE_VERSION + 1, good)).contains("save_version não suportado"),
 			"save_version = 8 é recusado")
 	var before := _snapshot_text()
 	for entry in cases:

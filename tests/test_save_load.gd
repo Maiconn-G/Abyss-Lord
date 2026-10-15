@@ -225,10 +225,10 @@ func _test_schema_contract() -> void:
 	# T23: a seção `surface` (Notoriedade e Incursão) leva o formato escrito ao V5.
 	# T24: a seção `natives` leva o formato escrito ao V6.
 	# T25: as incursões recorrentes levam o formato escrito ao V7.
-	_check(int(document[CampaignSnapshot.ROOT_VERSION]) == 7,
-			"§45 save_version == 7, obtido %s" % document[CampaignSnapshot.ROOT_VERSION])
-	_check(CampaignSnapshot.SAVE_VERSION == 7,
-			"§45 o contrato declara V7, obtido %d" % CampaignSnapshot.SAVE_VERSION)
+	_check(int(document[CampaignSnapshot.ROOT_VERSION]) == 8,
+			"§45 save_version == 8, obtido %s" % document[CampaignSnapshot.ROOT_VERSION])
+	_check(CampaignSnapshot.SAVE_VERSION == 8,
+			"§45 o contrato declara V8, obtido %d" % CampaignSnapshot.SAVE_VERSION)
 	_check(document.has(CampaignSnapshot.ROOT_METADATA)
 			and document.has(CampaignSnapshot.ROOT_CAMPAIGN),
 			"§6 envelope tem metadata e campaign")
@@ -274,7 +274,8 @@ func _test_structural_refusals() -> void:
 	# T23: com o V5 lido, "desconhecida" passa a ser 6, 999 e 0.
 	# T24: com o V6 lido, "desconhecida" passa a ser 7, 999 e 0.
 	# T25: com o V7 lido, "desconhecida" passa a ser 8, 999 e 0.
-	for unknown in [8, 999, 0]:
+	# T26: com o V8 lido, "desconhecida" passa a ser 9, 999 e 0.
+	for unknown in [9, 999, 0]:
 		var future := CampaignSnapshot.build_document(campaign, {}) as Dictionary
 		future[CampaignSnapshot.ROOT_VERSION] = unknown
 		_refuse(future, "save_version",
@@ -406,8 +407,8 @@ func _test_source_guards() -> void:
 	_check(_collect_gd_files(PERSISTENCE_DIR).size() == 2,
 			"§11 a persistência são dois arquivos: controller e contrato, obtido %d"
 					% _collect_gd_files(PERSISTENCE_DIR).size())
-	_check(_collect_gd_files("res://systems").size() == 11,
-			"§13/T18/T22/T23/T24 systems/ tem dez controllers e o contrato de schema, obtido %d"
+	_check(_collect_gd_files("res://systems").size() == 12,
+			"§13/T18/T22/T23/T24 systems/ tem onze controllers e o contrato de schema, obtido %d"
 					% _collect_gd_files("res://systems").size())
 
 	# §129: persistência é instantânea no frame do input, nunca por frame.
@@ -2018,6 +2019,8 @@ func _minimal_campaign() -> Dictionary:
 		# T23: em V5 a superfície existe sempre; "nada aconteceu" é Notoriedade 0.
 		CampaignSnapshot.SECTION_SURFACE: {
 			CampaignSnapshot.KEY_NOTORIETY: 0,
+			# T26: em V8 o marco da guilda inteiramente repelida existe sempre.
+			CampaignSnapshot.KEY_CLEAN_REPEL_MILESTONE: false,
 			CampaignSnapshot.KEY_INCURSION: {
 				CampaignSnapshot.KEY_STATE: "NOT_STARTED",
 				CampaignSnapshot.KEY_PREPARATION_REMAINING: 0.0,

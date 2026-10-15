@@ -15,6 +15,12 @@ extends PanelContainer
 @onready var _status_label: Label = %StatusLabel
 @onready var _crystal_label: Label = %CrystalLabel
 @onready var _stats_label: Label = %StatsLabel
+## T26: a Ascensão (Nv.2 → Nv.3) é a mesma pergunta deste painel — "posso subir o Núcleo?" —,
+## então ganha duas linhas aqui, e não um painel novo.
+@onready var _ascension_label: Label = %AscensionLabel
+@onready var _ascension_status_label: Label = %AscensionStatusLabel
+
+var _ascension: CoreAscensionController
 
 var _controller: CoreEvolutionController
 var _state: CoreState
@@ -72,6 +78,47 @@ func _on_unlocked() -> void:
 	_show_status()
 
 
+## T26: as linhas da Ascensão são lidas do `gate()` do próprio controller; o painel não tem
+## regra de porta. O preço vem da Definition de destino.
+func bind_ascension(ascension: CoreAscensionController, stockpile: ResourceStockpileState) -> void:
+	_ascension = ascension
+	ascension.ascension_completed.connect(_on_ascension_completed)
+	stockpile.resource_changed.connect(_on_stockpile_changed)
+	_show_ascension()
+
+
+func _on_ascension_completed(_new_level: int) -> void:
+	_show_status()
+
+
+func _on_stockpile_changed(_resource: ResourceDefinition, _amount: int) -> void:
+	_show_ascension()
+
+
+func _show_ascension() -> void:
+	if _ascension == null:
+		return
+	var target := _ascension.target_definition()
+	var biomass_name := _ascension.biomass_resource().display_name
+	_ascension_label.text = "[V] Ascender a Nv.%d — %d %s + %d Essência + %d %s" % [
+		target.level, target.evolution_crystal_cost, _crystal_name(),
+		roundi(target.evolution_essence_cost), target.evolution_biomass_cost, biomass_name]
+	match _ascension.gate():
+		CoreAscensionController.Gate.ALREADY_ASCENDED:
+			_ascension_label.text = "Ascensão concluída"
+			_ascension_status_label.text = "Núcleo Nv.%d — Masmorra" % target.level
+		CoreAscensionController.Gate.NOT_AT_SOURCE:
+			_ascension_status_label.text = "Ascensão: requer Núcleo Nv.%d" % _ascension.source_level()
+		CoreAscensionController.Gate.CRYSTAL:
+			_ascension_status_label.text = "%s necessário — repila uma guilda inteira" % _crystal_name()
+		CoreAscensionController.Gate.ESSENCE:
+			_ascension_status_label.text = INSUFFICIENT_STATUS
+		CoreAscensionController.Gate.BIOMASS:
+			_ascension_status_label.text = "%s insuficiente" % biomass_name
+		_:
+			_ascension_status_label.text = "Pronto para ascender"
+
+
 func _on_mvp_completed() -> void:
 	_completed = true
 	_show_status()
@@ -92,6 +139,7 @@ func _on_essence_changed(_current: float, _maximum: float) -> void:
 
 
 func _show_status() -> void:
+	_show_ascension()
 	_level_label.text = _level_line()
 	if _completed:
 		_offer_label.text = MVP_LINE
