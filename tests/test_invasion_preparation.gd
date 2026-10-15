@@ -275,8 +275,10 @@ func _test_scope_guards() -> void:
 						% [forbidden, offenders])
 	_check(_collect_gd_files("res://systems/events").is_empty(),
 			"§34 systems/events continua sem script nenhum")
-	_check(_collect_gd_files("res://systems/combat").size() == 1,
-			"§34 systems/combat continua com exatamente um script")
+	# T23: o segundo script de systems/combat é o SurfaceIncursionController, a segunda
+	# origem de invasão. O InvasionController continua sozinho no papel dele.
+	_check(_collect_gd_files("res://systems/combat").size() == 2,
+			"§34/T23 systems/combat tem a invasão e a incursão, e mais nenhum script")
 	# §35: o countdown é transitório e não migrou para dentro de nenhum State persistido.
 	for path in [NEST_STATE_SOURCE_PATH, CORE_STATE_SOURCE_PATH]:
 		var code := _code_of(path)

@@ -299,8 +299,9 @@ func _test_scope_guards() -> void:
 	# e CampaignSnapshot é o contrato do arquivo (§6), não um Manager genérico.
 	# T22: o oitavo controller é o WorkerExpansionController — o dono do terceiro Trabalhador,
 	# que a Tarefa 22 introduz de propósito. Continua sendo um controller com um papel só.
-	_check(_collect_gd_files(SYSTEMS_DIR).size() == 9,
-			"§13/T18/T22 systems/ tem oito controllers e o contrato de schema, obtido %d"
+	# T23: o nono é o SurfaceIncursionController, dono da Incursão e da Notoriedade.
+	_check(_collect_gd_files(SYSTEMS_DIR).size() == 10,
+			"§13/T18/T22/T23 systems/ tem nove controllers e o contrato de schema, obtido %d"
 					% _collect_gd_files(SYSTEMS_DIR).size())
 	# §101: State RefCounted, sem polling.
 	var state_code := _code_of(CRYSTAL_STATE_SOURCE)

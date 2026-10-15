@@ -225,7 +225,8 @@ func _test_scope_guards() -> void:
 					"a tecla U não colide com %s" % other)
 	# O contrato do arquivo subiu para V4, versão por versão, sem framework.
 	var snapshot_code := _code_of(SNAPSHOT_SOURCE)
-	for required in ["const SAVE_VERSION := 4", "const SAVE_VERSION_V3 := 3",
+	# T23: a versão corrente subiu para 5; o V4 desta tarefa continua nomeado.
+	for required in ["const SAVE_VERSION_V4 := 4", "const SAVE_VERSION_V3 := 3",
 			"static func validate_v4(", "static func migrate_v3_to_v4(",
 			"static func migrate_v2_to_v3(", "static func migrate_v1_to_v2("]:
 		_check(snapshot_code.contains(required), "campaign_snapshot.gd contém %s" % required)
@@ -495,8 +496,10 @@ func _test_save_roundtrip_with_third_worker() -> void:
 	var before := _snapshot_text()
 	_check(_save.save_campaign(), "save com o terceiro Worker carregando minério")
 	var document := _document_from_file(WITH_THIRD_PATH)
-	_check(int(document[CampaignSnapshot.ROOT_VERSION]) == 4,
-			"o arquivo publicado é V4, obtido %s" % [document[CampaignSnapshot.ROOT_VERSION]])
+	# T23: o arquivo publicado é a versão corrente; o que esta suíte exige é a flag nele.
+	_check(int(document[CampaignSnapshot.ROOT_VERSION]) == CampaignSnapshot.SAVE_VERSION,
+			"o arquivo publicado é a versão corrente, obtido %s"
+					% [document[CampaignSnapshot.ROOT_VERSION]])
 	var units: Dictionary = document[CampaignSnapshot.ROOT_CAMPAIGN][CampaignSnapshot.SECTION_UNITS]
 	_check(units.get(CampaignSnapshot.KEY_THIRD_SUMMONED) == true,
 			"worker_003_summoned = true no arquivo")
@@ -601,7 +604,8 @@ func _test_v1_chain_reaches_v4() -> void:
 			"sem Mina, Fazenda e flag nova a campanha é um V1 válido, motivo %s"
 					% [CampaignSnapshot.validate_v1(campaign)])
 	var migrated := CampaignSnapshot.migrate_to_current(_document(1, campaign))
-	_check(int(migrated[CampaignSnapshot.ROOT_VERSION]) == 4, "a corrente V1→V4 chega ao V4")
+	_check(int(migrated[CampaignSnapshot.ROOT_VERSION]) == CampaignSnapshot.SAVE_VERSION,
+			"a corrente a partir do V1 segue até a versão corrente")
 	var units: Dictionary = migrated[CampaignSnapshot.ROOT_CAMPAIGN][CampaignSnapshot.SECTION_UNITS]
 	_check(units.get(CampaignSnapshot.KEY_THIRD_SUMMONED) == false,
 			"o degrau V3→V4 acrescenta worker_003_summoned = false")
@@ -655,9 +659,9 @@ func _test_contradictory_files_are_refused() -> void:
 			"o controller recusa terceiro Worker invocado no Nv.1, motivo %s" % reason)
 
 	# Versão do futuro.
-	var future := _document(5, good)
+	var future := _document(CampaignSnapshot.SAVE_VERSION + 1, good)
 	_check(CampaignSnapshot.validate_document(future).contains("save_version não suportado"),
-			"save_version = 5 é recusado sem adivinhação")
+			"save_version do futuro é recusado sem adivinhação")
 
 	# Nenhuma recusa toca no mundo.
 	var world_before := _snapshot_text()

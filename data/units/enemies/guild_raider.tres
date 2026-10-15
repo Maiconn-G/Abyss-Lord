@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="RaiderDefinition" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://core/definitions/raider_definition.gd" id="1_definition"]
+[ext_resource type="Resource" path="res://data/resources/biomass.tres" id="2_biomass"]
+[ext_resource type="Resource" path="res://data/resources/iron_ore.tres" id="3_iron_ore"]
+[ext_resource type="Script" path="res://core/definitions/resource_definition.gd" id="4_resource_script"]
+
+[resource]
+script = ExtResource("1_definition")
+enemy_type_id = &"guild_raider"
+display_name = "Saqueador de Guilda"
+max_health = 40.0
+move_speed = 3.0
+attack_damage = 5.0
+attack_range = 1.2
+attack_interval = 1.0
+loot_capacity = 3
+steal_interval = 1.0
+retreat_health_ratio = 0.35
+loot_priority = Array[ExtResource("4_resource_script")]([ExtResource("2_biomass"), ExtResource("3_iron_ore")])
+loot_range = 1.6

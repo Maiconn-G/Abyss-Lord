@@ -4,6 +4,12 @@ extends PanelContainer
 @onready var _hint_label: Label = %HintLabel
 @onready var _status_label: Label = %StatusLabel
 @onready var _remaining_label: Label = %RemainingLabel
+## T23: a segunda origem de invasão aparece neste mesmo painel — mesma pergunta ("o que
+## está vindo?"), outra ameaça. Duas linhas: a Notoriedade e o ciclo da Incursão.
+@onready var _notoriety_label: Label = %NotorietyLabel
+@onready var _incursion_label: Label = %IncursionLabel
+
+var _incursion: SurfaceIncursionController
 
 const HINT_LINE := "[F] Iniciar primeira invasão"
 ## §17/T13: esperar deixou de ser esperar nada — o que se espera agora é a ameaça.
@@ -92,3 +98,57 @@ func _on_invasion_defeat() -> void:
 
 func _show_remaining(current: int) -> void:
 	_remaining_label.text = "Inimigos restantes: %d" % current
+
+
+## T23: a Incursão da Superfície é lida dos sinais do próprio controller, sem loop.
+func bind_incursion(incursion: SurfaceIncursionController) -> void:
+	_incursion = incursion
+	incursion.notoriety().notoriety_changed.connect(_on_notoriety_changed)
+	incursion.preparation_started.connect(_on_incursion_changed_float)
+	incursion.preparation_time_changed.connect(_on_incursion_time_changed)
+	incursion.incursion_started.connect(_on_incursion_started)
+	incursion.active_raiders_changed.connect(_on_incursion_changed_int)
+	incursion.incursion_ended.connect(_on_incursion_ended)
+	refresh_incursion()
+
+
+func refresh_incursion() -> void:
+	if _incursion == null:
+		return
+	_notoriety_label.text = "Notoriedade: %d/%d" % [
+		_incursion.notoriety().value, NotorietyState.MAXIMUM]
+	match _incursion.incursion_state():
+		SurfaceIncursionController.IncursionState.PREPARATION:
+			_incursion_label.text = "Guilda da superfície a caminho: %d s" \
+					% int(ceilf(_incursion.preparation_time_remaining()))
+		SurfaceIncursionController.IncursionState.ACTIVE:
+			_incursion_label.text = "INCURSÃO — saqueadores: %d" % _incursion.active_raiders()
+		SurfaceIncursionController.IncursionState.ENDED:
+			_incursion_label.text = "Incursão encerrada — repelidos: %d, fugiram: %d" % [
+				_incursion.repelled_count(), _incursion.escaped_count()]
+		_:
+			_incursion_label.text = "Superfície: o Núcleo ainda não foi notado"
+
+
+func _on_notoriety_changed(_current: int, _maximum: int) -> void:
+	refresh_incursion()
+
+
+func _on_incursion_changed_float(_value: float) -> void:
+	refresh_incursion()
+
+
+func _on_incursion_changed_int(_value: int) -> void:
+	refresh_incursion()
+
+
+func _on_incursion_time_changed(_remaining: float, _duration: float) -> void:
+	refresh_incursion()
+
+
+func _on_incursion_started(_raiders: Array) -> void:
+	refresh_incursion()
+
+
+func _on_incursion_ended(_repelled: int, _escaped: int) -> void:
+	refresh_incursion()

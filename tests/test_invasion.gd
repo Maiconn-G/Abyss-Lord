@@ -469,8 +469,9 @@ func _test_invasion_controller_surface() -> void:
 	# procurando a construção na árvore.
 	for nest in ["Nest", "Construction", "construction_completed"]:
 		_check(not code.contains(nest), "§33/T13 o controller não caça %s na árvore" % nest)
-	_check(_count_files("res://systems/combat", "*.gd") == 1,
-			"§24/§91 exatamente um script em systems/combat")
+	# T23: a Incursão da Superfície tem controller próprio; a primeira invasão não a conhece.
+	_check(_count_files("res://systems/combat", "*.gd") == 2,
+			"§24/§91/T23 systems/combat tem a invasão e a incursão")
 	_check(_count_files("res://systems/combat", "invasion_controller.gd") == 1,
 			"§24 o único script de systems/combat é invasion_controller.gd")
 
@@ -549,8 +550,9 @@ func _test_scope_guards() -> void:
 	# apenas conhece a forma do JSON e valida estrutura. Antes 6, agora 8.
 	# T22: o WorkerExpansionController, dono do terceiro Trabalhador, é o oitavo controller.
 	# Mesmo critério de sempre: uma tarefa nova, um controller com papel único. Antes 8, agora 9.
-	_check(_collect_gd_files("res://systems").size() == 9,
-			"§98/T18/T22 systems/ tem exatamente oito controllers e um contrato de schema, "
+	# T23: o SurfaceIncursionController é o nono. Antes 9, agora 10.
+	_check(_collect_gd_files("res://systems").size() == 10,
+			"§98/T18/T22/T23 systems/ tem exatamente nove controllers e um contrato de schema, "
 					+ "obtido %d" % _collect_gd_files("res://systems").size())
 	var main := _source(GAME_MAIN_SOURCE_PATH)
 	for forbidden in ["Enemy001", "_spawn_initial_enemy", "EnemySpawnPoint", "queue_free(_core",

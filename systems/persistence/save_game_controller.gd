@@ -39,6 +39,8 @@ var _invocation: WorkerInvocationController
 ## T22: o dono do terceiro Worker chega por vinculação própria, como a Mina e a Fazenda
 ## chegaram ao ConstructionController — `setup()` não muda de assinatura.
 var _expansion: WorkerExpansionController
+## T23: o dono da superfície (Notoriedade e Incursão) chega por vinculação própria.
+var _incursion: SurfaceIncursionController
 var _recruitment: SoldierRecruitmentController
 var _invasion: InvasionController
 var _evolution: CoreEvolutionController
@@ -144,6 +146,12 @@ func bind_worker_expansion(expansion: WorkerExpansionController) -> void:
 	_expansion = expansion
 
 
+## T23: a superfície entra na fotografia por vinculação própria. Sem ela vinculada, a
+## campanha grava a seção vazia (Notoriedade zero, incursão não iniciada).
+func bind_surface_incursion(incursion: SurfaceIncursionController) -> void:
+	_incursion = incursion
+
+
 ## §107: o caminho é configurável justamente para o teste não escrever no save do jogador.
 func configure_save_path(path: String) -> void:
 	_primary_path = path
@@ -217,6 +225,50 @@ func snapshot_campaign() -> Dictionary:
 		CampaignSnapshot.SECTION_CONSTRUCTIONS: _constructions_record(),
 		CampaignSnapshot.SECTION_WORLD: _world_record(),
 		CampaignSnapshot.SECTION_INVASION: _invasion_record(),
+		CampaignSnapshot.SECTION_SURFACE: _surface_record(),
+	}
+
+
+## T23: a superfície é Notoriedade + o ciclo da Incursão + os saqueadores em campo. A fase e
+## o saque de cada um são estado; capacidade, ritmo e preferência do saque são da Definition.
+func _surface_record() -> Dictionary:
+	var raiders: Array = []
+	var state_name := "NOT_STARTED"
+	var remaining := 0.0
+	var repelled := 0
+	var escaped := 0
+	var notoriety := 0
+	if _incursion != null:
+		notoriety = _incursion.notoriety().value
+		state_name = CampaignSnapshot.INCURSION_STATE_NAMES[_incursion.incursion_state()]
+		remaining = _incursion.preparation_time_remaining()
+		repelled = _incursion.repelled_count()
+		escaped = _incursion.escaped_count()
+		for raider in _incursion.raiders():
+			if not is_instance_valid(raider) or raider.is_queued_for_deletion() \
+					or not raider.is_alive():
+				continue
+			var raid := raider.raider_state()
+			var loot: Dictionary = {}
+			for resource_id in raid.loot:
+				loot[String(resource_id)] = int(raid.loot[resource_id])
+			raiders.append({
+				CampaignSnapshot.KEY_RAIDER_ID: raid.enemy_id,
+				CampaignSnapshot.KEY_HEALTH: raid.health,
+				CampaignSnapshot.KEY_POSITION:
+						CampaignSnapshot.encode_position(raider.global_position),
+				CampaignSnapshot.KEY_PHASE: CampaignSnapshot.RAIDER_PHASE_NAMES[raid.phase],
+				CampaignSnapshot.KEY_LOOT: loot,
+			})
+	return {
+		CampaignSnapshot.KEY_NOTORIETY: notoriety,
+		CampaignSnapshot.KEY_INCURSION: {
+			CampaignSnapshot.KEY_STATE: state_name,
+			CampaignSnapshot.KEY_PREPARATION_REMAINING: remaining,
+			CampaignSnapshot.KEY_RAIDERS: raiders,
+			CampaignSnapshot.KEY_REPELLED: repelled,
+			CampaignSnapshot.KEY_ESCAPED: escaped,
+		},
 	}
 
 
@@ -498,6 +550,9 @@ func validate_campaign(campaign: Dictionary) -> String:
 	reason = _validate_invasion_records(campaign)
 	if not reason.is_empty():
 		return reason
+	reason = _validate_surface_records(campaign)
+	if not reason.is_empty():
+		return reason
 	return _validate_population_consistency(campaign)
 
 
@@ -678,6 +733,55 @@ func _validate_invasion_records(campaign: Dictionary) -> String:
 			return "enemy_type_id desconhecido: %s" % invader[CampaignSnapshot.KEY_ENEMY_TYPE_ID]
 		if invader[CampaignSnapshot.KEY_HEALTH] > _enemy_definition.max_health:
 			return "%s com vida acima do máximo" % invader[CampaignSnapshot.KEY_INVADER_ID]
+	return ""
+
+
+## T23: as faixas da superfície que só existem contra a Definition do saqueador e o tamanho
+## da guilda. A contagem fecha sempre: em campo + repelidos + fugitivos nunca passa da
+## guilda, e quando a incursão termina ninguém ficou para trás.
+func _validate_surface_records(campaign: Dictionary) -> String:
+	var incursion: Dictionary = campaign[CampaignSnapshot.SECTION_SURFACE][
+			CampaignSnapshot.KEY_INCURSION]
+	var state := String(incursion[CampaignSnapshot.KEY_STATE])
+	var raiders: Array = incursion[CampaignSnapshot.KEY_RAIDERS]
+	var gone := int(incursion[CampaignSnapshot.KEY_REPELLED]) \
+			+ int(incursion[CampaignSnapshot.KEY_ESCAPED])
+	var guild := SurfaceIncursionController.RAIDER_COUNT
+	if (state == "NOT_STARTED" or state == "PREPARATION") and gone > 0:
+		return "incursão %s com desfecho registrado" % state
+	if state == "ACTIVE" and raiders.size() + gone != guild:
+		return "incursão ACTIVE não fecha com a guilda de %d" % guild
+	if state == "ENDED" and gone != guild:
+		return "incursão ENDED não fecha com a guilda de %d" % guild
+	if raiders.is_empty():
+		return ""
+	if _incursion == null or _incursion.raider_definition() == null:
+		return "a campanha não sabe restaurar saqueadores"
+	var definition := _incursion.raider_definition()
+	var known: Dictionary = {}
+	for resource in definition.loot_priority:
+		if resource != null:
+			known[String(resource.resource_id)] = true
+	var seen: Array = []
+	for raider in raiders:
+		var raider_id := String(raider[CampaignSnapshot.KEY_RAIDER_ID])
+		var index := SurfaceIncursionController.raider_index_of(raider_id)
+		if not raider_id.begins_with(SurfaceIncursionController.RAIDER_ID_PREFIX) \
+				or index < 0 or index >= guild \
+				or raider_id != SurfaceIncursionController.raider_id_of(index):
+			return "raider_id desconhecido: %s" % raider_id
+		if raider_id in seen:
+			return "saqueador duplicado no arquivo: %s" % raider_id
+		seen.append(raider_id)
+		if float(raider[CampaignSnapshot.KEY_HEALTH]) > definition.max_health:
+			return "%s com vida acima do máximo" % raider_id
+		var total := 0
+		for resource_id in raider[CampaignSnapshot.KEY_LOOT]:
+			if not known.has(resource_id):
+				return "%s carrega recurso que a guilda não saqueia: %s" % [raider_id, resource_id]
+			total += int(raider[CampaignSnapshot.KEY_LOOT][resource_id])
+		if total > definition.loot_capacity:
+			return "%s carrega mais que a capacidade de saque" % raider_id
 	return ""
 
 
@@ -882,6 +986,34 @@ func _apply(campaign: Dictionary) -> void:
 	_restore_invasion(campaign)
 	_evolution.restore_progression(
 			campaign[CampaignSnapshot.SECTION_INVASION][KEY_INVASION_STATE] == "VICTORY")
+	_restore_surface(campaign)
+
+
+## T23: a superfície volta como dado — Notoriedade, ciclo e saqueadores — sem reemitir
+## largada nem desfecho e sem cobrar de novo o saque que já saiu do estoque.
+func _restore_surface(campaign: Dictionary) -> void:
+	if _incursion == null:
+		return
+	var surface: Dictionary = campaign[CampaignSnapshot.SECTION_SURFACE]
+	var incursion: Dictionary = surface[CampaignSnapshot.KEY_INCURSION]
+	var records: Array = []
+	for raider in incursion[CampaignSnapshot.KEY_RAIDERS] as Array:
+		records.append({
+			"raider_id": String(raider[CampaignSnapshot.KEY_RAIDER_ID]),
+			"health": float(raider[CampaignSnapshot.KEY_HEALTH]),
+			"position": CampaignSnapshot.decode_position(raider[CampaignSnapshot.KEY_POSITION]),
+			"phase": CampaignSnapshot.RAIDER_PHASE_NAMES.find(
+					String(raider[CampaignSnapshot.KEY_PHASE])),
+			"loot": (raider[CampaignSnapshot.KEY_LOOT] as Dictionary).duplicate(),
+		})
+	_incursion.restore_surface(
+			int(surface[CampaignSnapshot.KEY_NOTORIETY]),
+			CampaignSnapshot.INCURSION_STATE_NAMES.find(
+					String(incursion[CampaignSnapshot.KEY_STATE])),
+			float(incursion[CampaignSnapshot.KEY_PREPARATION_REMAINING]),
+			records,
+			int(incursion[CampaignSnapshot.KEY_REPELLED]),
+			int(incursion[CampaignSnapshot.KEY_ESCAPED]))
 
 
 ## §18/§19: o Núcleo que já está em cena é restaurado — não se recria um segundo Núcleo.
