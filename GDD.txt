@@ -3449,6 +3449,16 @@ O povo tem dono próprio (`NativePeopleController`); não existe sistema genéri
 formato de save subiu para **V6** com a seção `natives`; campanhas antigas no Nv.2 carregam com o
 selo desperto e intacto. Formato canônico em `docs/SAVE_SCHEMA_V6.md`.
 
+## O Núcleo cresce de novo: a Ascensão ao Nv.3
+
+A **Tarefa 26** abriu o Nv.3 ("Masmorra", §8: população base 30). A Ascensão Nv.2 → Nv.3 tem
+controller próprio (`CoreAscensionController`) e não toca o degrau histórico do MVP. Ela cobra
+**1 Cristal Abissal + 40 Essência + 10 Biomassa**, e o Cristal vem de um marco novo: a
+**primeira guilda da superfície repelida sem nenhuma fuga** entrega 1 Cristal, uma única vez.
+Subir ao Nv.3 soma +20 de Notoriedade. A tecla é a mesma V da evolução do MVP, e uma tecla
+nunca sobe dois níveis. O formato de save subiu para **V8** (`surface.clean_repel_milestone`);
+o Nv.3 em si não precisa de campo novo. Formato canônico em `docs/SAVE_SCHEMA_V8.md`.
+
 ## O lore foi alinhado
 
 Depois da Tarefa 21, a narrativa foi alinhada à inspiração em *Dungeon Odyssey* (§1.1):

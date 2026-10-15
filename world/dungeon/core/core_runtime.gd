@@ -9,6 +9,8 @@ extends Node3D
 ## §23/T14: o Nv.2 é o mesmo corpo, só mais alto. O número é constante porque é
 ## apresentação pura, e o detalhe novo já mora na cena — escondido, esperando a evolução.
 const LEVEL_2_VISUAL_SCALE := 1.25
+## T26: o Nv.3 cresce mais um degrau. A escala é apresentação pura, lida pelo nível.
+const LEVEL_3_VISUAL_SCALE := 1.5
 const LEVEL_2_DETAIL_PATH := "Level2Detail"
 
 var _definition: CoreDefinition
@@ -47,7 +49,7 @@ func evolve_to(new_definition: CoreDefinition) -> bool:
 	if not _state.evolve_to(new_definition):
 		return false
 	_definition = new_definition
-	scale = Vector3.ONE * LEVEL_2_VISUAL_SCALE
+	scale = Vector3.ONE * _visual_scale_of(new_definition.level)
 	var detail := get_node_or_null(LEVEL_2_DETAIL_PATH) as MeshInstance3D
 	if detail != null:
 		detail.visible = true
@@ -64,10 +66,18 @@ func restore_level_view(core_definition: CoreDefinition) -> void:
 		return
 	_definition = core_definition
 	var at_target := core_definition.level > 1
-	scale = Vector3.ONE * LEVEL_2_VISUAL_SCALE if at_target else Vector3.ONE
+	scale = Vector3.ONE * _visual_scale_of(core_definition.level)
 	var detail := get_node_or_null(LEVEL_2_DETAIL_PATH) as MeshInstance3D
 	if detail != null:
 		detail.visible = at_target
+
+
+func _visual_scale_of(level: int) -> float:
+	if level >= 3:
+		return LEVEL_3_VISUAL_SCALE
+	if level == 2:
+		return LEVEL_2_VISUAL_SCALE
+	return 1.0
 
 
 ## §16/T14: como a geração lê a taxa da própria referência, atualizar `_definition` é

@@ -312,6 +312,8 @@ func _surface_record() -> Dictionary:
 			})
 	return {
 		CampaignSnapshot.KEY_NOTORIETY: notoriety,
+		CampaignSnapshot.KEY_CLEAN_REPEL_MILESTONE:
+				_incursion != null and _incursion.clean_repel_rewarded(),
 		CampaignSnapshot.KEY_INCURSION: {
 			CampaignSnapshot.KEY_STATE: state_name,
 			CampaignSnapshot.KEY_PREPARATION_REMAINING: remaining,
@@ -1134,7 +1136,8 @@ func _restore_surface(campaign: Dictionary) -> void:
 			int(incursion[CampaignSnapshot.KEY_ESCAPED]),
 			int(incursion[CampaignSnapshot.KEY_INCURSION_NUMBER]),
 			int(incursion[CampaignSnapshot.KEY_GUILD_SIZE]),
-			float(incursion[CampaignSnapshot.KEY_COOLDOWN_REMAINING]))
+			float(incursion[CampaignSnapshot.KEY_COOLDOWN_REMAINING]),
+			bool(surface[CampaignSnapshot.KEY_CLEAN_REPEL_MILESTONE]))
 
 
 ## §18/§19: o Núcleo que já está em cena é restaurado — não se recria um segundo Núcleo.

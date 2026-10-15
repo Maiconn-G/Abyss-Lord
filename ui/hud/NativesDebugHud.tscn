@@ -4,9 +4,9 @@
 
 [node name="NativesDebugPanel" type="PanelContainer"]
 offset_left = 360.0
-offset_top = 390.0
+offset_top = 476.0
 offset_right = 820.0
-offset_bottom = 500.0
+offset_bottom = 586.0
 mouse_filter = 2
 script = ExtResource("1_hud")
 

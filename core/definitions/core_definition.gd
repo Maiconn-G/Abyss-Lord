@@ -15,3 +15,6 @@ extends Resource
 ## porque a chave é contada, não medida, e vive aqui em vez de um "1" solto no controller
 ## para que o preço continue sendo dado da Definition de destino (§27).
 @export var evolution_crystal_cost: int = 0
+## T26: a terceira metade da conta, a partir do Nv.3 — a matéria viva que sustenta um
+## Núcleo maior. Zero nos níveis que não a cobram, então Nv.1 e Nv.2 não mudam.
+@export var evolution_biomass_cost: int = 0

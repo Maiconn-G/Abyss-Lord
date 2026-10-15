@@ -277,8 +277,9 @@ func _test_level_one_definition() -> void:
 					% (nest.population_capacity_bonus if nest != null else -1))
 	# §91/§106: nada de Nv.3 escondido no diretório de dados.
 	var core_files := _files_in(DATA_CORE_DIR, ".tres")
-	_check(core_files == ["core_level_1.tres", "core_level_2.tres"],
-			"§91 data/core tem exatamente os dois níveis, obtido %s" % [core_files])
+	# T26: o Nv.3 entrou como destino da Ascensão — e só ele.
+	_check(core_files == ["core_level_1.tres", "core_level_2.tres", "core_level_3.tres"],
+			"§91/T26 data/core tem exatamente os três níveis, obtido %s" % [core_files])
 
 
 ## §91–§95, §26–§29: a fronteira do que não foi feito. A varredura é de fonte crua, com
@@ -296,8 +297,10 @@ func _test_scope_guards() -> void:
 		_check(offenders.is_empty(),
 				"§91–§95 nenhum fonte contém %s, achado em %s" % [forbidden, offenders])
 	# §92/§26: um degrau, uma transição — um controller só.
-	_check(_collect_gd_files(SYSTEMS_PROGRESSION_DIR).size() == 1,
-			"§92 systems/progression tem exatamente um script, obtido %d"
+	# T26: o segundo é o CoreAscensionController — outro degrau, outro controller; este do MVP
+	# continua com uma transição só.
+	_check(_collect_gd_files(SYSTEMS_PROGRESSION_DIR).size() == 2,
+			"§92/T26 systems/progression tem a evolução do MVP e a Ascensão, obtido %d"
 					% _collect_gd_files(SYSTEMS_PROGRESSION_DIR).size())
 	# §25/§94: nenhum CoreRuntimeLevel2.tscn, nenhuma cena nova de Núcleo.
 	_check(ResourceLoader.exists(CORE_RUNTIME_SCENE), "§94 a cena CoreRuntime continua lá")
@@ -1240,8 +1243,10 @@ func _test_no_third_level() -> void:
 	_check(_core_state.level == 2 and _close(_core_state.integrity, INTEGRITY_LV2),
 			"§91 nada mudou depois das recusas (level %d, integrity %f)"
 					% [_core_state.level, _core_state.integrity])
-	_check(_files_in(DATA_CORE_DIR, ".tres").size() == 2,
-			"§91 não existe Core Lv.3 em data/core")
+	# T26: o Nv.3 existe em data/core, mas é destino da Ascensão (CoreAscensionController),
+	# não deste controller do MVP — que continua recusando qualquer degrau além do Nv.2.
+	_check(_files_in(DATA_CORE_DIR, ".tres").size() == 3,
+			"§91/T26 data/core tem Nv.1, Nv.2 e o Nv.3 da Ascensão")
 
 
 # ==================================================================== Infraestrutura
