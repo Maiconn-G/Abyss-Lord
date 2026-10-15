@@ -1,4 +1,4 @@
-[gd_scene load_steps=48 format=3]
+[gd_scene load_steps=51 format=3]
 
 [ext_resource type="Script" path="res://game/game_main.gd" id="1_game"]
 [ext_resource type="Script" path="res://camera/camera_controller.gd" id="2_camera"]
@@ -44,6 +44,9 @@
 [ext_resource type="PackedScene" path="res://ui/hud/NativesDebugHud.tscn" id="42_natives_hud"]
 [ext_resource type="Resource" path="res://data/core/core_level_3.tres" id="43_core3_def"]
 [ext_resource type="Script" path="res://systems/progression/core_ascension_controller.gd" id="44_ascension"]
+[ext_resource type="Resource" path="res://data/natives/grey_elves.tres" id="45_elves_def"]
+[ext_resource type="Resource" path="res://data/natives/hall_against_roots.tres" id="46_dispute_def"]
+[ext_resource type="Script" path="res://systems/natives/dispute_controller.gd" id="47_dispute"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMaterial"]
 albedo_color = Color(0.22, 0.26, 0.3, 1.0)
@@ -80,6 +83,8 @@ worker_expansion_definition = ExtResource("36_expansion_def")
 raider_definition = ExtResource("38_raider_def")
 native_people_definition = ExtResource("40_natives_def")
 core_level_3_definition = ExtResource("43_core3_def")
+grey_elves_definition = ExtResource("45_elves_def")
+dispute_definition = ExtResource("46_dispute_def")
 
 [node name="World" type="Node3D" parent="."]
 
@@ -161,6 +166,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0, 7)
 [node name="GuardianPoint" type="Marker3D" parent="World/DungeonRoot"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.5, 0, 5)
 
+[node name="RootSealPoint" type="Marker3D" parent="World/DungeonRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 0, 8)
+
 [node name="Environment" type="Node3D" parent="World"]
 
 [node name="TestFloor" type="MeshInstance3D" parent="World/Environment"]
@@ -215,6 +223,12 @@ script = ExtResource("41_natives")
 
 [node name="CoreAscensionController" type="Node" parent="Systems"]
 script = ExtResource("44_ascension")
+
+[node name="GreyElvesController" type="Node" parent="Systems"]
+script = ExtResource("41_natives")
+
+[node name="DisputeController" type="Node" parent="Systems"]
+script = ExtResource("47_dispute")
 
 [node name="UI" type="CanvasLayer" parent="."]
 

@@ -1994,8 +1994,31 @@ Valores de balanceamento inicial:
 * **Perda:** o Guardião caído custa −10. O juramento é histórico: cair abaixo de 61 depois
   não o desfaz, e cruzar o limiar de novo não traz outro Guardião.
 
+### O segundo povo e a primeira disputa (implementados na Tarefa 27)
+
+**Elfos Cinzentos** — valores de balanceamento inicial:
+
+* **Raízes Seladas:** despertam quando o Núcleo chega ao **Nv.3**, no canto oeste;
+  Trabalhadores as rompem pela ordem comum de obra (14 de trabalho).
+* **Descoberta:** Legitimidade **30** (desconfiado).
+* **Pedidos (tecla H):** "Raízes famintas" — 6 Biomassa, +15; "Pedra para os santuários" —
+  6 Minério, +15. Os dois sozinhos levam os Elfos a 60 — um ponto antes do juramento.
+* **Atos:** saqueador da superfície que foge com saque −5 (leva a memória do domínio).
+* **Juramento aos 61:** os Elfos abrem as galerias das Raízes aos servos do domínio —
+  **+4 de capacidade populacional**, uma vez. Sem Guardião.
+
+**A primeira disputa — "O Salão contra as Raízes":** com os dois povos encontrados, a Guarda
+quer cavar fortificações na galeria onde os Elfos guardam as raízes do antigo domínio. Uma
+decisão só, sem resposta certa:
+
+* **[O] Fortificar o Salão** — Guarda +15, Elfos −15;
+* **[P] Proteger as Raízes** — Elfos +15, Guarda −15.
+
+Como os pedidos élficos param em 60, o juramento dos Elfos passa pela disputa: proteger as
+Raízes é o caminho para a capacidade extra, e custa confiança da Guarda.
+
 Efeitos das faixas hostil (sabotagem, revolta interna) e devoto (salas e heróis exclusivos),
-disputas entre povos e o segundo povo ficam para tarefas futuras.
+o Dragão Adormecido e novas disputas ficam para tarefas futuras.
 
 ---
 
@@ -3458,6 +3481,15 @@ controller próprio (`CoreAscensionController`) e não toca o degrau histórico 
 Subir ao Nv.3 soma +20 de Notoriedade. A tecla é a mesma V da evolução do MVP, e uma tecla
 nunca sobe dois níveis. O formato de save subiu para **V8** (`surface.clean_repel_milestone`);
 o Nv.3 em si não precisa de campo novo. Formato canônico em `docs/SAVE_SCHEMA_V8.md`.
+
+## Dois povos, uma disputa
+
+A **Tarefa 27** trouxe o segundo Povo Nativo, os **Elfos Cinzentos** (§51.1), despertados pelo
+Nv.3, e a primeira **disputa** entre povos (§70). O controller de povo da Tarefa 24 passou a
+servir aos dois por dado — tecla do pedido, efeito do juramento e textos vêm da Definition — e a
+disputa tem controller próprio (`DisputeController`), que move a Legitimidade dos dois lados uma
+vez só. O formato de save subiu para **V9** (`natives.grey_elves` e `natives.dispute`). Formato
+canônico em `docs/SAVE_SCHEMA_V9.md`.
 
 ## O lore foi alinhado
 

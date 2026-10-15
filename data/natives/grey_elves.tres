@@ -1,0 +1,49 @@
+[gd_resource type="Resource" script_class="NativePeopleDefinition" load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://core/definitions/native_people_definition.gd" id="1_people"]
+[ext_resource type="Script" path="res://core/definitions/native_request_definition.gd" id="2_request"]
+[ext_resource type="Script" path="res://core/definitions/construction_definition.gd" id="3_construction"]
+[ext_resource type="Resource" path="res://data/resources/iron_ore.tres" id="4_iron_ore"]
+[ext_resource type="Resource" path="res://data/resources/biomass.tres" id="5_biomass"]
+
+[sub_resource type="Resource" id="RootSeal"]
+script = ExtResource("3_construction")
+build_cost = 0
+work_required = 14.0
+
+[sub_resource type="Resource" id="RootsRequest"]
+script = ExtResource("2_request")
+request_id = &"hungry_roots"
+display_name = "Raízes famintas"
+resource = ExtResource("5_biomass")
+amount = 6
+legitimacy_gain = 15
+
+[sub_resource type="Resource" id="ShrineRequest"]
+script = ExtResource("2_request")
+request_id = &"shrine_stone"
+display_name = "Pedra para os santuários"
+resource = ExtResource("4_iron_ore")
+amount = 6
+legitimacy_gain = 15
+
+[resource]
+script = ExtResource("1_people")
+people_id = &"grey_elves"
+display_name = "Elfos Cinzentos"
+required_core_level = 3
+seal_definition = SubResource("RootSeal")
+seal_display_name = "Raízes Seladas"
+seal_instance_id = "root_seal_001"
+starting_legitimacy = 30
+requests = Array[ExtResource("2_request")]([SubResource("RootsRequest"), SubResource("ShrineRequest")])
+request_action = &"fulfill_elves_request"
+request_key_label = "H"
+legitimacy_per_raider_slain = 0
+legitimacy_per_raider_fled = 5
+legitimacy_per_guardian_fallen = 0
+oath_threshold = 61
+oath_population_bonus = 4
+discovered_text = "Elfos Cinzentos encontrados"
+requests_done_text = "Todos os pedidos dos Elfos foram cumpridos"
+oath_effect_text = "as galerias das Raízes abrigam +4 de população"
