@@ -16,6 +16,10 @@ const ENEMY_SCENE := preload("res://units/enemies/EnemyRuntime.tscn")
 ## T23: o corpo do Saqueador de Guilda. A cena entra pela composition root como as outras —
 ## o controller da incursão a recebe por parâmetro.
 const RAIDER_SCENE := preload("res://units/enemies/RaiderRuntime.tscn")
+## T24: o Selo Antigo e o Guardião Decapitado entram pela composition root como as outras
+## cenas — o controller do povo as recebe por parâmetro.
+const ANCIENT_SEAL_SCENE := preload("res://world/dungeon/natives/AncientSealRuntime.tscn")
+const GUARDIAN_SCENE := preload("res://units/natives/DecapitatedGuardianRuntime.tscn")
 const ROCK_SCENE := preload("res://world/dungeon/rock/RockRuntime.tscn")
 ## §10/§11/T18: a persistência é um controller como os outros — criado e injetado aqui,
 ## na raiz de composição. Ele não é Autoload, não se procura na árvore e não descobre
@@ -50,6 +54,8 @@ const SAVE_SCRIPT := preload("res://systems/persistence/save_game_controller.gd"
 @export var worker_expansion_definition: WorkerExpansionDefinition
 ## T23: o Saqueador de Guilda — corpo de combate de EnemyDefinition mais o saque.
 @export var raider_definition: RaiderDefinition
+## T24: o primeiro Povo Nativo — selo, Legitimidade inicial, pedidos, atos e Guardião.
+@export var native_people_definition: NativePeopleDefinition
 
 @onready var _dungeon: Node3D = $World/DungeonRoot
 @onready var _core: CoreRuntime = $World/DungeonRoot/MainCore
@@ -65,6 +71,9 @@ const SAVE_SCRIPT := preload("res://systems/persistence/save_game_controller.gd"
 @onready var _invasion_point_b: Marker3D = $World/DungeonRoot/InvasionSpawnPointB
 @onready var _surface_entrance_a: Marker3D = $World/DungeonRoot/SurfaceEntrancePointA
 @onready var _surface_entrance_b: Marker3D = $World/DungeonRoot/SurfaceEntrancePointB
+@onready var _ancient_seal_point: Marker3D = $World/DungeonRoot/AncientSealPoint
+@onready var _guardian_point: Marker3D = $World/DungeonRoot/GuardianPoint
+@onready var _natives_hud: NativesDebugHud = $UI/NativesDebugPanel
 @onready var _hud: CoreDebugHud = $UI/CoreDebugPanel
 @onready var _resource_hud: ResourceDebugHud = $UI/ResourceDebugPanel
 @onready var _construction_hud: ConstructionDebugHud = $UI/ConstructionDebugPanel
@@ -83,6 +92,7 @@ const SAVE_SCRIPT := preload("res://systems/persistence/save_game_controller.gd"
 @onready var _invasion: InvasionController = $Systems/InvasionController
 @onready var _evolution: CoreEvolutionController = $Systems/CoreEvolutionController
 @onready var _incursion: SurfaceIncursionController = $Systems/SurfaceIncursionController
+@onready var _natives: NativePeopleController = $Systems/NativePeopleController
 
 ## §14/T17: o registro de conquista do domínio. Uma instância só, ao lado do CoreState do
 ## Núcleo principal, entregue por referência a quem concede e a quem cobra. Não é child
@@ -200,6 +210,20 @@ func _ready() -> void:
 			core_state)
 	_invasion_hud.bind_incursion(_incursion)
 
+	# T24: a Guarda Decapitada. O selo desperta pelo nível do Núcleo, os pedidos cobram do
+	# estoque genérico, e a Guarda mede o mérito do Regente pelos saqueadores da superfície.
+	_natives.setup(
+			core_state,
+			stockpile_state,
+			native_people_definition,
+			ANCIENT_SEAL_SCENE,
+			GUARDIAN_SCENE,
+			_dungeon,
+			_ancient_seal_point,
+			_guardian_point)
+	_natives.bind_incursion(_incursion)
+	_natives_hud.bind(_natives, core_state, stockpile_state)
+
 	_setup_save(stockpile_state, core_state)
 	_bind_rocks()
 
@@ -270,6 +294,8 @@ func _setup_save(stockpile_state: ResourceStockpileState, core_state: CoreState)
 	_save.bind_worker_expansion(_expansion)
 	# T23: a superfície entra na fotografia por vinculação própria.
 	_save.bind_surface_incursion(_incursion)
+	# T24: o povo entra na fotografia por vinculação própria.
+	_save.bind_native_people(_natives)
 	# §77/§80/T18: a carga não emite os sinais de conquista — ela devolve números. É aqui
 	# que os painéis são realinhados com a campanha que o arquivo descreve.
 	_save.load_succeeded.connect(_on_load_succeeded)
@@ -304,5 +330,6 @@ func _on_load_succeeded(_path: String) -> void:
 	_combat_hud.refresh_units(_recruitment.soldier(), _invasion.invaders())
 	_invasion_hud.refresh(_invasion)
 	_invasion_hud.refresh_incursion()
+	_natives_hud.refresh()
 	_invasion_warning_hud.refresh(_invasion)
 	_evolution_hud.refresh()

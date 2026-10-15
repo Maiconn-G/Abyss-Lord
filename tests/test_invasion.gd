@@ -551,8 +551,9 @@ func _test_scope_guards() -> void:
 	# T22: o WorkerExpansionController, dono do terceiro Trabalhador, é o oitavo controller.
 	# Mesmo critério de sempre: uma tarefa nova, um controller com papel único. Antes 8, agora 9.
 	# T23: o SurfaceIncursionController é o nono. Antes 9, agora 10.
-	_check(_collect_gd_files("res://systems").size() == 10,
-			"§98/T18/T22/T23 systems/ tem exatamente nove controllers e um contrato de schema, "
+	# T24: o NativePeopleController é o décimo. Antes 10, agora 11.
+	_check(_collect_gd_files("res://systems").size() == 11,
+			"§98/T18/T22/T23/T24 systems/ tem exatamente dez controllers e um contrato de schema, "
 					+ "obtido %d" % _collect_gd_files("res://systems").size())
 	var main := _source(GAME_MAIN_SOURCE_PATH)
 	for forbidden in ["Enemy001", "_spawn_initial_enemy", "EnemySpawnPoint", "queue_free(_core",
@@ -1456,7 +1457,9 @@ func _test_defeat_flow() -> void:
 	# legenda do Nv.2, não uma tela de vitória. A guarda continua exata (nada de ">="):
 	# 8 debug + 1 aviso + 1 evolução. Game Over, Victory screen e credits continuariam
 	# aparecendo aqui como um filho extra e o teste falharia do mesmo jeito.
-	_check(ui_children == 10,
+	# T24: 11 — o painel dos Povos Nativos é informação de jogo (selo, Legitimidade,
+	# pedido, juramento), não uma tela de fim. A guarda continua exata.
+	_check(ui_children == 11,
 			"§94 nenhum painel de Game Over apareceu, filhos de UI = %d" % ui_children)
 	var second := _invasion.invaders()[1]
 	second.receive_damage(BEAST_HP)

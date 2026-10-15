@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="NativePeopleDefinition" load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://core/definitions/native_people_definition.gd" id="1_people"]
+[ext_resource type="Script" path="res://core/definitions/native_request_definition.gd" id="2_request"]
+[ext_resource type="Script" path="res://core/definitions/construction_definition.gd" id="3_construction"]
+[ext_resource type="Script" path="res://core/definitions/soldier_definition.gd" id="4_soldier"]
+[ext_resource type="Resource" path="res://data/resources/iron_ore.tres" id="5_iron_ore"]
+[ext_resource type="Resource" path="res://data/resources/biomass.tres" id="6_biomass"]
+
+[sub_resource type="Resource" id="AncientSeal"]
+script = ExtResource("3_construction")
+build_cost = 0
+work_required = 10.0
+
+[sub_resource type="Resource" id="ArmorRequest"]
+script = ExtResource("2_request")
+request_id = &"armor_steel"
+display_name = "Aço para as armaduras"
+resource = ExtResource("5_iron_ore")
+amount = 8
+legitimacy_gain = 20
+
+[sub_resource type="Resource" id="VigilRequest"]
+script = ExtResource("2_request")
+request_id = &"vigil_sustenance"
+display_name = "Sustento da vigília"
+resource = ExtResource("6_biomass")
+amount = 5
+legitimacy_gain = 20
+
+[sub_resource type="Resource" id="Guardian"]
+script = ExtResource("4_soldier")
+unit_type_id = &"decapitated_guardian"
+display_name = "Guardião Decapitado"
+max_health = 140.0
+move_speed = 3.5
+recruit_essence_cost = 0.0
+attack_damage = 16.0
+attack_range = 1.5
+attack_interval = 0.9
+
+[resource]
+script = ExtResource("1_people")
+people_id = &"decapitated_guard"
+display_name = "Guarda Decapitada"
+required_core_level = 2
+seal_definition = SubResource("AncientSeal")
+seal_display_name = "Selo Antigo"
+starting_legitimacy = 25
+requests = Array[ExtResource("2_request")]([SubResource("ArmorRequest"), SubResource("VigilRequest")])
+legitimacy_per_raider_slain = 5
+legitimacy_per_raider_fled = 10
+legitimacy_per_guardian_fallen = 10
+oath_threshold = 61
+guardian_definition = SubResource("Guardian")

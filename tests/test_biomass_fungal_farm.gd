@@ -154,7 +154,7 @@ const INVADER_COUNT := 2
 ## Os painéis que já existiam (§117/T20/T21: a Fazenda não ganhou HUD próprio).
 const HUD_SCENES: Array[String] = ["CombatDebugHud.tscn", "ConstructionDebugHud.tscn",
 		"CoreDebugHud.tscn", "CoreEvolutionDebugHud.tscn", "InvasionDebugHud.tscn",
-		"InvasionWarningHud.tscn", "MilitaryDebugHud.tscn", "ResourceDebugHud.tscn",
+		"InvasionWarningHud.tscn", "MilitaryDebugHud.tscn", "NativesDebugHud.tscn", "ResourceDebugHud.tscn",
 		"WorkerInvocationDebugHud.tscn"]
 
 var _failures := 0
@@ -562,7 +562,7 @@ func _test_scope_guards() -> void:
 
 	# §50/§51/§60: versão por versão, uma rota nomeada, sem framework.
 	var snapshot_code := _code_of(SNAPSHOT_SOURCE)
-	for required in ["const SAVE_VERSION := 5", "const SAVE_VERSION_V1 := 1",
+	for required in ["const SAVE_VERSION := 6", "const SAVE_VERSION_V1 := 1",
 			"const SAVE_VERSION_V2 := 2", "static func validate_v1(",
 			"static func validate_v2(", "static func validate_v3(",
 			"static func migrate_v1_to_v2(", "static func migrate_v2_to_v3(",

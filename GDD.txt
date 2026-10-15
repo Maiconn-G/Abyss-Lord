@@ -1976,6 +1976,27 @@ sempre custa Legitimidade com outro.
 Governar os Povos Nativos é o eixo político do jogo antes da diplomacia externa: o
 Regente aprende a ser rei dentro de casa antes de negociar com outros domínios.
 
+### O primeiro povo (implementado na Tarefa 24): a Guarda Decapitada
+
+Valores de balanceamento inicial:
+
+* **Selo Antigo:** desperta quando o Núcleo chega ao Nv.2, no canto leste do domínio.
+  Trabalhadores o rompem pela ordem comum de obra (10 de trabalho, sem custo).
+* **Descoberta:** rompido o selo, a Guarda recebe o Regente com **Legitimidade 25**
+  (desconfiado).
+* **Pedidos (tecla J), em ordem, uma vez cada:** "Aço para as armaduras" — 8 Minério,
+  +20; "Sustento da vigília" — 5 Biomassa, +20.
+* **Mérito em combate:** saqueador da superfície morto no domínio +5; saqueador que foge
+  com saque −10. A Guarda só observa depois de encontrada.
+* **Juramento:** aos 61 (leal) a Guarda jura, uma única vez, e entrega o **Guardião
+  Decapitado** — 140 de vida, 16 de dano —, comandado como o Soldado. Ele é súdito da
+  Guarda e não ocupa população do Núcleo.
+* **Perda:** o Guardião caído custa −10. O juramento é histórico: cair abaixo de 61 depois
+  não o desfaz, e cruzar o limiar de novo não traz outro Guardião.
+
+Efeitos das faixas hostil (sabotagem, revolta interna) e devoto (salas e heróis exclusivos),
+disputas entre povos e o segundo povo ficam para tarefas futuras.
+
 ---
 
 # 52. CRIATURAS SELVAGENS
@@ -3401,6 +3422,18 @@ A primeira invasão (Feras, vitória, Cristal) não foi tocada; a incursão tem 
 para **V5** com a seção `surface`, e a migração V4 → V5 reconhece o Núcleo Nv.2 já gravado
 com Notoriedade 20 — a guilda chega também para campanhas antigas. Formato canônico em
 `docs/SAVE_SCHEMA_V5.md`.
+
+## O domínio tem gente: a Guarda Decapitada
+
+A **Tarefa 24** abriu o primeiro Povo Nativo (§51.1) e o "1 Povo Nativo encontrado, com
+Legitimidade" do Vertical Slice (§91). O Selo Antigo desperta no Nv.2 e é uma obra comum —
+Trabalhadores o rompem sem ordem nova —, a Guarda mede o Regente por pedidos cumpridos e pelo
+desfecho da Incursão da Superfície, e o juramento aos 61 entrega o Guardião Decapitado, um
+Soldado de verdade que não ocupa população.
+
+O povo tem dono próprio (`NativePeopleController`); não existe sistema genérico de facções. O
+formato de save subiu para **V6** com a seção `natives`; campanhas antigas no Nv.2 carregam com o
+selo desperto e intacto. Formato canônico em `docs/SAVE_SCHEMA_V6.md`.
 
 ## O lore foi alinhado
 

@@ -117,7 +117,7 @@ const CRYSTAL_ONE_LINE := "Cristal Abissal: 1 / 1"
 ## Os painéis que existem desde antes desta tarefa (§117): nenhum outro arquivo entra aqui.
 const HUD_SCENES: Array[String] = ["CombatDebugHud.tscn", "ConstructionDebugHud.tscn",
 		"CoreDebugHud.tscn", "CoreEvolutionDebugHud.tscn", "InvasionDebugHud.tscn",
-		"InvasionWarningHud.tscn", "MilitaryDebugHud.tscn", "ResourceDebugHud.tscn",
+		"InvasionWarningHud.tscn", "MilitaryDebugHud.tscn", "NativesDebugHud.tscn", "ResourceDebugHud.tscn",
 		"WorkerInvocationDebugHud.tscn"]
 
 var _failures := 0
@@ -223,10 +223,11 @@ func _test_schema_contract() -> void:
 	# T22: o terceiro Trabalhador acrescenta a flag `worker_003_summoned`, e o formato escrito
 	# passa a ser V4 — a linha acompanha o contrato, como acompanhou na T20 e na T21.
 	# T23: a seção `surface` (Notoriedade e Incursão) leva o formato escrito ao V5.
-	_check(int(document[CampaignSnapshot.ROOT_VERSION]) == 5,
-			"§45 save_version == 5, obtido %s" % document[CampaignSnapshot.ROOT_VERSION])
-	_check(CampaignSnapshot.SAVE_VERSION == 5,
-			"§45 o contrato declara V5, obtido %d" % CampaignSnapshot.SAVE_VERSION)
+	# T24: a seção `natives` leva o formato escrito ao V6.
+	_check(int(document[CampaignSnapshot.ROOT_VERSION]) == 6,
+			"§45 save_version == 6, obtido %s" % document[CampaignSnapshot.ROOT_VERSION])
+	_check(CampaignSnapshot.SAVE_VERSION == 6,
+			"§45 o contrato declara V6, obtido %d" % CampaignSnapshot.SAVE_VERSION)
 	_check(document.has(CampaignSnapshot.ROOT_METADATA)
 			and document.has(CampaignSnapshot.ROOT_CAMPAIGN),
 			"§6 envelope tem metadata e campaign")
@@ -270,7 +271,8 @@ func _test_structural_refusals() -> void:
 	# mesma: recusa nominal, sem adivinhação, sem "talvez seja compatível".
 	# T22: com o V4 lido, "desconhecida" passa a ser 5, 999 e 0.
 	# T23: com o V5 lido, "desconhecida" passa a ser 6, 999 e 0.
-	for unknown in [6, 999, 0]:
+	# T24: com o V6 lido, "desconhecida" passa a ser 7, 999 e 0.
+	for unknown in [7, 999, 0]:
 		var future := CampaignSnapshot.build_document(campaign, {}) as Dictionary
 		future[CampaignSnapshot.ROOT_VERSION] = unknown
 		_refuse(future, "save_version",
@@ -402,8 +404,8 @@ func _test_source_guards() -> void:
 	_check(_collect_gd_files(PERSISTENCE_DIR).size() == 2,
 			"§11 a persistência são dois arquivos: controller e contrato, obtido %d"
 					% _collect_gd_files(PERSISTENCE_DIR).size())
-	_check(_collect_gd_files("res://systems").size() == 10,
-			"§13/T18/T22/T23 systems/ tem nove controllers e o contrato de schema, obtido %d"
+	_check(_collect_gd_files("res://systems").size() == 11,
+			"§13/T18/T22/T23/T24 systems/ tem dez controllers e o contrato de schema, obtido %d"
 					% _collect_gd_files("res://systems").size())
 
 	# §129: persistência é instantânea no frame do input, nunca por frame.
@@ -1623,8 +1625,8 @@ func _test_v2_migration_and_resave() -> void:
 	_check(_save.save_campaign(), "§56 a campanha migrada é reescrita")
 	var written: Variant = CampaignSnapshot.parse_document(_read_text(PRIMARY_PATH))
 	# T22: o re-save publica a versão corrente, que agora é V4 (a corrente segue até o fim).
-	_check(int((written as Dictionary)[CampaignSnapshot.ROOT_VERSION]) == 5,
-			"§56 o re-save de um V2 publica V5, obtido %s"
+	_check(int((written as Dictionary)[CampaignSnapshot.ROOT_VERSION]) == CampaignSnapshot.SAVE_VERSION,
+			"§56 o re-save de um V2 publica a versão corrente, obtido %s"
 					% (written as Dictionary)[CampaignSnapshot.ROOT_VERSION])
 	var constructions: Dictionary = (written as Dictionary)[
 			CampaignSnapshot.ROOT_CAMPAIGN][CampaignSnapshot.SECTION_CONSTRUCTIONS]
@@ -1692,8 +1694,8 @@ func _test_v1_migration_and_resave() -> void:
 	# explicitamente que não há Mina nem Fazenda Fúngica.
 	var written: Variant = CampaignSnapshot.parse_document(_read_text(PRIMARY_PATH))
 	# T22: a corrente agora vai até o V4.
-	_check(int((written as Dictionary)[CampaignSnapshot.ROOT_VERSION]) == 5,
-			"§68/§56 o re-save publica V5, obtido %s"
+	_check(int((written as Dictionary)[CampaignSnapshot.ROOT_VERSION]) == CampaignSnapshot.SAVE_VERSION,
+			"§68/§56 o re-save publica a versão corrente, obtido %s"
 					% (written as Dictionary)[CampaignSnapshot.ROOT_VERSION])
 	var constructions: Dictionary = (written as Dictionary)[
 			CampaignSnapshot.ROOT_CAMPAIGN][CampaignSnapshot.SECTION_CONSTRUCTIONS]
@@ -2020,6 +2022,16 @@ func _minimal_campaign() -> Dictionary:
 				CampaignSnapshot.KEY_RAIDERS: [],
 				CampaignSnapshot.KEY_REPELLED: 0,
 				CampaignSnapshot.KEY_ESCAPED: 0,
+			},
+		},
+		# T24: em V6 o povo existe sempre; "nada aconteceu" é o selo sem trabalho.
+		CampaignSnapshot.SECTION_NATIVES: {
+			CampaignSnapshot.NATIVE_PEOPLE_ID: {
+				CampaignSnapshot.KEY_SEAL_WORK_DONE: 0.0,
+				CampaignSnapshot.KEY_LEGITIMACY: 0,
+				CampaignSnapshot.KEY_REQUESTS_FULFILLED: 0,
+				CampaignSnapshot.KEY_OATH_SWORN: false,
+				CampaignSnapshot.KEY_GUARDIAN: {CampaignSnapshot.KEY_ALIVE: false},
 			},
 		},
 	}

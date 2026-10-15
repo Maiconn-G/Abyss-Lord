@@ -1,0 +1,92 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://world/dungeon/natives/ancient_seal_runtime.gd" id="1_runtime"]
+
+[sub_resource type="StandardMaterial3D" id="SealStoneMaterial"]
+albedo_color = Color(0.3, 0.31, 0.36, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="SealRuneMaterial"]
+albedo_color = Color(0.35, 0.85, 0.9, 1)
+emission_enabled = true
+emission = Color(0.2, 0.7, 0.8, 1)
+emission_energy_multiplier = 1.5
+
+[sub_resource type="StandardMaterial3D" id="BannerMaterial"]
+albedo_color = Color(0.45, 0.08, 0.1, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="SealDoorMesh"]
+material = SubResource("SealStoneMaterial")
+size = Vector3(2.2, 2.4, 0.6)
+
+[sub_resource type="BoxMesh" id="SealRuneMesh"]
+material = SubResource("SealRuneMaterial")
+size = Vector3(0.9, 0.9, 0.05)
+
+[sub_resource type="BoxMesh" id="ArchPillarMesh"]
+material = SubResource("SealStoneMaterial")
+size = Vector3(0.45, 2.6, 0.6)
+
+[sub_resource type="BoxMesh" id="ArchLintelMesh"]
+material = SubResource("SealStoneMaterial")
+size = Vector3(2.6, 0.45, 0.6)
+
+[sub_resource type="BoxMesh" id="BannerMesh"]
+material = SubResource("BannerMaterial")
+size = Vector3(0.4, 1.4, 0.05)
+
+[sub_resource type="CylinderMesh" id="HallFloorMesh"]
+material = SubResource("SealStoneMaterial")
+top_radius = 1.6
+bottom_radius = 1.7
+height = 0.15
+
+[sub_resource type="BoxShape3D" id="SealShape"]
+size = Vector3(2.6, 2.6, 1.2)
+
+[node name="AncientSealRuntime" type="StaticBody3D"]
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("1_runtime")
+
+[node name="ConstructionVisual" type="Node3D" parent="."]
+
+[node name="SealDoor" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+mesh = SubResource("SealDoorMesh")
+
+[node name="SealRune" type="MeshInstance3D" parent="ConstructionVisual"]
+transform = Transform3D(0.707107, -0.707107, 0, 0.707107, 0.707107, 0, 0, 0, 1, 0, 1.3, 0.33)
+mesh = SubResource("SealRuneMesh")
+
+[node name="CompletedVisual" type="Node3D" parent="."]
+visible = false
+
+[node name="HallFloor" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.08, 0)
+mesh = SubResource("HallFloorMesh")
+
+[node name="PillarLeft" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.1, 1.3, 0)
+mesh = SubResource("ArchPillarMesh")
+
+[node name="PillarRight" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.1, 1.3, 0)
+mesh = SubResource("ArchPillarMesh")
+
+[node name="Lintel" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.6, 0)
+mesh = SubResource("ArchLintelMesh")
+
+[node name="BannerLeft" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.1, 1.6, 0.33)
+mesh = SubResource("BannerMesh")
+
+[node name="BannerRight" type="MeshInstance3D" parent="CompletedVisual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.1, 1.6, 0.33)
+mesh = SubResource("BannerMesh")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0)
+shape = SubResource("SealShape")
