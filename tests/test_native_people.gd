@@ -254,7 +254,7 @@ func _test_scope_guards() -> void:
 			continue
 		_check(not InputMap.event_is_action(key, other, false), "a tecla J não colide com %s" % other)
 	var snapshot := _code_of(SNAPSHOT_SOURCE)
-	for required in ["const SAVE_VERSION := 6", "const SAVE_VERSION_V5 := 5",
+	for required in ["const SAVE_VERSION_V6 := 6", "const SAVE_VERSION_V5 := 5",
 			"static func validate_v6(", "static func migrate_v5_to_v6(",
 			"static func migrate_v4_to_v5("]:
 		_check(snapshot.contains(required), "campaign_snapshot.gd contém %s" % required)
@@ -492,7 +492,8 @@ func _test_save_half_broken_seal() -> void:
 	_use_path(HALF_SEAL_PATH)
 	_check(_save.save_campaign(), "save com o selo pela metade")
 	var entry := _natives_entry(_document_from_file(HALF_SEAL_PATH))
-	_check(int(_document_from_file(HALF_SEAL_PATH)[CampaignSnapshot.ROOT_VERSION]) == 6,
+	_check(int(_document_from_file(HALF_SEAL_PATH)[CampaignSnapshot.ROOT_VERSION])
+			== CampaignSnapshot.SAVE_VERSION,
 			"o arquivo é V6")
 	_check(_close(float(entry[CampaignSnapshot.KEY_SEAL_WORK_DONE]), 4.0),
 			"o trabalho feito no selo foi gravado: %s" % [entry])
@@ -602,7 +603,8 @@ func _test_v1_chain_reaches_v6() -> void:
 			CampaignSnapshot.KEY_THIRD_SUMMONED)
 	_check(CampaignSnapshot.validate_v1(campaign).is_empty(), "é um V1 válido")
 	var migrated := CampaignSnapshot.migrate_to_current(_document(1, campaign))
-	_check(int(migrated[CampaignSnapshot.ROOT_VERSION]) == 6, "a corrente chega ao V6")
+	_check(int(migrated[CampaignSnapshot.ROOT_VERSION]) == CampaignSnapshot.SAVE_VERSION,
+			"a corrente chega à versão corrente")
 	_check(CampaignSnapshot.validate_document(migrated).is_empty(),
 			"o V1 migrado é um V6 válido: %s" % CampaignSnapshot.validate_document(migrated))
 	_check(_write_text(V1_PATH, CampaignSnapshot.to_text(_document(1, campaign))), "V1 escrito")
@@ -667,7 +669,7 @@ func _test_contradictory_files_are_refused() -> void:
 	for entry in cases:
 		_check(not _save.validate_campaign(entry[1]).is_empty(),
 				"%s é recusado: %s" % [entry[0], _save.validate_campaign(entry[1])])
-	_check(CampaignSnapshot.validate_document(_document(7, good)).contains("save_version não suportado"),
+	_check(CampaignSnapshot.validate_document(_document(CampaignSnapshot.SAVE_VERSION + 1, good)).contains("save_version não suportado"),
 			"save_version = 7 é recusado sem adivinhação")
 	var world_before := _snapshot_text()
 	for entry in cases:
@@ -739,6 +741,9 @@ func _make_level_one(campaign: Dictionary) -> void:
 		CampaignSnapshot.KEY_RAIDERS: [],
 		CampaignSnapshot.KEY_REPELLED: 0,
 		CampaignSnapshot.KEY_ESCAPED: 0,
+		CampaignSnapshot.KEY_INCURSION_NUMBER: 0,
+		CampaignSnapshot.KEY_GUILD_SIZE: 0,
+		CampaignSnapshot.KEY_COOLDOWN_REMAINING: 0.0,
 	}
 
 

@@ -2207,8 +2207,22 @@ Valores de balanceamento inicial:
 * **Desfecho:** morto, o saque volta ao estoque; fugido, o saque está perdido. A incursão
   termina quando os dois saem de cena — não há derrota nem Cristal.
 
-As próximas incursões, a escala por faixa de Notoriedade e a redução de Notoriedade ficam
-para tarefas futuras.
+### Incursões recorrentes (implementadas na Tarefa 25)
+
+A superfície não esquece. Depois de cada incursão vem uma **calmaria de 90 s**, e ao fim dela
+a próxima guilda começa a preparação de 120 s. O tamanho da guilda é lido da Notoriedade no
+instante da largada:
+
+| Notoriedade | Guilda |
+| ----------- | -----: |
+| até 40      |      2 |
+| 41–60       |      3 |
+| 61–80       |      4 |
+| 81–100      |      5 |
+
+Os saqueadores se alternam entre as duas entradas da borda sul. Como mortes e fugas somam
+Notoriedade, cada incursão tende a trazer uma guilda maior. A redução de Notoriedade
+(diplomacia, esconderijos, baixa atividade) fica para tarefas futuras.
 
 ---
 
