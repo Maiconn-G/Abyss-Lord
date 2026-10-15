@@ -109,6 +109,7 @@ func bind_incursion(incursion: SurfaceIncursionController) -> void:
 	incursion.incursion_started.connect(_on_incursion_started)
 	incursion.active_raiders_changed.connect(_on_incursion_changed_int)
 	incursion.incursion_ended.connect(_on_incursion_ended)
+	incursion.cooldown_time_changed.connect(_on_incursion_time_changed)
 	refresh_incursion()
 
 
@@ -122,10 +123,14 @@ func refresh_incursion() -> void:
 			_incursion_label.text = "Guilda da superfície a caminho: %d s" \
 					% int(ceilf(_incursion.preparation_time_remaining()))
 		SurfaceIncursionController.IncursionState.ACTIVE:
-			_incursion_label.text = "INCURSÃO — saqueadores: %d" % _incursion.active_raiders()
+			_incursion_label.text = "INCURSÃO %d — saqueadores: %d" % [
+				_incursion.incursion_number(), _incursion.active_raiders()]
 		SurfaceIncursionController.IncursionState.ENDED:
-			_incursion_label.text = "Incursão encerrada — repelidos: %d, fugiram: %d" % [
-				_incursion.repelled_count(), _incursion.escaped_count()]
+			# T25: a calmaria é contada; ao fim dela a próxima guilda começa a vir.
+			_incursion_label.text = \
+					"Incursão %d encerrada — repelidos: %d, fugiram: %d — próxima em %d s" % [
+						_incursion.incursion_number(), _incursion.repelled_count(),
+						_incursion.escaped_count(), int(ceilf(_incursion.cooldown_remaining()))]
 		_:
 			_incursion_label.text = "Superfície: o Núcleo ainda não foi notado"
 

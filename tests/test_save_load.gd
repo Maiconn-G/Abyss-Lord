@@ -224,10 +224,11 @@ func _test_schema_contract() -> void:
 	# passa a ser V4 — a linha acompanha o contrato, como acompanhou na T20 e na T21.
 	# T23: a seção `surface` (Notoriedade e Incursão) leva o formato escrito ao V5.
 	# T24: a seção `natives` leva o formato escrito ao V6.
-	_check(int(document[CampaignSnapshot.ROOT_VERSION]) == 6,
-			"§45 save_version == 6, obtido %s" % document[CampaignSnapshot.ROOT_VERSION])
-	_check(CampaignSnapshot.SAVE_VERSION == 6,
-			"§45 o contrato declara V6, obtido %d" % CampaignSnapshot.SAVE_VERSION)
+	# T25: as incursões recorrentes levam o formato escrito ao V7.
+	_check(int(document[CampaignSnapshot.ROOT_VERSION]) == 7,
+			"§45 save_version == 7, obtido %s" % document[CampaignSnapshot.ROOT_VERSION])
+	_check(CampaignSnapshot.SAVE_VERSION == 7,
+			"§45 o contrato declara V7, obtido %d" % CampaignSnapshot.SAVE_VERSION)
 	_check(document.has(CampaignSnapshot.ROOT_METADATA)
 			and document.has(CampaignSnapshot.ROOT_CAMPAIGN),
 			"§6 envelope tem metadata e campaign")
@@ -272,7 +273,8 @@ func _test_structural_refusals() -> void:
 	# T22: com o V4 lido, "desconhecida" passa a ser 5, 999 e 0.
 	# T23: com o V5 lido, "desconhecida" passa a ser 6, 999 e 0.
 	# T24: com o V6 lido, "desconhecida" passa a ser 7, 999 e 0.
-	for unknown in [7, 999, 0]:
+	# T25: com o V7 lido, "desconhecida" passa a ser 8, 999 e 0.
+	for unknown in [8, 999, 0]:
 		var future := CampaignSnapshot.build_document(campaign, {}) as Dictionary
 		future[CampaignSnapshot.ROOT_VERSION] = unknown
 		_refuse(future, "save_version",
@@ -2022,6 +2024,10 @@ func _minimal_campaign() -> Dictionary:
 				CampaignSnapshot.KEY_RAIDERS: [],
 				CampaignSnapshot.KEY_REPELLED: 0,
 				CampaignSnapshot.KEY_ESCAPED: 0,
+				# T25: em V7 a incursão registra número, guilda e calmaria.
+				CampaignSnapshot.KEY_INCURSION_NUMBER: 0,
+				CampaignSnapshot.KEY_GUILD_SIZE: 0,
+				CampaignSnapshot.KEY_COOLDOWN_REMAINING: 0.0,
 			},
 		},
 		# T24: em V6 o povo existe sempre; "nada aconteceu" é o selo sem trabalho.

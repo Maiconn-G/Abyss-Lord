@@ -312,7 +312,7 @@ func _test_countdown_launches_the_guild() -> void:
 				or _planar_gap(raiders[0].global_position, ENTRANCE_B) < 1.5,
 				"eles entram pela borda da superfície")
 		_check(raiders[0].is_in_group(&"combat_target"), "o Soldado pode mirá-los")
-	_check(_text_of(_invasion_hud, "IncursionLabel") == "INCURSÃO — saqueadores: 2",
+	_check(_text_of(_invasion_hud, "IncursionLabel") == "INCURSÃO 1 — saqueadores: 2",
 			"o painel acompanha a largada, obtido %s" % _text_of(_invasion_hud, "IncursionLabel"))
 	_check(_invasion.invasion_state() == InvasionController.InvasionState.NOT_STARTED,
 			"a primeira invasão não foi tocada")
@@ -349,7 +349,7 @@ func _test_raid_prefers_biomass_and_escapes() -> void:
 					% [ESCAPED_NOTORIETY, notoriety, _incursion.notoriety().value])
 	_check(_close(_core_state.integrity, core_integrity), "o Núcleo saiu intacto")
 	_check(_text_of(_invasion_hud, "IncursionLabel")
-			== "Incursão encerrada — repelidos: 0, fugiram: 2",
+			.begins_with("Incursão 1 encerrada — repelidos: 0, fugiram: 2 — próxima em"),
 			"o painel registra o desfecho, obtido %s" % _text_of(_invasion_hud, "IncursionLabel"))
 
 
@@ -513,7 +513,7 @@ func _test_save_ended_and_repeated_loads() -> void:
 		await _advance(0.05)
 	_check(_alive_raiders().is_empty(), "encerrada não renasce saqueador")
 	_check(_incursion.incursion_state() == SurfaceIncursionController.IncursionState.ENDED,
-			"ENDED é terminal")
+			"ENDED aguarda a calmaria da próxima guilda")
 	_check(_incursion.notoriety().value == notoriety, "a Notoriedade não muda com loads")
 	_use_path(ACTIVE_PATH)
 	for attempt in 3:

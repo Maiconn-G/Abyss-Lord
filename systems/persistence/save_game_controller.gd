@@ -282,7 +282,13 @@ func _surface_record() -> Dictionary:
 	var repelled := 0
 	var escaped := 0
 	var notoriety := 0
+	var number := 0
+	var size := 0
+	var cooldown := 0.0
 	if _incursion != null:
+		number = _incursion.incursion_number()
+		size = _incursion.guild_size()
+		cooldown = _incursion.cooldown_remaining()
 		notoriety = _incursion.notoriety().value
 		state_name = CampaignSnapshot.INCURSION_STATE_NAMES[_incursion.incursion_state()]
 		remaining = _incursion.preparation_time_remaining()
@@ -312,6 +318,9 @@ func _surface_record() -> Dictionary:
 			CampaignSnapshot.KEY_RAIDERS: raiders,
 			CampaignSnapshot.KEY_REPELLED: repelled,
 			CampaignSnapshot.KEY_ESCAPED: escaped,
+			CampaignSnapshot.KEY_INCURSION_NUMBER: number,
+			CampaignSnapshot.KEY_GUILD_SIZE: size,
+			CampaignSnapshot.KEY_COOLDOWN_REMAINING: cooldown,
 		},
 	}
 
@@ -793,7 +802,8 @@ func _validate_surface_records(campaign: Dictionary) -> String:
 	var raiders: Array = incursion[CampaignSnapshot.KEY_RAIDERS]
 	var gone := int(incursion[CampaignSnapshot.KEY_REPELLED]) \
 			+ int(incursion[CampaignSnapshot.KEY_ESCAPED])
-	var guild := SurfaceIncursionController.RAIDER_COUNT
+	# T25: a guilda é a da incursão registrada, não um número fixo.
+	var guild := int(incursion[CampaignSnapshot.KEY_GUILD_SIZE])
 	if (state == "NOT_STARTED" or state == "PREPARATION") and gone > 0:
 		return "incursão %s com desfecho registrado" % state
 	if state == "ACTIVE" and raiders.size() + gone != guild:
@@ -1121,7 +1131,10 @@ func _restore_surface(campaign: Dictionary) -> void:
 			float(incursion[CampaignSnapshot.KEY_PREPARATION_REMAINING]),
 			records,
 			int(incursion[CampaignSnapshot.KEY_REPELLED]),
-			int(incursion[CampaignSnapshot.KEY_ESCAPED]))
+			int(incursion[CampaignSnapshot.KEY_ESCAPED]),
+			int(incursion[CampaignSnapshot.KEY_INCURSION_NUMBER]),
+			int(incursion[CampaignSnapshot.KEY_GUILD_SIZE]),
+			float(incursion[CampaignSnapshot.KEY_COOLDOWN_REMAINING]))
 
 
 ## §18/§19: o Núcleo que já está em cena é restaurado — não se recria um segundo Núcleo.

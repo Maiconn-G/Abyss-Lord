@@ -24,14 +24,17 @@ const SAVE_FORMAT := "abyss_lord_campaign"
 ## formato escrito passa a ser o V5. V0 e V6/999 são recusados.
 ## T24: o primeiro Povo Nativo (selo, Legitimidade, pedidos, juramento e Guardião) acrescenta
 ## a seção `natives`, e o formato escrito passa a ser o V6. V0 e V7/999 são recusados.
-const SAVE_VERSION := 6
+## T25: as incursões recorrentes acrescentam número, tamanho da guilda e calmaria à
+## `surface.incursion`, e o formato escrito passa a ser o V7. V0 e V8/999 são recusados.
+const SAVE_VERSION := 7
 const SAVE_VERSION_V1 := 1
 const SAVE_VERSION_V2 := 2
 const SAVE_VERSION_V3 := 3
 const SAVE_VERSION_V4 := 4
 const SAVE_VERSION_V5 := 5
+const SAVE_VERSION_V6 := 6
 const SUPPORTED_VERSIONS: Array[int] = [SAVE_VERSION_V1, SAVE_VERSION_V2, SAVE_VERSION_V3,
-		SAVE_VERSION_V4, SAVE_VERSION_V5, SAVE_VERSION]
+		SAVE_VERSION_V4, SAVE_VERSION_V5, SAVE_VERSION_V6, SAVE_VERSION]
 
 const ROOT_FORMAT := "format"
 const ROOT_VERSION := "save_version"
@@ -137,6 +140,12 @@ const KEY_LEGITIMACY := "legitimacy"
 const KEY_REQUESTS_FULFILLED := "requests_fulfilled"
 const KEY_OATH_SWORN := "oath_sworn"
 const KEY_GUARDIAN := "guardian"
+## T25: os campos das incursões recorrentes.
+const KEY_INCURSION_NUMBER := "incursion_number"
+const KEY_GUILD_SIZE := "guild_size"
+const KEY_COOLDOWN_REMAINING := "cooldown_remaining"
+## T25: o tamanho da guilda que a Tarefa 23 sempre largou — o que um V6 migrado registra.
+const MIGRATED_GUILD_SIZE := 2
 
 
 ## §6: o envelope. `metadata` é informativo (§72) e nunca é requisito de gameplay.
@@ -196,7 +205,9 @@ static func validate_document(document: Variant) -> String:
 		return validate_v4(campaign)
 	if version == SAVE_VERSION_V5:
 		return validate_v5(campaign)
-	return validate_v6(campaign)
+	if version == SAVE_VERSION_V6:
+		return validate_v6(campaign)
+	return validate_v7(campaign)
 
 
 ## §73: o V1 é o formato congelado em docs/SAVE_SCHEMA_V1.md — duas obras e nenhum relógio
@@ -265,6 +276,14 @@ static func validate_v6(campaign: Dictionary) -> String:
 	return _validate_natives(campaign)
 
 
+## T25: V7 é o V6 inteiro mais número, tamanho e calmaria da incursão.
+static func validate_v7(campaign: Dictionary) -> String:
+	var reason := validate_v6(campaign)
+	if not reason.is_empty():
+		return reason
+	return _validate_recurring_incursion(campaign)
+
+
 ## §53/§116: a rota de migração é uma sequência de funções nomeadas, não um registry. Cada
 ## versão sobe exatamente um degrau, na ordem: V1→V2 e depois V2→V3. Não há atalho V1→V3 —
 ## uma campanha V1 passa pelos dois degraus, e cada degrau acrescenta só o que é seu.
@@ -280,6 +299,8 @@ static func migrate_to_current(document: Dictionary) -> Dictionary:
 		migrated = migrate_v4_to_v5(migrated)
 	if int(migrated[ROOT_VERSION]) == SAVE_VERSION_V5:
 		migrated = migrate_v5_to_v6(migrated)
+	if int(migrated[ROOT_VERSION]) == SAVE_VERSION_V6:
+		migrated = migrate_v6_to_v7(migrated)
 	return migrated
 
 
@@ -342,7 +363,7 @@ static func migrate_v4_to_v5(document: Dictionary) -> Dictionary:
 ## carga pela regra viva do controller, intacto.
 static func migrate_v5_to_v6(document: Dictionary) -> Dictionary:
 	var migrated := document.duplicate(true) as Dictionary
-	migrated[ROOT_VERSION] = SAVE_VERSION
+	migrated[ROOT_VERSION] = SAVE_VERSION_V6
 	(migrated[ROOT_CAMPAIGN] as Dictionary)[SECTION_NATIVES] = {
 		NATIVE_PEOPLE_ID: {
 			KEY_SEAL_WORK_DONE: 0.0,
@@ -352,6 +373,22 @@ static func migrate_v5_to_v6(document: Dictionary) -> Dictionary:
 			KEY_GUARDIAN: {KEY_ALIVE: false},
 		},
 	}
+	return migrated
+
+
+## T25: um V6 conhecia uma única incursão, sempre de 2. O que o arquivo diz vira número: em
+## ACTIVE ou ENDED aquela foi a incursão 1, de 2 saqueadores; antes dela, nenhuma. A calmaria
+## migra zerada — uma campanha V6 que tinha terminado a incursão vê a próxima guilda começar a
+## preparação logo depois da carga, que é a regra nova, não um evento inventado.
+static func migrate_v6_to_v7(document: Dictionary) -> Dictionary:
+	var migrated := document.duplicate(true) as Dictionary
+	migrated[ROOT_VERSION] = SAVE_VERSION
+	var incursion := ((migrated[ROOT_CAMPAIGN] as Dictionary)[SECTION_SURFACE] as Dictionary)[
+			KEY_INCURSION] as Dictionary
+	var launched: bool = incursion[KEY_STATE] == "ACTIVE" or incursion[KEY_STATE] == "ENDED"
+	incursion[KEY_INCURSION_NUMBER] = 1 if launched else 0
+	incursion[KEY_GUILD_SIZE] = MIGRATED_GUILD_SIZE if launched else 0
+	incursion[KEY_COOLDOWN_REMAINING] = 0.0
 	return migrated
 
 
@@ -589,6 +626,32 @@ static func _validate_natives(campaign: Dictionary) -> String:
 			return "natives.guardian vivo com campo ausente ou fora da faixa"
 		if not entry[KEY_OATH_SWORN]:
 			return "Guardião em campo sem juramento prestado"
+	return ""
+
+
+## T25: a forma dos campos recorrentes. A guilda nunca passa de 5; a calmaria só existe em
+## ENDED; antes da primeira largada não há número nem guilda; depois dela, sempre há.
+static func _validate_recurring_incursion(campaign: Dictionary) -> String:
+	var incursion := ((campaign[SECTION_SURFACE] as Dictionary)[KEY_INCURSION]) as Dictionary
+	if not _is_int(incursion, KEY_INCURSION_NUMBER) or incursion[KEY_INCURSION_NUMBER] < 0:
+		return "surface.incursion.incursion_number precisa ser um inteiro não negativo"
+	if not _is_int(incursion, KEY_GUILD_SIZE) or incursion[KEY_GUILD_SIZE] < 0 \
+			or incursion[KEY_GUILD_SIZE] > 5:
+		return "surface.incursion.guild_size precisa ser um inteiro entre 0 e 5"
+	if not _is_number(incursion, KEY_COOLDOWN_REMAINING) \
+			or incursion[KEY_COOLDOWN_REMAINING] < 0.0:
+		return "surface.incursion.cooldown_remaining inválido"
+	var state := String(incursion[KEY_STATE])
+	if state != "ENDED" and incursion[KEY_COOLDOWN_REMAINING] > 0.0:
+		return "calmaria guardada fora de ENDED"
+	if state == "NOT_STARTED" and (incursion[KEY_INCURSION_NUMBER] != 0
+			or incursion[KEY_GUILD_SIZE] != 0):
+		return "incursão NOT_STARTED com número ou guilda registrados"
+	if (state == "ACTIVE" or state == "ENDED") and (incursion[KEY_INCURSION_NUMBER] < 1
+			or incursion[KEY_GUILD_SIZE] < 2):
+		return "incursão %s sem número ou guilda" % state
+	if (incursion[KEY_RAIDERS] as Array).size() > incursion[KEY_GUILD_SIZE]:
+		return "mais saqueadores em campo do que a guilda tem"
 	return ""
 
 

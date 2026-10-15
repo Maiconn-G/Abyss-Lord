@@ -13,12 +13,18 @@ extends Node
 ##
 ## O que este controller é dono:
 ## * da Notoriedade da campanha — quem soma cada fato é ele, e os números moram aqui;
-## * do ciclo NOT_STARTED → PREPARATION → ACTIVE → ENDED da primeira incursão;
-## * dos dois Saqueadores de Guilda e do destino do saque deles.
+## * do ciclo NOT_STARTED → PREPARATION → ACTIVE → ENDED das incursões;
+## * dos Saqueadores de Guilda e do destino do saque deles.
+##
+## T25: a superfície não esquece. Depois de cada incursão vem uma calmaria (ENDED com relógio),
+## e ao fim dela a próxima guilda começa a preparação. O tamanho da guilda é lido da
+## Notoriedade no instante da largada: quanto mais a superfície sabe, maior o grupo.
 
 enum IncursionState { NOT_STARTED, PREPARATION, ACTIVE, ENDED }
 
-const RAIDER_COUNT := 2
+## T25: a guilda cresce com a Notoriedade, de 2 a 5 saqueadores (ver `guild_size_for`).
+const FIRST_GUILD_SIZE := 2
+const MAX_GUILD_SIZE := 5
 ## A superfície nota o Núcleo quando a Notoriedade chega aqui (GDD §58.1).
 const NOTORIETY_THRESHOLD := 20
 ## Os fatos que a Tarefa 23 transforma em Notoriedade. São poucos e são desta tarefa; o
@@ -31,6 +37,8 @@ const RAIDER_ID_PREFIX := "raider_"
 
 ## Os 120 s de aviso são o valor de produção; o harness encurta esta mesma variável.
 @export var preparation_duration: float = 120.0
+## T25: a calmaria entre uma incursão e a preparação da próxima.
+@export var cooldown_duration: float = 90.0
 
 signal preparation_started(duration: float)
 signal preparation_time_changed(remaining: float, duration: float)
@@ -41,6 +49,8 @@ signal incursion_ended(repelled: int, escaped: int)
 ## Decapitada mede o mérito do Regente por eles). Emitidos também por saqueadores restaurados.
 signal raider_repelled(raider: RaiderRuntime)
 signal raider_fled(raider: RaiderRuntime)
+## T25: o relógio da calmaria, um emit por segundo de tela.
+signal cooldown_time_changed(remaining: float, duration: float)
 
 var _definition: RaiderDefinition
 var _scene: PackedScene
@@ -59,6 +69,11 @@ var _displayed_second := 0
 var _repelled := 0
 var _escaped := 0
 var _restoring := false
+## T25: quantas incursões já foram largadas, o tamanho da atual (ou da última) e quanto falta
+## de calmaria. Os três são estado e vão para o Save.
+var _incursion_number := 0
+var _guild_size := 0
+var _cooldown_remaining := 0.0
 
 
 func _ready() -> void:
@@ -123,6 +138,30 @@ func escaped_count() -> int:
 	return _escaped
 
 
+func incursion_number() -> int:
+	return _incursion_number
+
+
+func guild_size() -> int:
+	return _guild_size
+
+
+func cooldown_remaining() -> float:
+	return _cooldown_remaining
+
+
+## T25: o tamanho da guilda pela faixa de Notoriedade (GDD §13): até 40 vêm 2, até 60 vêm 3,
+## até 80 vêm 4, e uma potência notada pela superfície recebe 5.
+static func guild_size_for(notoriety_value: int) -> int:
+	if notoriety_value <= 40:
+		return FIRST_GUILD_SIZE
+	if notoriety_value <= 60:
+		return 3
+	if notoriety_value <= 80:
+		return 4
+	return MAX_GUILD_SIZE
+
+
 ## O Núcleo Nv.2 é o primeiro fato que a superfície percebe. `evolved` só é emitido pela
 ## evolução real — a carga restaura o nível sem esse sinal —, então a Notoriedade nunca é
 ## somada duas vezes pelo mesmo marco.
@@ -155,8 +194,12 @@ func begin_preparation() -> bool:
 	return true
 
 
-## Contagem por delta, nunca por Timer — igual para 30 Hz e 120 Hz.
+## Contagem por delta, nunca por Timer — igual para 30 Hz e 120 Hz. T25: o mesmo relógio conta
+## a calmaria depois de cada incursão; ao fim dela, a próxima guilda começa a preparação.
 func _process(delta: float) -> void:
+	if _state == IncursionState.ENDED:
+		_process_cooldown(delta)
+		return
 	if _state != IncursionState.PREPARATION:
 		set_process(false)
 		return
@@ -169,13 +212,30 @@ func _process(delta: float) -> void:
 		start_incursion()
 
 
-## A largada aceita PREPARATION (o fluxo normal) e NOT_STARTED (harness), e só uma vez.
+func _process_cooldown(delta: float) -> void:
+	_cooldown_remaining = maxf(_cooldown_remaining - delta, 0.0)
+	var second := _displayed_second_of(_cooldown_remaining)
+	if second != _displayed_second:
+		_displayed_second = second
+		cooldown_time_changed.emit(_cooldown_remaining, cooldown_duration)
+	if _cooldown_remaining <= 0.0:
+		_state = IncursionState.NOT_STARTED
+		begin_preparation()
+
+
+## A largada aceita PREPARATION (o fluxo normal) e NOT_STARTED (harness). T25: cada largada é
+## uma incursão nova — o número sobe, o tamanho da guilda é lido da Notoriedade agora e o
+## desfecho da anterior é zerado.
 func start_incursion() -> bool:
 	if _state != IncursionState.NOT_STARTED and _state != IncursionState.PREPARATION:
 		return false
 	set_process(false)
 	_preparation_time_remaining = 0.0
-	for index in RAIDER_COUNT:
+	_incursion_number += 1
+	_guild_size = guild_size_for(_notoriety.value)
+	_repelled = 0
+	_escaped = 0
+	for index in _guild_size:
 		var raider := _create_raider(index, raider_id_of(index), _entrance_of(index))
 		raider.begin_raid()
 	_state = IncursionState.ACTIVE
@@ -244,7 +304,11 @@ func _after_raider_left() -> void:
 	active_raiders_changed.emit(_raiders.size())
 	if _state == IncursionState.ACTIVE and _raiders.is_empty():
 		_state = IncursionState.ENDED
+		_cooldown_remaining = cooldown_duration
+		_displayed_second = _displayed_second_of(_cooldown_remaining)
+		set_process(true)
 		incursion_ended.emit(_repelled, _escaped)
+		cooldown_time_changed.emit(_cooldown_remaining, cooldown_duration)
 
 
 ## O ciclo volta como dado, não como replay: nenhum sinal de largada ou de desfecho é
@@ -260,27 +324,37 @@ func restore_surface(
 		remaining: float,
 		raider_records: Array,
 		repelled: int,
-		escaped: int) -> bool:
+		escaped: int,
+		number := 0,
+		size := 0,
+		cooldown := 0.0) -> bool:
 	if value_state < IncursionState.NOT_STARTED or value_state > IncursionState.ENDED:
 		return false
 	if remaining < 0.0 or repelled < 0 or escaped < 0:
+		return false
+	if number < 0 or size < 0 or size > MAX_GUILD_SIZE or cooldown < 0.0:
 		return false
 	if notoriety_value < 0 or notoriety_value > NotorietyState.MAXIMUM:
 		return false
 	var seen: Array[String] = []
 	for record in raider_records:
-		if not _is_restorable_record(record, seen):
+		if not _is_restorable_record(record, seen, size):
 			return false
 		seen.append(String(record["raider_id"]))
 	_restoring = true
 	_clear_raiders()
+	_guild_size = size
 	_notoriety.restore(notoriety_value)
 	_state = value_state
 	_repelled = repelled
 	_escaped = escaped
+	_incursion_number = number
+	_cooldown_remaining = cooldown if value_state == IncursionState.ENDED else 0.0
 	_preparation_time_remaining = remaining if value_state == IncursionState.PREPARATION else 0.0
-	_displayed_second = _displayed_second_of(_preparation_time_remaining)
-	set_process(value_state == IncursionState.PREPARATION)
+	_displayed_second = _displayed_second_of(
+			_cooldown_remaining if value_state == IncursionState.ENDED
+			else _preparation_time_remaining)
+	set_process(value_state == IncursionState.PREPARATION or value_state == IncursionState.ENDED)
 	if value_state == IncursionState.ACTIVE:
 		for record in raider_records:
 			_spawn_restored_raider(record)
@@ -293,12 +367,12 @@ func restore_surface(
 	return true
 
 
-func _is_restorable_record(record: Variant, seen: Array[String]) -> bool:
+func _is_restorable_record(record: Variant, seen: Array[String], size: int) -> bool:
 	if not (record is Dictionary):
 		return false
 	var raider_id := String(record.get("raider_id", ""))
 	var index := raider_index_of(raider_id) if raider_id.begins_with(RAIDER_ID_PREFIX) else -1
-	if index < 0 or index >= RAIDER_COUNT or raider_id != raider_id_of(index):
+	if index < 0 or index >= size or raider_id != raider_id_of(index):
 		return false
 	if seen.has(raider_id):
 		return false

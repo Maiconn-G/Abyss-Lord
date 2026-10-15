@@ -442,7 +442,7 @@ func _test_scope_guards() -> void:
 	# versão corrente para 3 e acrescentou a rota V2→V3; a rota V1→V2 da T20 continua nomeada
 	# e intacta — a corrente é histórica, não reescrita.
 	var snapshot_code := _code_of(SNAPSHOT_SOURCE)
-	for required in ["const SAVE_VERSION := 6", "const SAVE_VERSION_V1 := 1",
+	for required in ["const SAVE_VERSION := 7", "const SAVE_VERSION_V1 := 1",
 			"const SAVE_VERSION_V2 := 2",
 			"static func validate_v1(", "static func validate_v2(",
 			"static func migrate_v1_to_v2(", "static func migrate_to_current("]:
